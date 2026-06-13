@@ -66,6 +66,7 @@ def _construir_mensaje(placa_detectada: str, info: dict) -> str:
         f"\n"
         f"⚠️ *¡TENGA MUCHO CUIDADO!*\n"
         f"NO confronte al conductor. Llame a las autoridades al *911* de inmediato.\n"
+        f"🔍 *Verificación humana requerida:* Compare visualmente la foto adjunta con el vehículo detectado antes de actuar (existe un pequeño margen de error en la lectura de caracteres del OCR).\n"
         f"\n"
         f"📸 Se adjuntan imágenes del vehículo y de la placa."
     )
