@@ -1,14 +1,12 @@
-# Portafolio de Evidencias: Proyecto "AlertaVecinal"
+# Documentación Técnica: Proyecto "AlertaVecinal"
 ## Sistema de Vigilancia Inteligente para la Detección y Seguimiento de Vehículos Robados
 
 ---
 
 ### **Datos Generales**
-* **Institución:** Universidad de Las Palmas de Gran Canaria (ULPGC)
-* **Asignatura:** Visión por Computador (VC)
-* **Evidencia de Aprendizaje:** Portafolio de Evidencias (Reporte Técnico de Planificación)
 * **Proyecto:** AlertaVecinal (Reconocimiento Automático de Matrículas - ALPR)
-* **Fecha de Planificación:** Junio 2026
+* **Autor:** Abdiel2501
+* **Fecha:** Junio 2026
 * **Estado del Proyecto:** Prototipo Funcional Integrado
 
 ---
@@ -25,7 +23,7 @@ El proyecto **AlertaVecinal** aborda esta necesidad mediante el desarrollo de un
 5. Notificar de manera inmediata a los usuarios de la comunidad a través de canales de mensajería populares como **Telegram** y **WhatsApp**, adjuntando evidencias fotográficas del vehículo y de la placa detectada.
 6. Ofrecer una interfaz móvil de administración y streaming en vivo basada en **Flutter** y una landing page **Web** para facilitar la vinculación del bot de alertas.
 
-Este portafolio de evidencias detalla la planeación, organización, recursos, roles y arquitectura que hicieron posible la concepción e implementación de este prototipo.
+Este documento técnico detalla la planeación, organización, recursos, roles y arquitectura que hicieron posible la concepción e implementación de este prototipo.
 
 ---
 
@@ -35,7 +33,7 @@ Para la planificación y ejecución de **AlertaVecinal**, se seleccionó una met
 
 ### **Justificación**
 * **Kanban** se adapta perfectamente a las fases de desarrollo de software y experimentación de IA. Al ser un equipo pequeño, permite limitar el trabajo en progreso (*Work in Progress - WIP*), detectar cuellos de botella (por ejemplo, en el proceso de anotación y entrenamiento del modelo de matrículas) y priorizar la refactorización rápida de los módulos de hardware-software.
-* El **Diagrama de Gantt** proporciona una línea de tiempo clara con hitos clave para cumplir con las fechas de entrega académicas, asegurando que las dependencias críticas (como tener entrenado el detector de matrículas antes de integrarlo en el servidor de IA) se completen en el orden correcto.
+* El **Diagrama de Gantt** proporciona una línea de tiempo clara con hitos clave para cumplir con las fechas del cronograma de desarrollo, asegurando que las dependencias críticas (como tener entrenado el detector de matrículas antes de integrarlo en el servidor de IA) se completen en el orden correcto.
 
 ### **Ejemplo Visual: Tablero Kanban del Proyecto**
 
@@ -67,7 +65,7 @@ gantt
     Landing Page Web de vinculación : p4_2, after p4_1, 3d
     section Fase 5: Cierre
     Pruebas integrales de campo y estrés : p5_1, after p4_2, 5d
-    Documentación y entrega del portafolio : p5_2, after p5_1, 4d
+    Documentación final y cierre de versión : p5_2, after p5_1, 4d
 ```
 
 ---
@@ -102,7 +100,7 @@ El proyecto abarca los siguientes entregables y fronteras:
   * **Modelos de IA entrenados:** Archivo de pesos `best.pt` resultante del reentrenamiento del detector de matrículas.
 * **Fronteras del Proyecto:**
   * El sistema opera a nivel de red de área local (LAN) para el streaming de video mediante WebSockets, garantizando privacidad y baja latencia, pero utiliza salida a internet de forma exclusiva para interactuar con las APIs de Telegram y Twilio (WhatsApp).
-  * La base de datos se mantiene local mediante SQLite por simplicidad académica y para evitar costos de hosting de base de datos relacionales en la nube.
+  * La base de datos se mantiene local mediante SQLite por simplicidad técnica y para evitar costos de hosting de base de datos relacionales en la nube.
 
 ### **Limitaciones**
 * **Hardware Requerido:** El procesamiento continuo a tiempo real de dos modelos de redes neuronales convolucionales y un motor de OCR exige idealmente una tarjeta gráfica dedicada NVIDIA compatible con CUDA. En sistemas CPU, el rendimiento decae, forzando saltos de fotogramas que podrían omitir vehículos en velocidades muy altas.
@@ -253,8 +251,8 @@ stateDiagram-v2
 * **Responsable Principal:** Gerente de Proyecto / Especialista en IA.
 * **Tareas Clave:**
   * Exportar el video resultante del procesamiento con las cajas delimitadoras y etiquetas incrustadas (`output_video.mp4` / `result.gif`).
-  * Generar y validar el archivo CSV de registro de detecciones (`detection_tracking_log.csv`) cumpliendo con las especificaciones del formato académico.
-  * Compilar el manual de instalación, el archivo de dependencias `requirements_server.txt` y redactar las conclusiones de la práctica.
+  * Generar y validar el archivo CSV de registro de detecciones (`detection_tracking_log.csv`) cumpliendo con las especificaciones del formato de salida requerido.
+  * Compilar el manual de instalación, el archivo de dependencias `requirements_server.txt` y redactar las conclusiones técnicas.
 
 ---
 
@@ -327,7 +325,7 @@ El cronograma del proyecto de desarrollo se estructuró a lo largo de un ciclo d
 | **A10**| Landing Page Web y Enlace de Bot | Día 30 | Día 32 | 3 | Frontend | Web con Toast integrado |
 | **A11**| Pruebas Unitarias, Integrales y Ajuste de Confianza | Día 31 | Día 33 | 3 | QA / Todo | Tasa de lectura >90% verificada |
 | **A12**| Generación de Video de Test y CSV de Salida | Día 33 | Día 34 | 2 | Todo | Video `output_video.mp4` listo |
-| **A13**| Documentación Final y Reporte de Portafolio | Día 34 | Día 35 | 2 | PM | Reporte Entregado en GitHub |
+| **A13**| Documentación Final y Reporte de Entrega | Día 34 | Día 35 | 2 | PM | Reporte Entregado en GitHub |
 
 ### **Hitos Clave del Cronograma**
 1. **Hito 1: Entrenamiento Completado (Día 17):** Obtención exitosa del modelo `best.pt` con métricas de pérdida decrecientes y curvas de precisión-recall estables.

@@ -1,9 +1,8 @@
-# Portafolio de Evidencias: Planificación del Proyecto "YOLO Plate Recognition"
+# Planificación del Proyecto "YOLO Plate Recognition"
 
-**Asignatura:** Planeación y Gestión de Proyectos de Software  
-**Estudiante:** [Tu Nombre Completo]  
-**Docente:** [Nombre del Docente]  
-**Fecha de Entrega:** 9 de junio de 2026  
+**Proyecto:** YOLO Plate Recognition (AlertaVecinal)  
+**Autor:** Abdiel2501  
+**Estado del Proyecto:** Prototipo Funcional Integrado  
 
 ---
 
