@@ -1,0 +1,10 @@
+# Dependencias existentes del proyecto (sin cambios)
+# ultralytics, easyocr, opencv-python, torch, python-dotenv, requests, Pillow
+
+# Nuevas dependencias para el Servidor IA de Red Local
+fastapi>=0.111.0
+uvicorn[standard]>=0.30.0
+websockets>=12.0
+zeroconf>=0.132.0
+
+mss>=9.0.0

@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Presentación Técnica: Motor de IA y Librerías</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;800&family=Plus+Jakarta+Sans:wght@400;700&display=swap" rel="stylesheet">
+    
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        :root {
+            --bg-color: #ffffff;
+            --card-bg: #ffffff;
+            --border-color: #000000;
+            --text-main: #000000;
+            --text-secondary: #222222;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Top Progress Bar */
+        .progress-container {
+            width: 100%;
+            height: 8px;
+            background-color: #f1f5f9;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 100;
+        }
+
+        .progress-bar {
+            height: 100%;
+            width: 0%;
+            background-color: var(--text-main);
+            transition: width 0.3s ease;
+        }
+
+        /* App Layout (No Sidebar) */
+        .app-container {
+            display: flex;
+            flex: 1;
+            height: 100vh;
+            position: relative;
+            width: 100vw;
+        }
+
+        /* Slide Viewer Area */
+        .viewer-container {
+            flex: 1;
+            padding: 2.5rem;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            background-color: #ffffff;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+        }
+
+        .slides-wrapper {
+            position: relative;
+            width: 100%;
+            height: calc(100vh - 170px);
+            overflow: hidden;
+            perspective: 1200px;
+        }
+
+        .slide {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            
+            /* Animación de deslizamiento y rotación 3D */
+            transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), 
+                        opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+                        visibility 0.6s;
+        }
+
+        /* Estados de transición */
+        .slide.slide-next {
+            transform: translateX(150px) rotateY(-8deg);
+        }
+
+        .slide.slide-prev {
+            transform: translateX(-150px) rotateY(8deg);
+        }
+
+        .slide.active {
+            opacity: 1;
+            visibility: visible;
+            pointer-events: auto;
+            transform: translateX(0) rotateY(0deg);
+        }
+
+        /* Slide Layout elements */
+        .slide-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 3.4rem;
+            font-weight: 800;
+            margin-bottom: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 1.2rem;
+            color: #000000;
+            text-transform: uppercase;
+            flex-shrink: 0;
+        }
+
+        .slide-title i {
+            color: #000000;
+        }
+
+        .slide-content {
+            flex: 1;
+            display: grid;
+            gap: 1.8rem;
+            overflow: hidden;
+            align-content: stretch;
+        }
+
+        /* Grid Layouts */
+        .grid-2 {
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .card-bordered {
+            background: #ffffff;
+            border: 3px solid #000000;
+            border-radius: 16px;
+            padding: 1.5rem;
+            position: relative;
+            box-shadow: 6px 6px 0px #000000;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            overflow: hidden;
+        }
+
+        /* Typography - ENHANCED FONT SIZES */
+        h3 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 2.2rem;
+            margin-bottom: 0.6rem;
+            color: #000000;
+            font-weight: 800;
+            text-transform: uppercase;
+            border-bottom: 3px solid #000000;
+            padding-bottom: 0.3rem;
+            flex-shrink: 0;
+        }
+
+        p {
+            font-size: 1.7rem;
+            line-height: 1.45;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .slide-content ul {
+            list-style: none;
+        }
+
+        .slide-content li {
+            font-size: 1.65rem;
+            line-height: 1.45;
+            color: var(--text-secondary);
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            position: relative;
+            padding-left: 2rem;
+        }
+
+        .slide-content li::before {
+            content: '■';
+            position: absolute;
+            left: 0;
+            color: #000000;
+            font-size: 1.4rem;
+        }
+
+        /* Technical explanation box */
+        .tech-explain-box {
+            background-color: #f8fafc;
+            border: 2px dashed #000000;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-top: 0.5rem;
+            flex-shrink: 0;
+        }
+
+        .tech-explain-box strong {
+            color: #000000;
+            display: block;
+            margin-bottom: 0.1rem;
+            font-weight: 800;
+            font-size: 1.3rem;
+            text-transform: uppercase;
+        }
+
+        .tech-explain-box p {
+            margin-bottom: 0;
+            font-size: 1.55rem;
+            line-height: 1.4;
+            color: #111111;
+        }
+
+        /* Visual elements for filling empty card space */
+        .vis-badge-row {
+            display: flex;
+            gap: 0.8rem;
+            flex-wrap: wrap;
+            margin-top: 1rem;
+            flex-shrink: 0;
+        }
+
+        .vis-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            border: 3px solid #000000;
+            border-radius: 8px;
+            font-weight: 800;
+            font-size: 1.3rem;
+            background-color: #ffffff;
+            box-shadow: 3px 3px 0px #000000;
+        }
+
+        .vis-badge i {
+            font-size: 1.4rem;
+        }
+
+        /* Navigation controls container */
+        .footer-controls-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            margin-top: 1rem;
+            border-top: 3px solid #000000;
+            padding-top: 1rem;
+            flex-shrink: 0;
+        }
+
+        /* Dot Indicators */
+        .dots-container {
+            display: flex;
+            gap: 0.8rem;
+        }
+
+        .dot-indicator {
+            width: 14px;
+            height: 14px;
+            border: 3px solid #000000;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background-color: #ffffff;
+        }
+
+        .dot-indicator.active {
+            background-color: #000000;
+            transform: scale(1.25);
+        }
+
+        .controls {
+            display: flex;
+            gap: 1.2rem;
+            align-items: center;
+        }
+
+        .control-btn {
+            background: #ffffff;
+            border: 3px solid #000000;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #000000;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 3px 3px 0px #000000;
+            font-size: 1.1rem;
+        }
+
+        .control-btn:hover {
+            background: #000000;
+            color: white;
+            box-shadow: 0px 0px 0px #000000;
+            transform: translate(3px, 3px);
+        }
+
+        .slide-counter {
+            font-size: 1.1rem;
+            color: #000000;
+            font-weight: 800;
+            background: #ffffff;
+            padding: 0.5rem 1.2rem;
+            border: 3px solid #000000;
+            border-radius: 20px;
+            min-width: 80px;
+            text-align: center;
+        }
+
+        pre {
+            background: #f8fafc;
+            border: 2px solid #000000;
+            border-radius: 8px;
+            padding: 0.8rem;
+            overflow: hidden;
+            font-family: monospace;
+            font-size: 1.2rem;
+            color: #000000;
+            margin-top: 0.5rem;
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- Top Progress Bar -->
+    <div class="progress-container">
+        <div class="progress-bar" id="progressBar"></div>
+    </div>
+
+    <div class="app-container">
+        <!-- Slide Viewer -->
+        <main class="viewer-container">
+            <div class="slides-wrapper" id="slidesWrapper">
+
+                <!-- SLIDE 1: Portada -->
+                <section class="slide active" data-title="Inicio" data-icon="fa-solid fa-play">
+                    <div class="cover-container" style="display: flex; flex-direction: column; justify-content: center; height: 100%;">
+                        <div class="cover-tag" style="margin-bottom: 0.5rem; font-weight: 800; font-size: 1.3rem; letter-spacing: 2px;">
+                            <i class="fa-solid fa-shield-halved"></i> Explicación Técnica de Código
+                        </div>
+                        <h1 class="cover-title" style="font-size: 4.8rem; margin-bottom: 0.8rem; line-height: 1.1;">SISTEMA DE DETECCIÓN Y RECONOCIMIENTO</h1>
+                        <p class="cover-subtitle" style="font-size: 1.8rem; margin-bottom: 1.5rem; color: #333333;">
+                            ¿Cómo funciona nuestro código, qué librerías utilizamos y por qué tomamos cada decisión de ingeniería?
+                        </p>
+                        <div class="cover-meta" style="gap: 4rem;">
+                            <div class="meta-item">
+                                <span class="meta-label">Servidor</span>
+                                <span class="meta-value" style="font-size: 1.7rem;">Python Backend</span>
+                            </div>
+                            <div class="meta-item">
+                                <span class="meta-label">Cliente</span>
+                                <span class="meta-value" style="font-size: 1.7rem;">Flutter UI</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- SLIDE 2: Servidor de Red local (FastAPI, WebSockets y Base64) -->
+                <section class="slide slide-next" data-title="Servidor & WebSockets" data-icon="fa-solid fa-server">
+                    <h2 class="slide-title"><i class="fa-solid fa-server"></i> <span>El Servidor de Red</span></h2>
+                    <div class="slide-content grid-2">
+                        <div class="card-bordered">
+                            <div>
+                                <h3>Librerías: fastapi, websockets</h3>
+                                <ul>
+                                    <li><strong>FastAPI / Sockets:</strong> Servidor para endpoints y sockets.</li>
+                                    <li><strong>WebSockets:</strong> Conexión abierta para video en tiempo real.</li>
+                                </ul>
+                            </div>
+                            <div class="tech-explain-box">
+                                <strong>¿Qué es Base64?</strong>
+                                <p>Codificación que convierte fotos JPEG binarias a texto. Permite enviar el video dentro de mensajes JSON normales por WebSocket.</p>
+                            </div>
+                        </div>
+                        <div class="card-bordered">
+                            <div>
+                                <h3>Código en servidor_ia.py</h3>
+                                <p>Codificación a texto y envío de fotograma en tiempo real:</p>
+                            </div>
+                            <pre><code>b64_str = base64.b64encode(jpeg).decode(<span class="string">"ascii"</span>)
+payload = {
+    <span class="string">"type"</span>: <span class="string">"fotograma"</span>,
+    <span class="string">"data"</span>: b64_str
+}
+<span class="keyword">await</span> cliente.send_text(json.dumps(payload))</code></pre>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- SLIDE 3: Auto-conexión con mDNS (Zeroconf) -->
+                <section class="slide slide-next" data-title="Auto-Conexión" data-icon="fa-solid fa-wifi">
+                    <h2 class="slide-title"><i class="fa-solid fa-wifi"></i> <span>Auto-Descubrimiento</span></h2>
+                    <div class="slide-content grid-2">
+                        <div class="card-bordered">
+                            <div>
+                                <h3>Librería: zeroconf (mDNS)</h3>
+                                <ul>
+                                    <li><strong>mDNS:</strong> Resuelve nombres de host de forma local.</li>
+                                    <li><strong>Auto-conexión:</strong> El servidor se anuncia y la app Flutter se conecta sola sin configurar IPs.</li>
+                                </ul>
+                            </div>
+                            <div class="tech-explain-box">
+                                <strong>¿Por qué lo usamos?</strong>
+                                <p>Evita ingresar la IP local del servidor a mano. Las IPs cambian cada vez que se reinicia el router local.</p>
+                            </div>
+                        </div>
+                        <div class="card-bordered">
+                            <div>
+                                <h3>Anuncio en Código</h3>
+                                <p>Registro del servicio local al inicializar la red:</p>
+                            </div>
+                            <pre><code>info = ServiceInfo(
+    <span class="string">"_alertavecinal._tcp.local."</span>,
+    <span class="string">"ServidorIA._alertavecinal..."</span>,
+    addresses=[ip_local],
+    port=8765
+)
+zeroconf.register_service(info)</code></pre>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- SLIDE 4: Detección Inteligente (YOLOv11 y PyTorch) -->
+                <section class="slide slide-next" data-title="IA YOLOv11" data-icon="fa-solid fa-brain">
+                    <h2 class="slide-title"><i class="fa-solid fa-brain"></i> <span>Detección con YOLOv11</span></h2>
+                    <div class="slide-content grid-2">
+                        <div class="card-bordered">
+                            <div>
+                                <h3>Librerías: ultralytics, torch</h3>
+                                <ul>
+                                    <li><strong>YOLOv11:</strong> Detecta objetos en milisegundos.</li>
+                                    <li><strong>Fases:</strong> Rastrear vehículos y detectar matrículas sólo dentro del recorte del auto.</li>
+                                </ul>
+                            </div>
+                            <div class="tech-explain-box">
+                                <strong>¿Por qué se requiere GPU (CUDA)?</strong>
+                                <p>Ejecuta la IA a 30-60 FPS de forma fluida. Correr en CPU ralentizaría el sistema a solo 2 FPS.</p>
+                            </div>
+                        </div>
+                        <div class="card-bordered">
+                            <div>
+                                <h3>Código de Rastreo</h3>
+                                <p>Detector ejecutado en el bucle principal:</p>
+                            </div>
+                            <pre><code>res_v = modelo_vehiculos.track(frame)
+roi_auto = frame[y1:y2, x1:x2]
+
+<span class="comment"># Buscar placa en la región del auto</span>
+res_p = modelo_placas(roi_auto)</code></pre>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- SLIDE 5: Lectura de Letras de la Placa (EasyOCR) -->
+                <section class="slide slide-next" data-title="Lector OCR" data-icon="fa-solid fa-keyboard">
+                    <h2 class="slide-title"><i class="fa-solid fa-keyboard"></i> <span>Lectura de Matrículas</span></h2>
+                    <div class="slide-content grid-2">
+                        <div class="card-bordered">
+                            <div>
+                                <h3>Librería: easyocr</h3>
+                                <ul>
+                                    <li><strong>EasyOCR:</strong> Traduce caracteres visuales a texto digital.</li>
+                                    <li><strong>Allowlist:</strong> Limita a letras A-Z y números, ignorando tornillos o marcas de placa.</li>
+                                </ul>
+                            </div>
+                            <div class="tech-explain-box">
+                                <strong>¿Por qué usar subprocesos (ThreadPool)?</strong>
+                                <p>El OCR tarda ~100ms. Ejecutarlo en segundo plano mantiene la transmisión de video fluida.</p>
+                            </div>
+                        </div>
+                        <div class="card-bordered">
+                            <div>
+                                <h3>Lógica del OCR Asíncrono</h3>
+                                <p>Análisis en segundo plano de forma no bloqueante:</p>
+                            </div>
+                            <pre><code><span class="comment"># Enviar tarea OCR a pool de hilos</span>
+ejecutor = ThreadPoolExecutor(max_workers=<span class="number">2</span>)
+ejecutor.submit(_ocr_task, id_r, img_placa)</code></pre>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- SLIDE 6: Preparación de Imagen (OpenCV Básico) -->
+                <section class="slide slide-next" data-title="OpenCV Limpieza" data-icon="fa-solid fa-filter">
+                    <h2 class="slide-title"><i class="fa-solid fa-filter"></i> <span>Preprocesamiento de Imagen</span></h2>
+                    <div class="slide-content grid-2">
+                        <div class="card-bordered">
+                            <div>
+                                <h3>Librería: opencv-python</h3>
+                                <p>OpenCV optimiza la placa para que el OCR no falle:</p>
+                                <ul>
+                                    <li><strong>Escalado (`cv2.resize`):</strong> Forzamos altura de 100 píxeles para estandarizar caracteres.</li>
+                                    <li><strong>Grayscale (`cv2.cvtColor`):</strong> Descarta colores para reducir datos y ahorrar procesamiento.</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="card-bordered">
+                            <div>
+                                <h3>Implementación OpenCV</h3>
+                                <p>Normalización de tamaño y canales de color:</p>
+                            </div>
+                            <pre><code>scale = <span class="number">100.0</span> / plate_height
+resized = cv2.resize(roi_placa, <span class="keyword">None</span>, 
+    fx=scale, fy=scale, 
+    interpolation=cv2.INTER_LANCZOS4)
+
+gray = cv2.cvtColor(resized, cv2.COLOR_BGR2GRAY)</code></pre>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- SLIDE 7: OpenCV Avanzado (CLAHE y Umbral Adaptativo) -->
+                <section class="slide slide-next" data-title="Filtros OpenCV" data-icon="fa-solid fa-wand-magic-sparkles">
+                    <h2 class="slide-title"><i class="fa-solid fa-wand-magic-sparkles"></i> <span>Filtros Avanzados OpenCV</span></h2>
+                    <div class="slide-content grid-2">
+                        <div class="card-bordered">
+                            <div>
+                                <h3>CLAHE & Umbral Adaptativo</h3>
+                                <ul>
+                                    <li><strong>CLAHE:</strong> Ecualiza contraste por zonas para resaltar letras bajo brillos.</li>
+                                    <li><strong>Umbral Adaptativo:</strong> Convierte a blanco y negro absoluto adaptando la luz de cada zona.</li>
+                                </ul>
+                            </div>
+                            <div class="tech-explain-box">
+                                <strong>¿Por qué Umbral Adaptativo?</strong>
+                                <p>Un umbral fijo falla ante sombras. El adaptativo calcula cortes de binarización por píxel según sus vecinos.</p>
+                            </div>
+                        </div>
+                        <div class="card-bordered">
+                            <div>
+                                <h3>Lógica OpenCV</h3>
+                                <p>Ecualización y binarización inversa:</p>
+                            </div>
+                            <pre><code>clahe = cv2.createCLAHE(clipLimit=<span class="number">2.0</span>)
+contrast = clahe.apply(gray_plate)
+
+thresh = cv2.adaptiveThreshold(contrast, <span class="number">255</span>,
+    cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+    cv2.THRESH_BINARY_INV, <span class="number">11</span>, <span class="number">2</span>)</code></pre>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- SLIDE 8: SQLite y Búsqueda Difusa (`difflib`) -->
+                <section class="slide slide-next" data-title="Base de Datos" data-icon="fa-solid fa-database">
+                    <h2 class="slide-title"><i class="fa-solid fa-database"></i> <span>Base de Datos y Búsqueda Difusa</span></h2>
+                    <div class="slide-content grid-2">
+                        <div class="card-bordered">
+                            <div>
+                                <h3>Librerías: sqlite3, difflib</h3>
+                                <ul>
+                                    <li><strong>SQLite (`database.py`):</strong> Almacén de placas reportadas e historial local de alertas.</li>
+                                    <li><strong>difflib:</strong> Compara el parecido de textos.</li>
+                                </ul>
+                            </div>
+                            <div class="tech-explain-box">
+                                <strong>¿Por qué usar Búsqueda Difusa?</strong>
+                                <p>Si el OCR lee mal un carácter (ej. 'B' por '8'), detecta similitud > 80% y dispara la alerta vecinal.</p>
+                            </div>
+                        </div>
+                        <div class="card-bordered">
+                            <div>
+                                <h3>Código de Comparación Difusa</h3>
+                                <p>Cálculo de similitud aproximada contra la BD:</p>
+                            </div>
+                            <pre><code>sim = difflib.SequenceMatcher(<span class="keyword">None</span>, 
+    texto_detectado, placa_bd).ratio()
+
+<span class="keyword">if</span> sim >= <span class="number">0.80</span>:
+    registrar_alerta_robo()</code></pre>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- SLIDE 9: Canales de Alerta, Privacidad y MSS Screen Capture -->
+                <section class="slide slide-next" data-title="Alertas & Extras" data-icon="fa-solid fa-bell">
+                    <h2 class="slide-title"><i class="fa-solid fa-bell"></i> <span>Alertas, Privacidad y MSS</span></h2>
+                    <div class="slide-content grid-2">
+                        <div class="card-bordered">
+                            <div>
+                                <h3>Alertas: telegram, twilio | Captura: mss</h3>
+                                <ul>
+                                    <li><strong>Alertas de Red:</strong> Telegram y WhatsApp se envían asíncronamente en subprocesos.</li>
+                                    <li><strong>Blur Gaussiano:</strong> Difumina rostros y placas por privacidad.</li>
+                                    <li><strong>MSS:</strong> Captura pantalla si no hay stream directo.</li>
+                                </ul>
+                            </div>
+                            <div class="tech-explain-box">
+                                <strong>¿Por qué van en subprocesos?</strong>
+                                <p>Subir fotos tarda 1-3s. Hacerlo en segundo plano evita congelar el video en tiempo real.</p>
+                            </div>
+                        </div>
+                        <div class="card-bordered" style="justify-content: flex-start; gap: 0.8rem;">
+                            <div class="vis-badge-row">
+                                <span class="vis-badge"><i class="fab fa-telegram"></i> Telegram Bot</span>
+                                <span class="vis-badge"><i class="fab fa-whatsapp"></i> Twilio WA</span>
+                                <span class="vis-badge"><i class="fas fa-eye-slash"></i> Gauss Blur</span>
+                                <span class="vis-badge"><i class="fas fa-desktop"></i> MSS Captura</span>
+                            </div>
+                            <div class="tech-explain-box" style="margin-top: 0.5rem; border-left-color: var(--text-main);">
+                                <strong>¿Qué hace MSS en "YI IOT"?</strong>
+                                <p>Captura los fotogramas directamente de la ventana del software oficial de Windows a alta velocidad.</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- SLIDE 10: Requisitos de la Aplicación de PC -->
+                <section class="slide slide-next" data-title="Requisitos PC" data-icon="fa-solid fa-circle-info">
+                    <h2 class="slide-title"><i class="fa-solid fa-circle-info"></i> <span>Requisitos de la App de PC</span></h2>
+                    <div class="slide-content grid-2">
+                        <div class="card-bordered">
+                            <div>
+                                <h3>Requisitos de Software</h3>
+                                <ul>
+                                    <li><strong>SO:</strong> Windows 10 u 11 de 64 bits.</li>
+                                    <li><strong>Entorno:</strong> Python versión 3.10 o superior.</li>
+                                    <li><strong>Base de datos:</strong> SQLite integrado en Python.</li>
+                                    <li><strong>Soporte:</strong> Controladores actualizados para GPU.</li>
+                                </ul>
+                            </div>
+                            <div class="vis-badge-row">
+                                <span class="vis-badge"><i class="fab fa-windows"></i> Win 10/11</span>
+                                <span class="vis-badge"><i class="fab fa-python"></i> Python 3.10+</span>
+                                <span class="vis-badge"><i class="fas fa-database"></i> SQLite</span>
+                            </div>
+                        </div>
+                        <div class="card-bordered">
+                            <div>
+                                <h3>Requisitos de Hardware</h3>
+                                <ul>
+                                    <li><strong>CPU:</strong> Intel i5 o AMD Ryzen 5 (mínimo 4 núcleos).</li>
+                                    <li><strong>RAM:</strong> 8 GB mínimo (se recomiendan 16 GB).</li>
+                                    <li><strong>GPU:</strong> Dedicada con CUDA para tiempo real.</li>
+                                    <li><strong>Video:</strong> Cámara USB, RTSP de cámara IP o captura.</li>
+                                </ul>
+                            </div>
+                            <div class="vis-badge-row">
+                                <span class="vis-badge"><i class="fas fa-microchip"></i> Core i5/Ryzen5</span>
+                                <span class="vis-badge"><i class="fas fa-memory"></i> 8GB/16GB RAM</span>
+                                <span class="vis-badge"><i class="fas fa-video"></i> USB/RTSP/Capture</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+            </div>
+
+            <!-- Footer Controls Container -->
+            <div class="footer-controls-container">
+                <!-- Dot indicators -->
+                <div class="dots-container" id="dotsContainer">
+                    <!-- Generados dinámicamente -->
+                </div>
+                
+                <!-- Navigation controls -->
+                <div class="controls">
+                    <button class="control-btn" id="prevBtn" onclick="prevSlide()"><i class="fa-solid fa-chevron-left"></i></button>
+                    <div class="slide-counter" id="slideCounter">1 / 10</div>
+                    <button class="control-btn" id="nextBtn" onclick="nextSlide()"><i class="fa-solid fa-chevron-right"></i></button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Slides Management
+        const slides = document.querySelectorAll('.slide');
+        const dotsContainer = document.getElementById('dotsContainer');
+        const progressBar = document.getElementById('progressBar');
+        const slideCounter = document.getElementById('slideCounter');
+        let currentSlideIndex = 0;
+
+        // Initialize dot navigation indicators
+        function initDots() {
+            dotsContainer.innerHTML = '';
+            slides.forEach((slide, index) => {
+                const dot = document.createElement('div');
+                dot.className = `dot-indicator ${index === 0 ? 'active' : ''}`;
+                dot.addEventListener('click', () => goToSlide(index));
+                dotsContainer.appendChild(dot);
+            });
+            updateProgressBar();
+        }
+
+        function updateProgressBar() {
+            const percentage = ((currentSlideIndex + 1) / slides.length) * 100;
+            progressBar.style.width = `${percentage}%`;
+            slideCounter.textContent = `${currentSlideIndex + 1} / ${slides.length}`;
+            
+            // Update active state in dots
+            const dots = document.querySelectorAll('.dot-indicator');
+            dots.forEach((dot, index) => {
+                if (index === currentSlideIndex) {
+                    dot.classList.add('active');
+                } else {
+                    dot.classList.remove('active');
+                }
+            });
+        }
+
+        function goToSlide(index) {
+            if (index < 0 || index >= slides.length) return;
+            
+            slides.forEach((slide, idx) => {
+                slide.classList.remove('active', 'slide-next', 'slide-prev');
+                
+                if (idx === index) {
+                    slide.classList.add('active');
+                } else if (idx < index) {
+                    slide.classList.add('slide-prev');
+                } else {
+                    slide.classList.add('slide-next');
+                }
+            });
+
+            currentSlideIndex = index;
+            updateProgressBar();
+        }
+
+        // Navigation triggers
+        function nextSlide() {
+            if (currentSlideIndex < slides.length - 1) {
+                goToSlide(currentSlideIndex + 1);
+            }
+        }
+
+        function prevSlide() {
+            if (currentSlideIndex > 0) {
+                goToSlide(currentSlideIndex - 1);
+            }
+        }
+
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' || e.key === 'Space') {
+                nextSlide();
+            } else if (e.key === 'ArrowLeft') {
+                prevSlide();
+            }
+        });
+
+        // Initialize presentation
+        window.addEventListener('DOMContentLoaded', () => {
+            initDots();
+        });
+    </script>
+</body>
+</html>

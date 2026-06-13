@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Vigilancia Inteligente</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="background-animation">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+    </div>
+
+    <main class="glass-container">
+        <header>
+            <div class="logo-icon">🛡️</div>
+            <h1>Vigilancia Inteligente</h1>
+            <p class="subtitle">Detector automático de vehículos robados</p>
+        </header>
+
+        <section class="content">
+            <p class="description">Conéctate al sistema para recibir alertas instantáneas en tu celular. Cada vez que nuestra cámara detecte una placa sospechosa, te enviaremos la foto del vehículo y sus detalles directamente a tu Telegram.</p>
+            
+            <div class="features">
+                <div class="feature-item">
+                    <span class="f-icon">📸</span>
+                    <span>Fotos en tiempo real</span>
+                </div>
+                <div class="feature-item">
+                    <span class="f-icon">⚡</span>
+                    <span>Alertas ultrarrápidas</span>
+                </div>
+                <div class="feature-item">
+                    <span class="f-icon">🔒</span>
+                    <span>Privacidad garantizada</span>
+                </div>
+            </div>
+
+            <button id="connectBtn" class="cta-button">
+                <span class="btn-icon">💬</span>
+                Vincular mi Telegram
+            </button>
+            
+            <p class="hint">Al hacer clic, se abrirá tu aplicación de Telegram. ¡Solo dale a <b>Iniciar</b>!</p>
+        </section>
+
+        <!-- Hidden Success Toast -->
+        <div id="toast" class="toast hidden">
+            <div class="toast-content">
+                <span class="toast-icon">🚀</span>
+                <div>
+                    <strong>¡Abriendo Telegram!</strong>
+                    <p>Por favor, presiona "Iniciar" en el chat.</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="app.js"></script>
+</body>
+</html>

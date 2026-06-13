@@ -1,0 +1,15 @@
+.DS_Store
+C0142.MP4
+output_video.mp4
+
+# Credenciales y datos locales — NO subir al repositorio
+config.env
+placas_robadas.db
+alertas/
+
+# PyInstaller / Python build output
+__pycache__/
+build/
+dist/
+*.spec
+
