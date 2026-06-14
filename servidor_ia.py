@@ -242,16 +242,25 @@ async def _procesar_comando(socket_cliente: WebSocket, datos_crudos: str):
 
 
 async def _difundir_fotograma(bytes_fotograma: bytes):
-    """Envía el fotograma procesado a TODOS los clientes conectados en paralelo."""
+    """Envía el fotograma procesado a TODOS los clientes conectados como bytes binarios.
+    
+    Protocolo binario: los primeros 4 bytes son un header JSON codificado en UTF-8
+    cuyo tamaño está dado por los primeros 4 bytes (uint32 big-endian).
+    El resto son los bytes JPEG crudos.
+    
+    Para compatibilidad simple, usamos un prefijo JSON de longitud fija:
+    - Primero se envía un frame JSON con metadata (fps, clients)
+    - Luego los bytes JPEG crudos directamente como mensaje binario
+    """
     if not estado.clientes:
         return
 
-    b64 = base64.b64encode(bytes_fotograma).decode("ascii")
-    carga_util_datos = json.dumps({
-        "type": "fotograma",
-        "data": b64,
+    # Enviar metadatos como JSON de texto
+    meta = json.dumps({
+        "type": "frame_meta",
         "fps": round(estado.fps_actual, 1),
         "clients": len(estado.clientes),
+        "size": len(bytes_fotograma),
     })
 
     async with estado.bloqueo_clientes:
@@ -260,7 +269,10 @@ async def _difundir_fotograma(bytes_fotograma: bytes):
     muertos = []
     for socket_cliente in instantanea_clientes:
         try:
-            await socket_cliente.send_text(carga_util_datos)
+            # Enviar metadatos
+            await socket_cliente.send_text(meta)
+            # Enviar frame JPEG como bytes binarios (sin base64 — mucho más rápido)
+            await socket_cliente.send_bytes(bytes_fotograma)
         except Exception:
             muertos.append(socket_cliente)
 
@@ -989,6 +1001,7 @@ if __name__ == "__main__":
             host="0.0.0.0",
             port=SERVER_PORT,
             log_level="warning",  # Solo errores en consola — el hilo de IA imprime lo importante
+            ws_max_size=64 * 1024 * 1024,  # 64 MB — necesario para frames JPEG en Base64
         )
     finally:
         if zc and zc_info:

@@ -27,16 +27,10 @@ class _SplashScreenState extends State<SplashScreen> {
     final hasSession = await provider.verificarSesionActiva();
     if (!mounted) return;
     if (hasSession) {
-      // Iniciar conexión al servidor en paralelo mientras navegamos
+      // Iniciar conexión al servidor en paralelo mientras navegamos directamente al dashboard
       final serverSvc = Provider.of<ServerConnectionService>(context, listen: false);
       serverSvc.initialize(); // No-await: se conecta en segundo plano
-      // Si ya tiene IP guardada y se conecta rápido, ir al dashboard directo
-      // Si no, /server screen gestiona el descubrimiento
-      if (serverSvc.serverIp.isNotEmpty) {
-        Navigator.pushReplacementNamed(context, '/dashboard');
-      } else {
-        Navigator.pushReplacementNamed(context, '/server');
-      }
+      Navigator.pushReplacementNamed(context, '/dashboard');
     } else {
       Navigator.pushReplacementNamed(context, '/login');
     }
