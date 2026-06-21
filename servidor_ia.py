@@ -438,12 +438,16 @@ def abrir_captura(fuente_str: str) -> cv2.VideoCapture:
     if fuente_str.isdigit():
         idx = int(fuente_str)
         print(f"📹 Abriendo cámara USB índice {idx}...")
-        backends = [(cv2.CAP_DSHOW, "DSHOW"), (cv2.CAP_MSMF, "MSMF"), (cv2.CAP_ANY, "ANY")]
+        # En Windows moderno MSMF es el más compatible, DSHOW falla en muchas webcams.
+        backends = [(cv2.CAP_MSMF, "MSMF"), (cv2.CAP_DSHOW, "DSHOW"), (cv2.CAP_ANY, "ANY")]
         for backend, nombre in backends:
-            c = cv2.VideoCapture(idx, backend)
+            try:
+                c = cv2.VideoCapture(idx, backend)
+            except Exception:
+                continue
             if c.isOpened():
                 ok = False
-                for _ in range(30):
+                for _ in range(15):
                     ret, fot = c.read()
                     if ret and fot is not None:
                         ok = True
@@ -453,7 +457,9 @@ def abrir_captura(fuente_str: str) -> cv2.VideoCapture:
                     print(f"   ✅ Backend {nombre} funciona correctamente.")
                     return c
                 c.release()
-        raise Exception(f"No se pudo abrir la cámara USB {idx}.")
+            else:
+                c.release()
+        raise Exception(f"No se pudo abrir la cámara USB {idx} con ningún backend disponible.")
     elif fuente_str.lower().startswith("rtsp://"):
         os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "rtsp_transport;udp"
         cap = cv2.VideoCapture(fuente_str, cv2.CAP_FFMPEG)
@@ -471,14 +477,24 @@ def detectar_camaras_usb() -> list[dict]:
     """Detecta cámaras USB disponibles en Windows."""
     camaras = []
     for i in range(8):
-        c = cv2.VideoCapture(i, cv2.CAP_DSHOW)
-        if c.isOpened():
-            ret, _ = c.read()
-            if ret:
-                camaras.append({"index": i, "name": f"Cámara USB {i}"})
-            c.release()
-        else:
-            c.release()
+        encontrada = False
+        # Intentar MSMF primero, luego DSHOW como fallback
+        for backend in (cv2.CAP_MSMF, cv2.CAP_DSHOW, cv2.CAP_ANY):
+            try:
+                c = cv2.VideoCapture(i, backend)
+            except Exception:
+                continue
+            if c.isOpened():
+                ret, _ = c.read()
+                c.release()
+                if ret:
+                    camaras.append({"index": i, "name": f"Cámara USB {i}"})
+                    encontrada = True
+                    break
+            else:
+                c.release()
+        if encontrada:
+            continue
     if not camaras:
         camaras.append({"index": 0, "name": "Cámara Predeterminada"})
     camaras.insert(0, {"index": 999, "name": "📹 Cámara Oficial YI IOT"})
@@ -572,7 +588,7 @@ class HiloCapturaCamara:
 
 def bucle_inteligencia_artificial():
     """
-    Bucle principal de la IA — idéntico al main.py original.
+    Bucle principal de la IA.
     Corre en un hilo de fondo, completamente autónomo.
     Las alertas de Telegram se envían independientemente de si hay clientes conectados.
     """
@@ -650,17 +666,149 @@ def bucle_inteligencia_artificial():
 
             conteo_fotogramas += 1
 
-            # ── Detección YOLO de vehículos ───────────────────────────────────────
-            if conteo_fotogramas % intervalo_salto == 0 or not ultimas_cajas:
-                resultados_v = modelo_vehiculos.track(
-                    fotograma, persist=True, classes=[2, 3, 5, 7], verbose=False
-                )
-                if resultados_v[0].boxes.id is not None:
-                    ultimas_cajas     = resultados_v[0].boxes.xyxy.int().cpu().tolist()
-                    ultimos_ids_rastreo = resultados_v[0].boxes.id.int().cpu().tolist()
-                    ultimas_confianzas     = resultados_v[0].boxes.conf.cpu().tolist()
-                else:
+            # ── PIPELINE CLÁSICO: Vehicle YOLO → recorte → Plate YOLO → OCR ──────
+            # Cada 2 frames se buscan vehículos; para cada vehículo nuevo se recorta su zona y se busca la placa.
+            if conteo_fotogramas % intervalo_salto == 0:
+                try:
+                    resultados_v = modelo_vehiculos.track(
+                        fotograma, persist=True, classes=[2, 3, 5, 7], verbose=False
+                    )
+                    if resultados_v[0].boxes.id is not None:
+                        ultimas_cajas       = resultados_v[0].boxes.xyxy.int().cpu().tolist()
+                        ultimos_ids_rastreo = resultados_v[0].boxes.id.int().cpu().tolist()
+                        ultimas_confianzas  = resultados_v[0].boxes.conf.cpu().tolist()
+                    else:
+                        ultimas_cajas, ultimos_ids_rastreo, ultimas_confianzas = [], [], []
+                except Exception:
                     ultimas_cajas, ultimos_ids_rastreo, ultimas_confianzas = [], [], []
+
+                # Para cada vehículo detectado, buscar placa con OCR (pipeline clásico)
+                for box, id_rastreo, conf_vehiculo in zip(ultimas_cajas, ultimos_ids_rastreo, ultimas_confianzas):
+                    if conf_vehiculo < 0.20:
+                        continue
+                    x1, y1, x2, y2 = box
+                    
+                    if id_rastreo not in intentos_ocr:
+                        intentos_ocr[id_rastreo] = {"ultimo_fotograma": 0, "intentos": 0, "en_proceso": False}
+
+                    intentos_info = intentos_ocr[id_rastreo]
+                    cache = cache_placas.get(id_rastreo)
+                    conf_actual = cache["confianza"] if cache else 0.0
+                    puede_escanear = (cache is None) or (conf_actual < 0.85 and intentos_info["intentos"] < 20)
+
+                    BRECHA_MINIMA_FRAMES = 5
+                    if (puede_escanear
+                            and not intentos_info["en_proceso"]
+                            and (conteo_fotogramas - intentos_info["ultimo_fotograma"]) >= BRECHA_MINIMA_FRAMES):
+
+                        # Recortar zona del vehículo + ampliar un 10% para no cortar la placa
+                        h_fot, w_fot = fotograma.shape[:2]
+                        margen = int((y2 - y1) * 0.10)
+                        rx1 = max(0, x1 - margen)
+                        ry1 = max(0, y1 - margen)
+                        rx2 = min(w_fot, x2 + margen)
+                        ry2 = min(h_fot, y2 + margen)
+                        roi_vehiculo = fotograma[ry1:ry2, rx1:rx2]
+                        if roi_vehiculo.size == 0:
+                            continue
+
+                        # Buscar placa dentro del recorte del vehículo
+                        try:
+                            resultados_p = modelo_placas(roi_vehiculo, verbose=False)
+                        except Exception:
+                            continue
+
+                        if len(resultados_p[0].boxes) == 0:
+                            continue
+
+                        mejor_idx = int(resultados_p[0].boxes.conf.argmax())
+                        conf_placa = float(resultados_p[0].boxes.conf[mejor_idx])
+                        if conf_placa < 0.20:
+                            continue
+
+                        px1, py1, px2, py2 = resultados_p[0].boxes.xyxy[mejor_idx].int().cpu().tolist()
+                        imagen_placa = roi_vehiculo[py1:py2, px1:px2]
+                        if imagen_placa.size == 0:
+                            continue
+
+                        imagen_ocr = preprocesar_placa(imagen_placa)
+                        if imagen_ocr is None:
+                            continue
+
+                        intentos_info["ultimo_fotograma"] = conteo_fotogramas
+                        intentos_info["intentos"] += 1
+                        intentos_info["en_proceso"] = True
+
+                        copia_vehiculo = fotograma.copy()
+                        copia_placa    = imagen_placa.copy()
+
+                        def procesar_ocr_async(id_r, img_ocr, v_full, p_crop):
+                            try:
+                                res_ocr = lector_ocr.readtext(
+                                    img_ocr,
+                                    allowlist='0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+                                )
+                                mejor_texto, mejor_conf = "", 0.0
+                                for r in res_ocr:
+                                    txt = r[1].strip().upper().replace(" ", "").replace("-", "")
+                                    c = float(r[2])
+                                    if 4 <= len(txt) <= 8 and c > mejor_conf:
+                                        mejor_texto, mejor_conf = txt, c
+
+                                if mejor_conf >= 0.25:
+                                    print(f"🔍 [OCR] ID {id_r} → {mejor_texto} (Conf: {mejor_conf:.2f})")
+                                    es_robado, info = db.consultar_placa(mejor_texto)
+
+                                    previo = cache_placas.get(id_r)
+                                    guardar = (previo is None
+                                               or mejor_conf > previo.get("confianza", 0.0)
+                                               or (es_robado and not previo.get("es_robado", False)))
+                                    if guardar:
+                                        cache_placas[id_r] = {
+                                            "texto": mejor_texto,
+                                            "es_robado": es_robado,
+                                            "info": info,
+                                            "confianza": mejor_conf,
+                                        }
+                                        if es_robado and id_r not in vehiculos_alertados:
+                                            vehiculos_alertados.add(id_r)
+                                            print(f"\n🚨 VEHÍCULO ROBADO DETECTADO: {mejor_texto} (ID {id_r})")
+                                            ruta_v, ruta_p = guardar_capturas(v_full, p_crop, mejor_texto)
+                                            db.registrar_alerta(
+                                                placa_bd=info.get("placa", mejor_texto) if info else mejor_texto,
+                                                placa_detectada=mejor_texto,
+                                                similitud=(info.get("similitud", 100) / 100
+                                                           if isinstance(info.get("similitud"), float)
+                                                           else 1.0) if info else 1.0,
+                                                ruta_vehiculo=ruta_v,
+                                                ruta_placa=ruta_p,
+                                            )
+                                            alerta = {
+                                                "type": "alert",
+                                                "placa": mejor_texto,
+                                                "es_robado": True,
+                                                "placa_bd": info.get("placa", mejor_texto) if info else mejor_texto,
+                                                "similitud": info.get("similitud", 100.0) if info else 100.0,
+                                                "modelo": info.get("modelo", "?") if info else "?",
+                                                "color": info.get("color", "?") if info else "?",
+                                                "propietario": info.get("propietario", "?") if info else "?",
+                                                "id_rastreo": id_r,
+                                                "foto_vehiculo": ruta_v,
+                                                "foto_placa": ruta_p,
+                                                "timestamp": datetime.now().isoformat(),
+                                            }
+                                            enviar_alerta_telegram(
+                                                placa_detectada=mejor_texto,
+                                                info=info,
+                                                rutas_imagenes=[ruta_v, ruta_p]
+                                            )
+                                            _emitir_alerta(alerta)
+                            finally:
+                                if id_r in intentos_ocr:
+                                    intentos_ocr[id_r]["en_proceso"] = False
+
+                        ejecutor_ocr.submit(procesar_ocr_async, id_rastreo, imagen_ocr, copia_vehiculo, copia_placa)
+
         except Exception as e:
             import traceback
             print(f"[AI Loop Error] {e}")
@@ -668,115 +816,114 @@ def bucle_inteligencia_artificial():
             time.sleep(0.1)
             continue
 
-        # ── Anotación y OCR ───────────────────────────────────────────────────
-        for box, id_rastreo, conf_vehiculo in zip(ultimas_cajas, ultimos_ids_rastreo, ultimas_confianzas):
-            if conf_vehiculo < 0.20:
-                continue
+        # ── MODO DIRECTO: Placa en fotograma completo cada 5 frames ─────────────
+        # Complementa al modo clásico. Funciona cuando el auto está tan cerca que
+        # YOLO no puede detectar el vehículo completo pero la placa sí es visible.
+        ID_DIRECTO = "DIRECTO"
+        if ID_DIRECTO not in intentos_ocr:
+            intentos_ocr[ID_DIRECTO] = {"ultimo_fotograma": 0, "intentos": 0, "en_proceso": False}
 
-            x1, y1, x2, y2 = box
-            cache = cache_placas.get(id_rastreo)
+        info_directa = intentos_ocr[ID_DIRECTO]
+        cache_directa = cache_placas.get(ID_DIRECTO)
+        conf_directa = cache_directa["confianza"] if cache_directa else 0.0
 
-            if id_rastreo not in intentos_ocr:
-                intentos_ocr[id_rastreo] = {"ultimo_fotograma": 0, "intentos": 0, "en_proceso": False}
+        BRECHA_DIRECTA = 5  # cada 5 frames intenta el modo directo
+        if (not info_directa["en_proceso"]
+                and (conteo_fotogramas - info_directa["ultimo_fotograma"]) >= BRECHA_DIRECTA
+                and (cache_directa is None or conf_directa < 0.90)):
 
-            intentos_info = intentos_ocr[id_rastreo]
-            conf_actual = cache["confianza"] if cache else 0.0
-            puede_escanear = (cache is None) or (conf_actual < 0.85 and intentos_info["intentos"] < 20)
+            roi_para_ocr = None
+            try:
+                resultados_directos = modelo_placas(fotograma, verbose=False)
+                if len(resultados_directos[0].boxes) > 0:
+                    mejor_idx = int(resultados_directos[0].boxes.conf.argmax())
+                    conf_p = float(resultados_directos[0].boxes.conf[mejor_idx])
+                    if conf_p >= 0.15:
+                        dx1, dy1, dx2, dy2 = resultados_directos[0].boxes.xyxy[mejor_idx].int().cpu().tolist()
+                        crop = fotograma[dy1:dy2, dx1:dx2].copy()
+                        if crop.size > 0:
+                            roi_para_ocr = preprocesar_placa(crop)
+            except Exception:
+                pass
 
-            if puede_escanear:
-                if not intentos_info["en_proceso"] and (conteo_fotogramas - intentos_info["ultimo_fotograma"] >= 5):
-                    roi_auto = fotograma[y1:y2, x1:x2].copy()
-                    if roi_auto.size == 0:
-                        continue
-                    resultados_p = modelo_placas(roi_auto, verbose=False)
-                    if len(resultados_p[0].boxes) > 0:
-                        confianza_p = float(resultados_p[0].boxes.conf[0])
-                        if confianza_p >= 0.20:
-                            px1, py1, px2, py2 = resultados_p[0].boxes.xyxy[0].int().cpu().tolist()
-                            roi_placa = roi_auto[py1:py2, px1:px2].copy()
-                            if roi_placa.size > 0:
-                                img_ocr_procesada = preprocesar_placa(roi_placa)
-                                if img_ocr_procesada is not None:
-                                    intentos_info["ultimo_fotograma"] = conteo_fotogramas
-                                    intentos_info["intentos"] += 1
-                                    intentos_info["en_proceso"] = True
-                                    copia_vehiculo = roi_auto.copy()
-                                    copia_placa = roi_placa.copy()
+            if roi_para_ocr is not None:
+                info_directa["ultimo_fotograma"] = conteo_fotogramas
+                info_directa["intentos"] += 1
+                info_directa["en_proceso"] = True
+                copia_fotograma = fotograma.copy()
+                copia_roi = roi_para_ocr.copy()
 
-                                    def _ocr_task(id_r, img, veh, pl):
-                                        try:
-                                            res_ocr = lector_ocr.readtext(
-                                                img,
-                                                allowlist='0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-                                            )
-                                            mejor_texto, mejor_confianza = "", 0.0
-                                            for r in res_ocr:
-                                                txt = r[1].strip().upper().replace(" ", "").replace("-", "")
-                                                c = float(r[2])
-                                                if len(txt) >= 4 and c > mejor_confianza:
-                                                    mejor_texto, mejor_confianza = txt, c
+                def _ocr_directo(img, veh_full, pl_crop):
+                    try:
+                        res_ocr = lector_ocr.readtext(
+                            img,
+                            allowlist='0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+                        )
+                        mejor_texto, mejor_confianza = "", 0.0
+                        for r in res_ocr:
+                            txt = r[1].strip().upper().replace(" ", "").replace("-", "")
+                            c = float(r[2])
+                            if 4 <= len(txt) <= 8 and c > mejor_confianza:
+                                mejor_texto, mejor_confianza = txt, c
 
-                                            if mejor_confianza >= 0.25:
-                                                print(f"🔍 [OCR] ID {id_r} → {mejor_texto} (Conf: {mejor_confianza:.2f})")
-                                                es_robado, info = db.consultar_placa(mejor_texto)
+                        if mejor_confianza >= 0.25:
+                            print(f"🔍 [OCR-DIRECTO] → {mejor_texto} (Conf: {mejor_confianza:.2f})")
+                            es_robado, info = db.consultar_placa(mejor_texto)
 
-                                                guardar = False
-                                                if id_r not in cache_placas:
-                                                    guardar = True
-                                                else:
-                                                    previo = cache_placas[id_r]
-                                                    if mejor_confianza > previo.get("confianza", 0.0):
-                                                        guardar = True
-                                                    if es_robado and not previo.get("es_robado", False):
-                                                        guardar = True
+                            previo = cache_placas.get(ID_DIRECTO)
+                            guardar = (previo is None
+                                       or mejor_confianza > previo.get("confianza", 0.0)
+                                       or (es_robado and not previo.get("es_robado", False)))
+                            if guardar:
+                                cache_placas[ID_DIRECTO] = {
+                                    "texto": mejor_texto,
+                                    "es_robado": es_robado,
+                                    "info": info,
+                                    "confianza": mejor_confianza,
+                                }
+                                if es_robado:
+                                    clave_alerta = f"directo_{mejor_texto}"
+                                    if clave_alerta not in vehiculos_alertados:
+                                        vehiculos_alertados.add(clave_alerta)
+                                        print(f"\n🚨 [ALERTA-DIRECTA] VEHÍCULO ROBADO: {mejor_texto}")
+                                        ruta_v, ruta_p = guardar_capturas(veh_full, pl_crop, mejor_texto)
+                                        db.registrar_alerta(
+                                            placa_bd=info.get("placa", mejor_texto) if info else mejor_texto,
+                                            placa_detectada=mejor_texto,
+                                            similitud=(info.get("similitud", 100) / 100
+                                                       if isinstance(info.get("similitud"), float)
+                                                       else 1.0) if info else 1.0,
+                                            ruta_vehiculo=ruta_v,
+                                            ruta_placa=ruta_p,
+                                        )
+                                        alerta = {
+                                            "type": "alert",
+                                            "placa": mejor_texto,
+                                            "es_robado": True,
+                                            "placa_bd": info.get("placa", mejor_texto) if info else mejor_texto,
+                                            "similitud": info.get("similitud", 100.0) if info else 100.0,
+                                            "modelo": info.get("modelo", "?") if info else "?",
+                                            "color": info.get("color", "?") if info else "?",
+                                            "propietario": info.get("propietario", "?") if info else "?",
+                                            "id_rastreo": ID_DIRECTO,
+                                            "foto_vehiculo": ruta_v,
+                                            "foto_placa": ruta_p,
+                                            "timestamp": datetime.now().isoformat(),
+                                        }
+                                        enviar_alerta_telegram(
+                                            placa_detectada=mejor_texto,
+                                            info=info,
+                                            rutas_imagenes=[ruta_v, ruta_p]
+                                        )
+                                        _emitir_alerta(alerta)
+                    finally:
+                        intentos_ocr[ID_DIRECTO]["en_proceso"] = False
 
-                                                if guardar:
-                                                    cache_placas[id_r] = {
-                                                        "texto": mejor_texto,
-                                                        "es_robado": es_robado,
-                                                        "info": info,
-                                                        "confianza": mejor_confianza,
-                                                    }
-                                                    if es_robado:
-                                                        alerta = {
-                                                            "type": "alert",
-                                                            "placa": mejor_texto,
-                                                            "es_robado": True,
-                                                            "placa_bd": info.get("placa", mejor_texto) if info else mejor_texto,
-                                                            "similitud": info.get("similitud", 100.0) if info else 100.0,
-                                                            "modelo": info.get("modelo", "?") if info else "?",
-                                                            "color": info.get("color", "?") if info else "?",
-                                                            "propietario": info.get("propietario", "?") if info else "?",
-                                                            "id_rastreo": id_r,
-                                                            "timestamp": datetime.now().isoformat(),
-                                                        }
-                                                        if id_r not in vehiculos_alertados:
-                                                            vehiculos_alertados.add(id_r)
-                                                            print(f"\n🚨 [ALERTA] VEHÍCULO ROBADO: {mejor_texto}")
-                                                            ruta_v, ruta_p = guardar_capturas(veh, pl, mejor_texto)
-                                                            db.registrar_alerta(
-                                                                placa_bd=info.get("placa", mejor_texto) if info else mejor_texto,
-                                                                placa_detectada=mejor_texto,
-                                                                similitud=(info.get("similitud", 100) / 100
-                                                                           if isinstance(info.get("similitud"), float)
-                                                                           else 1.0) if info else 1.0,
-                                                                ruta_vehiculo=ruta_v,
-                                                                ruta_placa=ruta_p,
-                                                            )
-                                                            alerta["foto_vehiculo"] = ruta_v
-                                                            alerta["foto_placa"] = ruta_p
-                                                            enviar_alerta_telegram(
-                                                                placa_detectada=mejor_texto,
-                                                                info=info,
-                                                                rutas_imagenes=[ruta_v, ruta_p]
-                                                            )
-                                                        _emitir_alerta(alerta)
-                                        finally:
-                                            intentos_ocr[id_r]["en_proceso"] = False
+                ejecutor_ocr.submit(_ocr_directo, roi_para_ocr, copia_fotograma, copia_roi)
+            else:
+                info_directa["en_proceso"] = False
 
-                                    ejecutor_ocr.submit(_ocr_task, id_rastreo, img_ocr_procesada, copia_vehiculo, copia_placa)
-
-        # Update global state for ddatos_crudosing thread
+        # Actualizar el estado global para el hilo de streaming
         with estado.bloqueo_fotograma:
             estado.ultimas_cajas = ultimas_cajas
             estado.ultimos_ids_rastreo = ultimos_ids_rastreo
@@ -860,13 +1007,13 @@ def trabajador_transmision():
                         copia_intentos = dict(estado.intentos_ocr)
                         conteo_f = estado.conteo_fotogramas
 
-                    # Dibujar IA
+                    # Dibujar IA — anotaciones de vehículos trackeados
                     for box, id_rastreo, conf_vehiculo in zip(boxes, ids_rastreo, confianzas):
                         if conf_vehiculo < 0.20:
                             continue
                         x1, y1, x2, y2 = box
                         cache = copia_cache.get(id_rastreo)
-                        
+
                         if cache is not None:
                             texto = cache["texto"]
                             if cache["es_robado"]:
@@ -878,7 +1025,7 @@ def trabajador_transmision():
                             else:
                                 cv2.rectangle(fotograma, (x1, y1), (x2, y2), VERDE, 2)
                                 dibujar_etiqueta(fotograma, f"[OK] {texto} | LIBRE", x1, y1, VERDE)
-                                
+
                         intentos_info = copia_intentos.get(id_rastreo)
                         if intentos_info is not None:
                             conf_actual = cache["confianza"] if cache else 0.0
@@ -886,6 +1033,23 @@ def trabajador_transmision():
                             if puede_escanear and cache is None:
                                 cv2.rectangle(fotograma, (x1, y1), (x2, y2), ROJO, 2)
                                 dibujar_etiqueta(fotograma, f"ID:{id_rastreo} Escaneando...", x1, y1, ROJO)
+
+                    # ── Anotación del modo DIRECTO (ID_DIRECTO=0) ─────────────────
+                    # Muestra el resultado de la detección directa en el fotograma completo
+                    # aunque no se haya detectado ningún vehículo por tracking
+                    CYAN  = (255, 200, 0)
+                    cache_d = copia_cache.get("DIRECTO")
+                    intentos_d = copia_intentos.get("DIRECTO")
+                    alto_f, ancho_f = fotograma.shape[:2]
+                    if cache_d is not None:
+                        texto_d = cache_d["texto"]
+                        if cache_d["es_robado"]:
+                            color_d = NARANJA if (conteo_f // 15) % 2 == 0 else AMARILLO
+                            dibujar_etiqueta(fotograma, f"⚠ DIRECTO ROBADO | {texto_d}", 10, 30, color_d, NEGRO, escala=0.65)
+                        else:
+                            dibujar_etiqueta(fotograma, f"[OK-DIRECTO] {texto_d} | LIBRE", 10, 30, CYAN, NEGRO, escala=0.65)
+                    elif intentos_d is not None and intentos_d["en_proceso"]:
+                        dibujar_etiqueta(fotograma, "🔍 Escaneando placa...", 10, 30, ROJO, BLANCO, escala=0.60)
                     
                     _, buf = cv2.imencode(".jpg", fotograma, PARAMETROS_JPEG)
                     _emitir_fotograma(buf.tobytes())

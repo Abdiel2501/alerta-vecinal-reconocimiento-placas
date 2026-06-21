@@ -230,9 +230,6 @@ out.release()
 cv2.destroyAllWindows()
 ```
 
-### Resultados
-
-![Result](images/result.png)
 
 ### Extra: Funcionalidades de Anonimización
 

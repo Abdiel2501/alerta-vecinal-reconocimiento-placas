@@ -259,17 +259,24 @@ class ServerConnectionService extends ChangeNotifier {
         'python',
         [script.path],
         workingDirectory: workingDir,
-        // runInShell: false evita la ventana de consola en Windows
+        // Forzar UTF-8 en la salida de Python para evitar errores de codificación
+        environment: {
+          ...Platform.environment,
+          'PYTHONIOENCODING': 'utf-8',
+          'PYTHONLEGACYWINDOWSSTDIO': '0',
+        },
         runInShell: false,
       );
 
-      // Capturar logs para depuración
-      _backendProcess!.stdout.transform(utf8.decoder).listen((data) {
-        debugPrint('[IA] ${data.trim()}');
-      });
-      _backendProcess!.stderr.transform(utf8.decoder).listen((data) {
-        debugPrint('[IA ERR] ${data.trim()}');
-      });
+      // Capturar logs — allowMalformed=true evita crashes por emojis en Windows ANSI
+      _backendProcess!.stdout
+          .transform(Utf8Decoder(allowMalformed: true))
+          .transform(const LineSplitter())
+          .listen((line) => debugPrint('[IA] $line'));
+      _backendProcess!.stderr
+          .transform(Utf8Decoder(allowMalformed: true))
+          .transform(const LineSplitter())
+          .listen((line) => debugPrint('[IA ERR] $line'));
 
       debugPrint('[ServerConn] Proceso IA lanzado (PID: ${_backendProcess!.pid})');
     } catch (e) {
@@ -461,7 +468,15 @@ class ServerConnectionService extends ChangeNotifier {
       }
 
       // Mensajes de texto = JSON de control/metadatos
-      final Map<String, dynamic> msg = json.decode(raw as String);
+      // Decodificamos con allowMalformed para no crashear si Python envía
+      // caracteres especiales (emojis) con codificación incorrecta en Windows.
+      String rawStr;
+      if (raw is List<int>) {
+        rawStr = const Utf8Decoder(allowMalformed: true).convert(raw);
+      } else {
+        rawStr = raw as String;
+      }
+      final Map<String, dynamic> msg = json.decode(rawStr);
       final type = msg['type'] as String?;
 
       switch (type) {
