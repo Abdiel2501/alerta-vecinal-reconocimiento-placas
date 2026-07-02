@@ -1,0 +1,13 @@
+train: ../train/images
+val: ../valid/images
+test: ../test/images
+
+nc: 1
+names: ['Licenseplate']
+
+roboflow:
+  workspace: k-hariprasad-reddy-jmaoa
+  project: vlp-crxuo
+  version: 2
+  license: CC BY 4.0
+  url: https://universe.roboflow.com/k-hariprasad-reddy-jmaoa/vlp-crxuo/dataset/2
