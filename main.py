@@ -299,26 +299,125 @@ while True:
 
     conteo_fotogramas += 1
 
-    # Salto de fotogramas inteligente: Procesar YOLO cada 2 fotogramas en CPU para ahorrar 50% CPU
-    # En sistemas con GPU activa (usar_gpu == True), procesamos todos los fotogramas (sin salto)
+    # ── Detección YOLO de vehículos (en paralelo, solo para anotaciones visuales) ──
     intervalo_salto = 2 if not usar_gpu else 1
-    
     if conteo_fotogramas % intervalo_salto == 0 or len(ultimas_cajas) == 0:
         resultados_vehiculos = modelo_vehiculos.track(
             fotograma, persist=True, classes=[2, 3, 5, 7], verbose=False
         )
         if resultados_vehiculos[0].boxes.id is not None:
-            ultimas_cajas     = resultados_vehiculos[0].boxes.xyxy.int().cpu().tolist()
+            ultimas_cajas       = resultados_vehiculos[0].boxes.xyxy.int().cpu().tolist()
             ultimos_ids_rastreo = resultados_vehiculos[0].boxes.id.int().cpu().tolist()
-            ultimas_confianzas     = resultados_vehiculos[0].boxes.conf.cpu().tolist()
+            ultimas_confianzas  = resultados_vehiculos[0].boxes.conf.cpu().tolist()
         else:
             ultimas_cajas     = []
             ultimos_ids_rastreo = []
-            ultimas_confianzas     = []
+            ultimas_confianzas  = []
+
+    # ── MODO DIRECTO: Buscar placa en fotograma COMPLETO cada 3 frames ───────
+    # Funciona aunque el vehículo esté tan cerca que YOLO no lo detecte como tal.
+    ID_DIRECTO = "DIRECTO"
+    if ID_DIRECTO not in intentos_ocr:
+        intentos_ocr[ID_DIRECTO] = {"ultimo_fotograma": 0, "intentos": 0, "en_proceso": False}
+
+    info_directa = intentos_ocr[ID_DIRECTO]
+    cache_directa = cache_placas.get(ID_DIRECTO)
+    conf_directa = cache_directa["confianza"] if cache_directa else 0.0
+
+    if (not info_directa["en_proceso"]
+            and (conteo_fotogramas - info_directa["ultimo_fotograma"]) >= 3
+            and (cache_directa is None or conf_directa < 0.90)):
+        resultados_directos = modelo_placas(fotograma, verbose=False)
+        if len(resultados_directos[0].boxes) > 0:
+            mejor_idx = int(resultados_directos[0].boxes.conf.argmax())
+            conf_placa_directa = float(resultados_directos[0].boxes.conf[mejor_idx])
+            if conf_placa_directa >= 0.15:
+                dx1, dy1, dx2, dy2 = resultados_directos[0].boxes.xyxy[mejor_idx].int().cpu().tolist()
+                roi_placa_directa = fotograma[dy1:dy2, dx1:dx2].copy()
+                if roi_placa_directa.size > 0:
+                    img_ocr_directa = preprocesar_placa(roi_placa_directa)
+                    if img_ocr_directa is not None:
+                        info_directa["ultimo_fotograma"] = conteo_fotogramas
+                        info_directa["intentos"] += 1
+                        info_directa["en_proceso"] = True
+                        copia_fotograma = fotograma.copy()
+                        copia_placa_directa = roi_placa_directa.copy()
+
+                        # Anotar visualmente la placa detectada directamente
+                        cv2.rectangle(fotograma, (dx1, dy1), (dx2, dy2), (255, 200, 0), 2)
+                        dibujar_etiqueta(fotograma, "🔍 Escaneando...", dx1, dy1, (255, 200, 0), NEGRO)
+
+                        def _ocr_directo_main(img, veh_full, pl_crop):
+                            try:
+                                res_ocr = lector_ocr.readtext(
+                                    img,
+                                    allowlist='0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+                                )
+                                mejor_texto, mejor_confianza = "", 0.0
+                                for r in res_ocr:
+                                    txt = r[1].strip().upper().replace(" ", "").replace("-", "")
+                                    c = float(r[2])
+                                    if len(txt) >= 4 and c > mejor_confianza:
+                                        mejor_texto, mejor_confianza = txt, c
+
+                                if mejor_confianza >= 0.20:
+                                    print(f"🔍 [OCR-DIRECTO] Placa → {mejor_texto} (Conf: {mejor_confianza:.2f})")
+                                    es_robado, info = db.consultar_placa(mejor_texto)
+
+                                    guardar = False
+                                    previo = cache_placas.get(ID_DIRECTO)
+                                    if previo is None:
+                                        guardar = True
+                                    else:
+                                        if mejor_confianza > previo.get("confianza", 0.0):
+                                            guardar = True
+                                        if es_robado and not previo.get("es_robado", False):
+                                            guardar = True
+
+                                    if guardar:
+                                        cache_placas[ID_DIRECTO] = {
+                                            "texto": mejor_texto,
+                                            "es_robado": es_robado,
+                                            "info": info,
+                                            "confianza": mejor_confianza,
+                                        }
+                                        if es_robado:
+                                            clave_alerta = f"directo_{mejor_texto}"
+                                            if clave_alerta not in vehiculos_alertados:
+                                                vehiculos_alertados.add(clave_alerta)
+                                                placa_bd = info.get("placa", mejor_texto) if info else mejor_texto
+                                                sim = info.get("similitud", 100) if info else 100
+                                                print(f"\n🚨 [ALERTA-DIRECTA] VEHÍCULO ROBADO: {mejor_texto}")
+                                                ruta_v, ruta_p = guardar_capturas(veh_full, pl_crop, mejor_texto)
+                                                db.registrar_alerta(
+                                                    placa_bd=placa_bd,
+                                                    placa_detectada=mejor_texto,
+                                                    similitud=sim / 100 if isinstance(sim, float) else 1.0,
+                                                    ruta_vehiculo=ruta_v,
+                                                    ruta_placa=ruta_p
+                                                )
+                                                enviar_alerta_telegram(
+                                                    placa_detectada=mejor_texto,
+                                                    info=info,
+                                                    rutas_imagenes=[ruta_v, ruta_p]
+                                                )
+                            finally:
+                                intentos_ocr[ID_DIRECTO]["en_proceso"] = False
+
+                        ejecutor_ocr.submit(_ocr_directo_main, img_ocr_directa, copia_fotograma, copia_placa_directa)
+
+    # Mostrar resultado del modo directo en pantalla
+    cache_d = cache_placas.get(ID_DIRECTO)
+    if cache_d is not None:
+        texto_d = cache_d["texto"]
+        if cache_d["es_robado"]:
+            color_d = NARANJA if (conteo_fotogramas // 15) % 2 == 0 else AMARILLO
+            dibujar_etiqueta(fotograma, f"⚠ DIRECTO ROBADO | {texto_d}", 10, 30, color_d, NEGRO, escala=0.65)
+        else:
+            dibujar_etiqueta(fotograma, f"[OK-DIRECTO] {texto_d} | LIBRE", 10, 30, (255, 200, 0), NEGRO, escala=0.65)
 
     for box, id_rastreo, conf_vehiculo in zip(ultimas_cajas, ultimos_ids_rastreo, ultimas_confianzas):
-        # Reducimos el umbral de confianza drásticamente a 0.20 para que pueda detectar 
-        # vehículos a través de pantallas de celular (los reflejos bajan mucho la confianza de la IA).
+        # Filtro por confianza mínima para la detección de vehículos
         if conf_vehiculo < 0.20:
             continue
 
@@ -335,117 +434,10 @@ while True:
                 cv2.rectangle(fotograma, (x1, y1), (x2, y2), color, 3)
                 dibujar_etiqueta(fotograma, f"⚠ ROBADO | {texto}", x1, y1, color, NEGRO)
                 info = cache.get("info", {})
-                modelo_color = f"{info.get('modelo','?')} {info.get('color','')}"
-                dibujar_etiqueta(fotograma, modelo_color, x1, y2 + 20, color, NEGRO)
+                dibujar_etiqueta(fotograma, f"{info.get('modelo','?')} {info.get('color','')}", x1, y2 + 20, color, NEGRO)
             else:
                 cv2.rectangle(fotograma, (x1, y1), (x2, y2), VERDE, 2)
                 dibujar_etiqueta(fotograma, f"[OK] {texto} | LIBRE", x1, y1, VERDE)
-
-        # Inicializar contador de intentos de OCR para el nuevo coche
-        if id_rastreo not in intentos_ocr:
-            intentos_ocr[id_rastreo] = {"ultimo_fotograma": 0, "intentos": 0, "en_proceso": False}
-
-        intentos_info = intentos_ocr[id_rastreo]
-        
-        # Determinar si podemos seguir escaneando para refinar la lectura:
-        # - Si aún no está en caché.
-        # - O si ya está en caché pero con confianza baja (< 0.85) y no hemos superado 5 intentos totales.
-        conf_actual = cache["confianza"] if cache is not None else 0.0
-        # Aumentamos intentos máximos a 20 y verificamos que no hay límite estricto si sigue en pantalla
-        puede_escanear = (cache is None) or (conf_actual < 0.85 and intentos_info["intentos"] < 20)
-
-        if puede_escanear:
-            # Dibujar etiqueta "Escaneando..." solo si no hay una lectura inicial (para evitar sobreponer etiquetas)
-            if cache is None:
-                cv2.rectangle(fotograma, (x1, y1), (x2, y2), ROJO, 2)
-                dibujar_etiqueta(fotograma, f"ID:{id_rastreo} Escaneando...", x1, y1, ROJO)
-
-            # Iniciar escaneo de placa si no hay otra tarea en ejecución y pasaron al menos 5 frames
-            if not intentos_info["en_proceso"] and (conteo_fotogramas - intentos_info["ultimo_fotograma"] >= 5):
-                # Extraer ROI limpio antes de dibujar anotaciones en el fotograma
-                roi_auto_limpio = fotograma[y1:y2, x1:x2].copy()
-                if roi_auto_limpio.size == 0:
-                    continue
-
-                # Correr detector de placas en la región recortada (resolución original sin compresión)
-                resultados_placas = modelo_placas(roi_auto_limpio, verbose=False)
-                if len(resultados_placas[0].boxes) > 0:
-                    confianza_placa = float(resultados_placas[0].boxes.conf[0])
-                    # Mismo caso: bajamos a 0.20 para detectar la placa aunque la pantalla del celular brille
-                    if confianza_placa >= 0.20:
-                        px1, py1, px2, py2 = resultados_placas[0].boxes.xyxy[0].int().cpu().tolist()
-                        roi_placa_limpio = roi_auto_limpio[py1:py2, px1:px2].copy()
-                        if roi_placa_limpio.size > 0:
-                            imagen_ocr = preprocesar_placa(roi_placa_limpio)
-                            if imagen_ocr is not None:
-                                intentos_info["ultimo_fotograma"] = conteo_fotogramas
-                                intentos_info["intentos"] += 1
-                                intentos_info["en_proceso"] = True
-                                copia_vehiculo = roi_auto_limpio.copy()
-                                copia_placa = roi_placa_limpio.copy()
-                                
-                                def procesar_ocr_async(id_r, img_ocr_procesada, copia_vehiculo, copia_pl):
-                                    try:
-                                        # Usar allowlist para acelerar la decodificación en CPU al 300% y restringir ruidos
-                                        resultados_ocr = lector_ocr.readtext(img_ocr_procesada, allowlist='0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ')
-                                        mejor_texto = ""
-                                        mejor_confianza = 0.0
-                                        for res in resultados_ocr:
-                                            texto_detectado = res[1].strip().upper().replace(" ", "").replace("-", "")
-                                            valor_confianza = float(res[2])
-                                            # Validar largo y guardar la lectura con mayor confianza
-                                            if len(texto_detectado) >= 4 and valor_confianza > mejor_confianza:
-                                                mejor_texto = texto_detectado
-                                                mejor_confianza = valor_confianza
-
-                                        if mejor_confianza >= 0.25:
-                                            print(f"🔍 [OCR] Auto ID {id_r} → Placa: {mejor_texto} (Conf: {mejor_confianza:.2f}, Intento: {intentos_ocr[id_r]['intentos']})")
-                                            es_robado, info = db.consultar_placa(mejor_texto)
-                                            
-                                            # Decidir si actualizamos el caché
-                                            guardar = False
-                                            if id_r not in cache_placas:
-                                                guardar = True
-                                            else:
-                                                previo = cache_placas[id_r]
-                                                if mejor_confianza > previo.get("confianza", 0.0):
-                                                    guardar = True
-                                                if es_robado and not previo.get("es_robado", False):
-                                                    guardar = True
-
-                                            if guardar:
-                                                cache_placas[id_r] = {
-                                                    "texto": mejor_texto,
-                                                    "es_robado": es_robado,
-                                                    "info": info,
-                                                    "confianza": mejor_confianza
-                                                }
-
-                                                if es_robado and id_r not in vehiculos_alertados:
-                                                    vehiculos_alertados.add(id_r)
-                                                    placa_bd = info.get("placa", mejor_texto)
-                                                    sim      = info.get("similitud", 100)
-                                                    sim_str  = f"({sim}% similitud)" if isinstance(sim, float) and sim < 100.0 else ""
-                                                    print(f"\n🚨 [ALERTA] VEHÍCULO ROBADO! OCR: {mejor_texto} → BD: {placa_bd} {sim_str}")
-                                                    # Guardar fotos sincrónicamente para SQLite
-                                                    ruta_v, ruta_p = guardar_capturas(copia_vehiculo, copia_pl, mejor_texto)
-
-                                                    db.registrar_alerta(
-                                                        placa_bd=placa_bd,
-                                                        placa_detectada=mejor_texto,
-                                                        similitud=sim / 100 if isinstance(sim, float) else 1.0,
-                                                        ruta_vehiculo=ruta_v,
-                                                        ruta_placa=ruta_p
-                                                    )
-                                                    enviar_alerta_telegram(
-                                                        placa_detectada=mejor_texto,
-                                                        info=info,
-                                                        rutas_imagenes=[ruta_v, ruta_p]
-                                                    )
-                                    finally:
-                                        intentos_ocr[id_r]["en_proceso"] = False
-                                        
-                                ejecutor_ocr.submit(procesar_ocr_async, id_rastreo, imagen_ocr, copia_vehiculo, copia_placa)
 
     # ── Escritura del fotograma a disco (throttled a 15 FPS) ─────────────────────
     ahora = time.time()

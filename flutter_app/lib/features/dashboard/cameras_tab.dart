@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 import '../../core/services/camera_manager_service.dart';
 import '../../core/services/recording_service.dart';
 import '../../core/services/server_connection_service.dart';
+import '../../theme/app_theme.dart';
 import '../../widgets/glass_container.dart';
 
 // ─── Layouts disponibles ──────────────────────────────────────────────────────
@@ -169,18 +170,46 @@ class _CamerasTabState extends State<CamerasTab> with TickerProviderStateMixin {
           const SizedBox(width: 10),
           Text(
             'GESTIÓN DE CÁMARAS',
-            style: GoogleFonts.jetBrainsMono(
-              fontWeight: FontWeight.bold,
+            style: GoogleFonts.outfit(
+              fontWeight: FontWeight.w800,
               color: cs.onSurface,
-              fontSize: 14,
+              fontSize: 15,
+              letterSpacing: 1.2,
             ),
           ),
           const SizedBox(width: 24),
-          Text(
-            '${mgr.cameras.length} CÁMARA(S)  •  ${mgr.cameras.where((c) => c.isOnline).length} EN LÍNEA',
-            style: GoogleFonts.jetBrainsMono(
-              fontSize: 11,
-              color: cs.onSurfaceVariant,
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: AppTheme.darkCard,
+              borderRadius: BorderRadius.circular(AppTheme.radioSM),
+              border: const Border.fromBorderSide(BorderSide(color: AppTheme.darkBorder, width: 0.5)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 6, height: 6,
+                  decoration: BoxDecoration(
+                    color: mgr.cameras.where((c) => c.isOnline).isNotEmpty
+                        ? AppTheme.accentGreen
+                        : AppTheme.textMuted,
+                    shape: BoxShape.circle,
+                    boxShadow: mgr.cameras.where((c) => c.isOnline).isNotEmpty
+                        ? [BoxShadow(color: AppTheme.accentGreen.withValues(alpha: 0.5), blurRadius: 6, spreadRadius: 1)]
+                        : null,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  '${mgr.cameras.length} CAM  •  ${mgr.cameras.where((c) => c.isOnline).length} ONLINE',
+                  style: GoogleFonts.jetBrainsMono(
+                    fontSize: 10,
+                    color: AppTheme.textSecondary,
+                    letterSpacing: 0.3,
+                  ),
+                ),
+              ],
             ),
           ),
           const Spacer(),
@@ -411,26 +440,65 @@ class _CamerasTabState extends State<CamerasTab> with TickerProviderStateMixin {
     final cams = mgr.cameras;
     if (cams.isEmpty) {
       return GlassContainer(
-        borderRadius: 8,
+        borderRadius: 12,
         child: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.videocam_off_outlined, size: 64, color: cs.primary.withValues(alpha: 0.2)),
-              const SizedBox(height: 16),
+              // Ícono con glow
+              Container(
+                width: 96,
+                height: 96,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppTheme.darkCard,
+                  border: Border.all(color: AppTheme.darkBorder, width: 1),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppTheme.accentCyan.withValues(alpha: 0.08),
+                      blurRadius: 24,
+                      spreadRadius: 4,
+                    ),
+                  ],
+                ),
+                child: Icon(
+                  Icons.videocam_off_outlined,
+                  size: 40,
+                  color: AppTheme.textMuted,
+                ),
+              ),
+              const SizedBox(height: 24),
               Text(
-                'No hay cámaras configuradas',
-                style: GoogleFonts.jetBrainsMono(color: cs.onSurfaceVariant, fontSize: 16),
+                'Sin cámaras configuradas',
+                style: GoogleFonts.outfit(
+                  color: AppTheme.textPrimary,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.2,
+                ),
               ),
               const SizedBox(height: 8),
               Text(
-                'Añade una cámara USB, WiFi, Bluetooth o RTSP',
-                style: GoogleFonts.jetBrainsMono(color: cs.onSurfaceVariant, fontSize: 12),
+                'Añade una fuente de video usando el botón  AÑADIR CÁMARA',
+                style: GoogleFonts.outfit(
+                  color: AppTheme.textSecondary,
+                  fontSize: 13,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Soporta USB • WiFi • Bluetooth • RTSP • HTTP',
+                style: GoogleFonts.jetBrainsMono(
+                  color: AppTheme.textMuted,
+                  fontSize: 11,
+                  letterSpacing: 0.5,
+                ),
               ),
             ],
           ),
         ),
-      );
+      ).animate().fadeIn(duration: 350.ms).scale(begin: const Offset(0.97, 0.97));
     }
 
     switch (_layout) {
@@ -811,82 +879,181 @@ class _CameraCellState extends State<_CameraCell> {
   }
 
   Widget _buildFeed(ColorScheme cs, CameraSource cam) {
+    // ── OFFLINE ───────────────────────────────────────────────────────────────
     if (!cam.isOnline) {
       return Container(
-        color: Colors.black,
+        color: AppTheme.darkBg,
         child: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.signal_wifi_connected_no_internet_4, size: 48, color: Colors.red.withValues(alpha: 0.5)),
-              const SizedBox(height: 8),
-              Text('OFFLINE', style: GoogleFonts.shareTechMono(color: Colors.red.withValues(alpha: 0.5), fontSize: 14)),
+              Container(
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppTheme.accentRed.withValues(alpha: 0.08),
+                  border: Border.all(color: AppTheme.accentRed.withValues(alpha: 0.3), width: 1),
+                ),
+                child: Icon(Icons.wifi_off_rounded, size: 28, color: AppTheme.accentRed.withValues(alpha: 0.7)),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'SIN SEÑAL',
+                style: GoogleFonts.jetBrainsMono(
+                  color: AppTheme.accentRed.withValues(alpha: 0.7),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 2,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                cam.name,
+                style: GoogleFonts.outfit(
+                  color: AppTheme.textMuted,
+                  fontSize: 11,
+                ),
+              ),
             ],
           ),
         ),
       );
     }
 
+    // ── FEED ACTIVO (cámara con IA asignada) ─────────────────────────────────
     if (cam.hasAi) {
-      // Feed en tiempo real recibido desde el Servidor IA por WebSocket
       return Consumer<ServerConnectionService>(
         builder: (context, serverSvc, _) {
-          final frame = serverSvc.latestFrame;
-          if (frame != null) {
-            if (!_isPaused) {
-              _frame = frame; // Guardar para snapshot
-              _frozenFrame = frame;
-            }
-            final displayFrame = _isPaused ? _frozenFrame : frame;
-            if (displayFrame != null) {
-              return ClipRect(
-                child: OverflowBox(
-                  maxWidth: double.infinity,
-                  maxHeight: double.infinity,
-                  child: Transform.scale(
-                    scale: _zoom,
-                    child: Image.memory(displayFrame, fit: BoxFit.cover, gaplessPlayback: true),
+          final incoming = serverSvc.latestFrame;
+
+          // Guardar el último frame válido en estado local para evitar flash negro
+          if (incoming != null && !_isPaused) {
+            _frame = incoming;
+          }
+
+          // Mostrar el frame guardado (nunca negro si ya hubo uno)
+          final displayFrame = _isPaused ? _frozenFrame : _frame;
+
+          if (displayFrame != null) {
+            return RepaintBoundary(
+              child: ClipRect(
+                child: Transform.scale(
+                  scale: _zoom,
+                  child: Image.memory(
+                    displayFrame,
+                    fit: BoxFit.cover,
+                    gaplessPlayback: true, // Mantiene el frame anterior mientras decodifica el nuevo
                   ),
                 ),
-              );
-            }
+              ),
+            );
           }
+
+          // ── Skeleton / Loading ─────────────────────────────────────────────
           return Container(
-            color: const Color(0xFF0A0E1A),
+            color: AppTheme.darkBg,
             child: Center(
-              child: CircularProgressIndicator(color: cs.primary),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SizedBox(
+                    width: 36,
+                    height: 36,
+                    child: CircularProgressIndicator(
+                      color: AppTheme.accentCyan,
+                      strokeWidth: 2,
+                      backgroundColor: AppTheme.darkBorder,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'CONECTANDO AL SERVIDOR IA',
+                    style: GoogleFonts.jetBrainsMono(
+                      color: AppTheme.textMuted,
+                      fontSize: 10,
+                      letterSpacing: 1.5,
+                    ),
+                  ).animate(onPlay: (c) => c.repeat()).shimmer(
+                    duration: 1800.ms,
+                    color: AppTheme.accentCyan.withValues(alpha: 0.4),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    serverSvc.serverIp.isNotEmpty
+                        ? serverSvc.serverAddress
+                        : 'Buscando servidor en red local...',
+                    style: GoogleFonts.jetBrainsMono(
+                      color: AppTheme.textMuted,
+                      fontSize: 9,
+                    ),
+                  ),
+                ],
+              ),
             ),
           );
         },
       );
     }
 
-    // Cámara de red o USB inactiva: mostrar placeholder con info y botón de abrir
+    // ── CÁMARA INACTIVA (sin IA asignada) ────────────────────────────────────
     return Container(
-      color: const Color(0xFF0A0F1E),
+      decoration: BoxDecoration(
+        color: AppTheme.darkBg,
+        border: Border.all(color: AppTheme.darkBorder.withValues(alpha: 0.5), width: 0.5),
+      ),
       child: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(cam.type == CameraSourceType.usb ? Icons.videocam : Icons.stream, size: 48, color: cs.primary.withValues(alpha: 0.4)),
-            const SizedBox(height: 8),
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppTheme.darkCard,
+                border: Border.all(color: AppTheme.darkBorder, width: 1),
+              ),
+              child: Icon(
+                cam.type == CameraSourceType.usb ? Icons.videocam_rounded : Icons.stream_rounded,
+                size: 26,
+                color: AppTheme.accentCyan.withValues(alpha: 0.4),
+              ),
+            ),
+            const SizedBox(height: 14),
             Text(
               cam.name.toUpperCase(),
-              style: GoogleFonts.shareTechMono(fontSize: 12, color: cs.primary.withValues(alpha: 0.6)),
+              style: GoogleFonts.outfit(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: AppTheme.textPrimary,
+                letterSpacing: 0.5,
+              ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 4),
             Text(
-              cam.isNetwork 
+              cam.isNetwork
                   ? (cam.address.length > 40 ? '${cam.address.substring(0, 37)}…' : cam.address)
-                  : 'CÁMARA LOCAL PUERTO USB ${cam.address}',
-              style: GoogleFonts.shareTechMono(fontSize: 10, color: Colors.white38),
+                  : 'CÁMARA USB  ·  PUERTO ${cam.address}',
+              style: GoogleFonts.jetBrainsMono(
+                fontSize: 10,
+                color: AppTheme.textMuted,
+                letterSpacing: 0.3,
+              ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             OutlinedButton.icon(
-              icon: const Icon(Icons.play_arrow, size: 16),
-              label: Text('ABRIR CON IA', style: GoogleFonts.jetBrainsMono(fontSize: 11)),
+              icon: const Icon(Icons.play_arrow_rounded, size: 16),
+              label: Text(
+                'ACTIVAR CON IA',
+                style: GoogleFonts.outfit(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.8,
+                ),
+              ),
               onPressed: () {
                 final serverSvc = context.read<ServerConnectionService>();
                 if (cam.type == CameraSourceType.usb) {
@@ -897,17 +1064,16 @@ class _CameraCellState extends State<_CameraCell> {
                 }
                 final mgr = context.read<CameraManagerService>();
                 mgr.setActiveCamera(cam.id);
-                
                 ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                  content: Text('Cambiando cámara en servidor a: ${cam.name}'),
-                  backgroundColor: cs.primary,
+                  content: Text('Activando cámara: ${cam.name}'),
                   duration: const Duration(seconds: 2),
                 ));
               },
               style: OutlinedButton.styleFrom(
-                foregroundColor: cs.primary,
-                side: BorderSide(color: cs.primary.withValues(alpha: 0.5)),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                foregroundColor: AppTheme.accentCyan,
+                side: const BorderSide(color: AppTheme.accentCyan, width: 1),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.radioMD)),
+                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
               ),
             ),
           ],
@@ -919,14 +1085,25 @@ class _CameraCellState extends State<_CameraCell> {
   Widget _overlayBtn(IconData icon, VoidCallback onTap, ColorScheme cs, {Color? iconColor}) {
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        width: 32, height: 32,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        width: 34, height: 34,
         decoration: BoxDecoration(
-          color: Colors.black54,
-          borderRadius: BorderRadius.circular(4),
-          border: Border.all(color: cs.primary.withValues(alpha: 0.2)),
+          color: Colors.black.withValues(alpha: 0.65),
+          borderRadius: BorderRadius.circular(AppTheme.radioSM),
+          border: Border.all(
+            color: AppTheme.darkBorder.withValues(alpha: 0.7),
+            width: 0.5,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.3),
+              blurRadius: 4,
+              offset: const Offset(0, 1),
+            ),
+          ],
         ),
-        child: Icon(icon, size: 16, color: iconColor ?? Colors.white70),
+        child: Icon(icon, size: 17, color: iconColor ?? AppTheme.textSecondary),
       ),
     );
   }

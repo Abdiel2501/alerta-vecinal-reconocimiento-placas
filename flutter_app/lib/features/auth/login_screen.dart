@@ -97,8 +97,8 @@ class _LoginScreenState extends State<LoginScreen> {
     final res = await prov.login(_emailCtrl.text.trim(), _passCtrl.text);
     if (!context.mounted) return;
     if (res.exito) {
-      // Ir a la pantalla de servidor — se conectará automáticamente o pedirá la IP
-      Navigator.pushReplacementNamed(context, '/server');
+      // Ir directamente al dashboard
+      Navigator.pushReplacementNamed(context, '/dashboard');
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(res.mensajeError ?? 'Error al iniciar sesión')),
@@ -111,7 +111,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final res = await prov.iniciarSesionGoogle();
     if (!context.mounted) return;
     if (res.exito) {
-      Navigator.pushReplacementNamed(context, '/server');
+      Navigator.pushReplacementNamed(context, '/dashboard');
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(res.mensajeError ?? 'Error con Google')),
@@ -139,7 +139,7 @@ class _LoginScreenState extends State<LoginScreen> {
     
     if (res.exito) {
       await prov.setNotificationTarget(_selectedNotificationTarget);
-      Navigator.pushReplacementNamed(context, '/server');
+      Navigator.pushReplacementNamed(context, '/dashboard');
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(res.mensajeError ?? 'Error de registro')),
