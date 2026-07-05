@@ -35,7 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const placeholderPtz = document.getElementById('placeholderPtz');
   const videoSpinner = document.getElementById('videoSpinner');
   const ptzMsg = document.getElementById('ptzMsg');
-  const recIndicator = document.getElementById('recIndicator');
+  const recIndicator = document.getElementById('liveDot');
   const videoMetaText = document.getElementById('videoMetaText');
 
   // DOM Elements - PTZ & Zoom Overlay
@@ -132,14 +132,15 @@ document.addEventListener('DOMContentLoaded', () => {
     if (savedSession) {
       logInSuccess(savedSession);
     } else {
-      loginScreen.classList.remove('hidden');
+      loginScreen.style.display = 'flex';
+      appLayout.style.display = 'none';
     }
   }, 2000);
 
   function logInSuccess(session) {
     localStorage.setItem('user_session', JSON.stringify(session));
-    loginScreen.classList.add('hidden');
-    appLayout.classList.remove('hidden');
+    loginScreen.style.display = 'none';
+    appLayout.style.display = 'flex';
 
     if (session.provider === 'google') {
       googleProfileCard.style.display = 'block';
@@ -205,8 +206,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (demoAlertInterval) clearInterval(demoAlertInterval);
     if (fixedLensInterval) clearInterval(fixedLensInterval);
     
-    appLayout.classList.add('hidden');
-    loginScreen.classList.remove('hidden');
+    appLayout.style.display = 'none';
+    loginScreen.style.display = 'flex';
     showToast('🔒 Sesión cerrada correctamente.');
   });
 
