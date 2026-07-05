@@ -32,36 +32,74 @@
         <p style="color: var(--text-secondary); font-size: 0.9rem;">Plataforma de Monitoreo Inteligente</p>
       </div>
 
-      <div class="input-group">
-        <label for="loginEmail">Usuario / Correo:</label>
-        <input type="text" id="loginEmail" placeholder="correo@ejemplo.com" value="admin@alertavecinal.com">
+      <!-- VISTA INICIO DE SESIÓN -->
+      <div id="authLoginForm">
+        <div class="input-group">
+          <label for="loginEmail">Usuario / Correo:</label>
+          <input type="text" id="loginEmail" placeholder="correo@ejemplo.com" value="admin@alertavecinal.com">
+        </div>
+
+        <div class="input-group">
+          <label for="loginPassword">Contraseña:</label>
+          <input type="password" id="loginPassword" placeholder="••••••••" value="admin123">
+        </div>
+
+        <div id="loginLockoutError" style="display: none; color: var(--alert-color); font-size: 0.85rem; font-weight: 700; text-align: center; background: rgba(255, 107, 107, 0.1); padding: 8px; border-radius: 8px; border: 1px solid rgba(255, 107, 107, 0.2);">
+          ⚠️ Cuenta bloqueada. Intente de nuevo en <span id="lockoutTimer">300</span>s.
+        </div>
+
+        <button id="normalLoginBtn" class="btn">Iniciar Sesión</button>
+
+        <div class="divider">o</div>
+
+        <button id="googleLoginBtn" class="btn-google">
+          <svg width="20" height="20" viewBox="0 0 24 24">
+            <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v3.92h6.69c-.29 1.5-.1.85-2.6 1.8l2.9 2.25c2.4-2.2 3.75-5.5 3.75-9.2C23.745 15.3 23.745 14.1 23.745 12.27z"/>
+            <path fill="#34A853" d="M12 24c3.24 0 5.97-1.08 7.96-2.91l-3.86-3c-1.08.72-2.45 1.16-4.1 1.16-3.14 0-5.8-2.11-6.75-4.96l-4 3.1c2 4 6.14 6.7 10.75 6.7z"/>
+            <path fill="#FBBC05" d="M5.25 14.29c-.25-.72-.39-1.5-.39-2.29s.14-1.57.39-2.29l-4-3.1C.46 8.24 0 10.07 0 12s.46 3.76 1.25 5.39l4-3.1z"/>
+            <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.96 1.19 15.24 0 12 0 7.39 0 3.25 2.7 1.25 6.7l4 3.1c.95-2.85 3.61-4.96 6.75-4.96z"/>
+          </svg>
+          <span>Iniciar Sesión con Google</span>
+        </button>
+
+        <!-- Contenedor para el botón nativo oficial de Google (necesario en Brave/Chrome) -->
+        <div id="googleBtnContainer" style="display: none; justify-content: center; width: 100%;"></div>
+
+        <p style="text-align: center; font-size: 0.82rem; margin-top: 20px; color: var(--text-secondary); line-height: 1.4;">
+          ¿Primera vez en la plataforma?<br>
+          <a href="#" id="toRegisterBtn" style="color: var(--primary-color); font-weight: 600; text-decoration: none;">Crea tu cuenta de vecino</a>
+        </p>
       </div>
 
-      <div class="input-group">
-        <label for="loginPassword">Contraseña:</label>
-        <input type="password" id="loginPassword" placeholder="••••••••" value="admin123">
+      <!-- VISTA REGISTRO DE VECINO (Oculta por defecto) -->
+      <div id="authRegisterForm" style="display: none;">
+        <div class="input-group">
+          <label for="registerName">Nombre Completo:</label>
+          <input type="text" id="registerName" placeholder="Juan Pérez">
+        </div>
+
+        <div class="input-group">
+          <label for="registerEmail">Usuario / Correo:</label>
+          <input type="email" id="registerEmail" placeholder="correo@ejemplo.com">
+        </div>
+
+        <div class="input-group">
+          <label for="registerPassword">Contraseña:</label>
+          <input type="password" id="registerPassword" placeholder="Crea tu contraseña">
+        </div>
+
+        <button id="submitRegisterBtn" class="btn" style="margin-top: 10px;">Registrarse</button>
+
+        <div class="divider">o</div>
+
+        <!-- Contenedor para Registrarse con Google (Brave/Chrome) -->
+        <div id="googleBtnContainerRegister" style="display: none; justify-content: center; width: 100%;"></div>
+
+        <p style="text-align: center; font-size: 0.82rem; margin-top: 20px; color: var(--text-secondary); line-height: 1.4;">
+          ¿Ya tienes una cuenta registrada?<br>
+          <a href="#" id="toLoginBtn" style="color: var(--primary-color); font-weight: 600; text-decoration: none;">Iniciar Sesión</a>
+        </p>
       </div>
-
-      <div id="loginLockoutError" style="display: none; color: var(--alert-color); font-size: 0.85rem; font-weight: 700; text-align: center; background: rgba(255, 107, 107, 0.1); padding: 8px; border-radius: 8px; border: 1px solid rgba(255, 107, 107, 0.2);">
-        ⚠️ Cuenta bloqueada. Intente de nuevo en <span id="lockoutTimer">300</span>s.
-      </div>
-
-      <button id="normalLoginBtn" class="btn">Iniciar Sesión</button>
-
-      <div class="divider">o</div>
-
-      <button id="googleLoginBtn" class="btn-google">
-        <svg width="20" height="20" viewBox="0 0 24 24">
-          <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v3.92h6.69c-.29 1.5-.1.85-2.6 1.8l2.9 2.25c2.4-2.2 3.75-5.5 3.75-9.2C23.745 15.3 23.745 14.1 23.745 12.27z"/>
-          <path fill="#34A853" d="M12 24c3.24 0 5.97-1.08 7.96-2.91l-3.86-3c-1.08.72-2.45 1.16-4.1 1.16-3.14 0-5.8-2.11-6.75-4.96l-4 3.1c2 4 6.14 6.7 10.75 6.7z"/>
-          <path fill="#FBBC05" d="M5.25 14.29c-.25-.72-.39-1.5-.39-2.29s.14-1.57.39-2.29l-4-3.1C.46 8.24 0 10.07 0 12s.46 3.76 1.25 5.39l4-3.1z"/>
-          <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.96 1.19 15.24 0 12 0 7.39 0 3.25 2.7 1.25 6.7l4 3.1c.95-2.85 3.61-4.96 6.75-4.96z"/>
-        </svg>
-        <span>Iniciar Sesión con Google</span>
-      </button>
-
-      <!-- Contenedor para el botón nativo oficial de Google (necesario en Brave/Chrome) -->
-      <div id="googleBtnContainer" style="display: none; justify-content: center; width: 100%;"></div>
     </div>
   </div>
 
@@ -358,22 +396,110 @@
 
   <!-- 📜 PRIVACY POLICY & CONSENT MODAL -->
   <div class="modal-overlay" id="privacyConsentModal">
-    <div class="security-consent-modal" style="max-width: 500px; background: var(--surface-color); padding: 24px; border-radius: var(--border-radius); border: var(--card-border); box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 16px; position: relative;">
-      <h2 style="font-size: 1.3rem; font-weight: 700; color: var(--text-primary); text-align: center;">📋 Aviso de Privacidad y Consentimiento</h2>
-      <p style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.5; text-align: justify;">
-        Conforme a la Ley General de Protección de Datos Personales, la Constitución y las regulaciones locales sobre el derecho a la privacidad e intimidad, le informamos que esta aplicación recopila información de identificación vehicular (placas de vehículos, modelo y propietario) en tiempo real con fines de seguridad vecinal y prevención del delito.
-      </p>
-      <div style="font-size: 0.8rem; color: var(--text-secondary); background: var(--bg-color); padding: 12px; border-radius: 8px; max-height: 120px; overflow-y: auto; text-align: justify; border: var(--card-border);">
-        <strong>Declaración de Consentimiento:</strong><br>
-        Al presionar "Aceptar", usted reconoce y acepta que:
-        1. Las lecturas de placas serán procesadas por modelos de IA localmente.
-        2. Los datos de vehículos se almacenarán de forma encriptada en la base de datos de este dispositivo.
-        3. El sistema puede alertar y notificar al bot de Telegram configurado.
-        4. No se revelará información a terceros sin consentimiento previo, salvo mandato legal o autoridad competente.
+    <div class="security-consent-modal">
+      <h2 style="font-size: 1.3rem; font-weight: 700; color: var(--text-primary); text-align: center; margin-bottom: 4px;">📋 Términos de Uso y Aviso de Privacidad</h2>
+      
+      <!-- Pestañas de Navegación Legal -->
+      <div class="legal-tabs">
+        <button id="legalTabTermsBtn" class="legal-tab-btn active">Términos de Uso</button>
+        <button id="legalTabPrivacyBtn" class="legal-tab-btn">Aviso de Privacidad</button>
       </div>
-      <div style="display: flex; gap: 12px; margin-top: 8px;">
+
+      <!-- Contenedor del Texto Legal -->
+      <div class="legal-content-container">
+        
+        <!-- PANE 1: TÉRMINOS Y CONDICIONES -->
+        <div id="legalTermsPane" class="legal-text-pane active">
+          <div class="legal-disclaimer">
+            ⚠️ <strong>ATENCIÓN:</strong> Este documento es un modelo regulatorio para el uso del sistema de seguridad comunitaria <strong>AlertaVecinal</strong>. Debe adaptarse a la localidad específica.
+          </div>
+          <h3>1. Objeto y aceptación</h3>
+          <p>Los presentes Términos y Condiciones regulan el uso del sistema <strong>AlertaVecinal</strong> implementado en la comunidad y operado por el Comité de Seguridad del Residencial ("el Operador"). El uso de la consola, la recepción de alertas en el canal de mensajería designado o la participación como vecino en el esquema de vigilancia comunitaria implica la aceptación plena de estos Términos.</p>
+          
+          <h3>2. Naturaleza del servicio</h3>
+          <p>AlertaVecinal es una herramienta tecnológica de apoyo a la seguridad comunitaria de carácter privado y complementario. <strong>NO sustituye a la policía, al Ministerio Público ni a ninguna autoridad de seguridad pública.</strong> Su única función es apoyar la detección temprana de vehículos previamente reportados.</p>
+          <p>Las detecciones del sistema se generan mediante reconocimiento automático de matrículas (ANPR) y están sujetas a un margen de error técnico (falsos positivos/negativos). Ninguna alerta generada por el sistema constituye prueba de la comisión de un delito ni acusación formal.</p>
+          
+          <h3>3. Obligaciones del Operador de la consola</h3>
+          <ul>
+            <li>Mantener actualizada la base de datos de vehículos reportados de forma fidedigna.</li>
+            <li>Restringir el acceso a la consola mediante credenciales personales, únicas e intransferibles.</li>
+            <li>Revisar manualmente cada coincidencia antes de derivar en una acción.</li>
+            <li>Resguardar la confidencialidad de los datos a los que tiene acceso.</li>
+          </ul>
+
+          <h3>4. Obligaciones de los vecinos y receptores de alertas</h3>
+          <ul>
+            <li>Utilizar la información recibida exclusivamente para fines de seguridad comunitaria.</li>
+            <li><strong>Abstenerse de confrontar, detener o perseguir directamente</strong> a cualquier persona o vehículo señalado por el sistema. Toda acción debe canalizarse a través de la policía.</li>
+            <li>Abstenerse de difundir, publicar o compartir las fotografías y datos recibidos fuera del canal de Telegram designado (prohibido compartir en redes sociales públicas o grupos ajenos).</li>
+            <li>Reconocer que la difusión errónea de una alerta como acusación confirmada puede generar responsabilidad civil o penal personal.</li>
+          </ul>
+
+          <h3>5. Limitación de responsabilidad</h3>
+          <p>El Operador y el equipo técnico no garantizan la exactitud o disponibilidad del servicio. El Operador no será responsable por daños derivados de falsos positivos, uso indebido de los datos por parte de terceros o interrupción de conectividad y electricidad.</p>
+          
+          <h3>6. Menores de edad</h3>
+          <p>La consola de operador solo debe ser utilizada por personas mayores de 18 años designadas formalmente por el comité de seguridad.</p>
+
+          <h3>7. Legislación aplicable</h3>
+          <p>Estos Términos se rigen por las leyes de los Estados Unidos Mexicanos, incluyendo el Código Penal Federal en materia de protección al honor e imputaciones falsas.</p>
+        </div>
+        
+        <!-- PANE 2: AVISO DE PRIVACIDAD -->
+        <div id="legalPrivacyPane" class="legal-text-pane">
+          <h3>1. Identidad y domicilio del responsable</h3>
+          <p>El responsable del tratamiento de sus datos personales es el Comité de Seguridad y Administración Comunitaria de la vecindad ("el Responsable"), con domicilio registrado de la administración de AlertaVecinal.</p>
+          
+          <h3>2. Datos personales que se recaban</h3>
+          <p>El sistema AlertaVecinal recaba los siguientes datos a través de las cámaras de seguridad:</p>
+          <ul>
+            <li>Imágenes de vehículos, incluyendo la placa de circulación, marca, modelo y color.</li>
+            <li>Fecha, hora y ubicación exacta de la captura.</li>
+            <li>De manera incidental, imágenes de las vialidades públicas y personas transitando por el área de visión.</li>
+            <li>Audio en tiempo real de dos vías (únicamente para intercomunicación autorizada).</li>
+          </ul>
+          <p>El sistema no está diseñado para capturar datos sensibles ni biométricos de los conductores.</p>
+          
+          <h3>3. Finalidades del tratamiento</h3>
+          <p><strong>Finalidades Primarias:</strong></p>
+          <ul>
+            <li>Comparar matrículas detectadas contra la lista de vehículos reportados como robados.</li>
+            <li>Generar un registro histórico temporal de detecciones para prevención de delitos.</li>
+            <li>Enviar alertas de coincidencias positivas al canal de Telegram vecinal cerrado.</li>
+          </ul>
+
+          <h3>4. Fundamento legal</h3>
+          <p>El tratamiento se realiza bajo el interés legítimo de seguridad patrimonial y prevención del delito que reconoce la Ley Federal de Protección de Datos Personales en Posesión de los Particulares (LFPDPPP). Para cumplir con las medidas compensatorias, se colocará señalización en los accesos de la comunidad informando de la videovigilancia.</p>
+          
+          <h3>5. Transferencia de datos</h3>
+          <p>Los datos de detecciones positivas se transferirán únicamente a las autoridades de seguridad pública competentes en caso de flagrancia o mandato legal, y al grupo cerrado de Telegram del vecindario. No se realizan transferencias comerciales de ningún tipo.</p>
+
+          <h3>6. Plazo de conservación</h3>
+          <ul>
+            <li>Los registros de vehículos comunes sin reportes se eliminarán automáticamente a los <strong>30 días</strong>.</li>
+            <li>Los registros con reportes de robo confirmados se conservarán por un máximo de 12 meses o hasta que la autoridad competente resuelva el reporte.</li>
+          </ul>
+
+          <h3>7. Medidas de seguridad</h3>
+          <p>Se cuenta con medidas de seguridad físicas, técnicas y administrativas tales como cifrado AES-256 local en el navegador, canales WSS con TLS/SSL para el video, bloqueos por fuerza bruta y scripts anti-debugging para impedir accesos ilícitos.</p>
+
+          <h3>8. Derechos ARCO</h3>
+          <p>El titular del vehículo tiene derecho al Acceso, Rectificación, Cancelación y Oposición de sus datos. Podrá solicitarlo enviando su requerimiento por escrito a <strong>soporte@alertavecinal.com</strong>, acreditando su identidad e indicando la placa del vehículo y fecha aproximada del registro.</p>
+        </div>
+
+      </div>
+
+      <!-- Checkbox de Consentimiento Obligatorio -->
+      <label class="legal-checkbox-container">
+        <input type="checkbox" id="legalConsentCheckbox">
+        <span>He leído, comprendo y acepto los Términos de Uso y el Aviso de Privacidad integral del sistema.</span>
+      </label>
+
+      <!-- Botones de Acción -->
+      <div style="display: flex; gap: 12px; margin-top: 4px;">
         <button class="btn btn-secondary" id="declineConsentBtn" style="flex: 1;">Rechazar</button>
-        <button class="btn" id="acceptConsentBtn" style="flex: 1;">Aceptar y Continuar</button>
+        <button class="btn" id="acceptConsentBtn" style="flex: 1;" disabled>Aceptar y Continuar</button>
       </div>
     </div>
   </div>

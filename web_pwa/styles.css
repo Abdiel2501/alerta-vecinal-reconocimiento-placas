@@ -1228,3 +1228,133 @@ input:checked + .slider:before {
     flex: 1;
   }
 }
+
+/* 📜 Legal Modal Layout & Design System */
+.security-consent-modal {
+  width: 100%;
+  max-width: 650px !important;
+  background: var(--surface-color);
+  padding: 30px;
+  border-radius: var(--border-radius);
+  border: var(--card-border);
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  position: relative;
+  animation: slideUp 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.15);
+}
+
+.legal-tabs {
+  display: flex;
+  gap: 8px;
+  border-bottom: 2px solid var(--border-color);
+  padding-bottom: 0px;
+  margin-bottom: 4px;
+}
+
+.legal-tab-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 8px 16px;
+  cursor: pointer;
+  position: relative;
+  transition: color 0.2s ease, border-color 0.2s ease;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
+}
+
+.legal-tab-btn:hover {
+  color: var(--text-primary);
+}
+
+.legal-tab-btn.active {
+  color: var(--primary-color);
+  border-bottom-color: var(--primary-color);
+}
+
+.legal-content-container {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  background: var(--bg-color);
+  padding: 20px;
+  border-radius: 12px;
+  height: 300px;
+  overflow-y: auto;
+  text-align: justify;
+  border: var(--card-border);
+  line-height: 1.6;
+}
+
+.legal-text-pane {
+  display: none;
+}
+
+.legal-text-pane.active {
+  display: block;
+  animation: legalFadeIn 0.25s ease-out;
+}
+
+.legal-text-pane h3 {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-top: 18px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  padding-bottom: 4px;
+}
+
+.legal-text-pane h3:first-of-type {
+  margin-top: 0;
+}
+
+.legal-text-pane p {
+  margin-bottom: 12px;
+}
+
+.legal-text-pane ul, .legal-text-pane ol {
+  margin-bottom: 12px;
+  padding-left: 20px;
+}
+
+.legal-text-pane li {
+  margin-bottom: 6px;
+}
+
+.legal-checkbox-container {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 6px 0;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  user-select: none;
+}
+
+.legal-checkbox-container input {
+  margin-top: 3px;
+  cursor: pointer;
+  accent-color: var(--primary-color);
+}
+
+.legal-disclaimer {
+  font-size: 0.72rem;
+  color: #ff6b6b;
+  background: rgba(255, 107, 107, 0.08);
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 107, 107, 0.15);
+  margin-bottom: 4px;
+  line-height: 1.4;
+}
+
+@keyframes legalFadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}

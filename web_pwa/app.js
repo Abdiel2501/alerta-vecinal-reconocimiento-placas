@@ -23,11 +23,21 @@ document.addEventListener('DOMContentLoaded', () => {
   const toast = document.getElementById('toast-notification');
 
   // DOM Elements - Login
+  const authLoginForm = document.getElementById('authLoginForm');
+  const authRegisterForm = document.getElementById('authRegisterForm');
+  const toRegisterBtn = document.getElementById('toRegisterBtn');
+  const toLoginBtn = document.getElementById('toLoginBtn');
+  const registerName = document.getElementById('registerName');
+  const registerEmail = document.getElementById('registerEmail');
+  const registerPassword = document.getElementById('registerPassword');
+  const submitRegisterBtn = document.getElementById('submitRegisterBtn');
+
   const loginEmail = document.getElementById('loginEmail');
   const loginPassword = document.getElementById('loginPassword');
   const normalLoginBtn = document.getElementById('normalLoginBtn');
   const googleLoginBtn = document.getElementById('googleLoginBtn');
   const googleBtnContainer = document.getElementById('googleBtnContainer');
+  const googleBtnContainerRegister = document.getElementById('googleBtnContainerRegister');
   const googleProfileCard = document.getElementById('googleProfileCard');
   const profileName = document.getElementById('profileName');
   const profileEmail = document.getElementById('profileEmail');
@@ -140,6 +150,13 @@ document.addEventListener('DOMContentLoaded', () => {
   const acceptConsentBtn = document.getElementById('acceptConsentBtn');
   const declineConsentBtn = document.getElementById('declineConsentBtn');
 
+  // Legal Modal DOM elements
+  const legalTabTermsBtn = document.getElementById('legalTabTermsBtn');
+  const legalTabPrivacyBtn = document.getElementById('legalTabPrivacyBtn');
+  const legalTermsPane = document.getElementById('legalTermsPane');
+  const legalPrivacyPane = document.getElementById('legalPrivacyPane');
+  const legalConsentCheckbox = document.getElementById('legalConsentCheckbox');
+
   // Lanzamiento de la pantalla de carga (Splash Screen) por 2 segundos
   setTimeout(() => {
     splashScreen.classList.add('fade-out');
@@ -225,6 +242,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (CONFIG.GOOGLE_CLIENT_ID) {
       if (googleLoginBtn) googleLoginBtn.style.display = 'none';
       if (googleBtnContainer) googleBtnContainer.style.display = 'flex';
+      if (googleBtnContainerRegister) googleBtnContainerRegister.style.display = 'flex';
 
       try {
         google.accounts.id.initialize({
@@ -232,6 +250,7 @@ document.addEventListener('DOMContentLoaded', () => {
           callback: handleGoogleCredentialResponse
         });
 
+        // 1. Renderizar botón para Iniciar Sesión con Google
         google.accounts.id.renderButton(
           googleBtnContainer,
           {
@@ -243,14 +262,31 @@ document.addEventListener('DOMContentLoaded', () => {
             shape: 'rectangular'
           }
         );
+
+        // 2. Renderizar botón para Registrarse con Google
+        if (googleBtnContainerRegister) {
+          google.accounts.id.renderButton(
+            googleBtnContainerRegister,
+            {
+              theme: 'outline',
+              size: 'large',
+              width: 320,
+              text: 'signup_with',
+              locale: 'es',
+              shape: 'rectangular'
+            }
+          );
+        }
       } catch (err) {
         console.error("Error inicializando Google Sign-In real:", err);
         if (googleLoginBtn) googleLoginBtn.style.display = 'flex';
         if (googleBtnContainer) googleBtnContainer.style.display = 'none';
+        if (googleBtnContainerRegister) googleBtnContainerRegister.style.display = 'none';
       }
     } else {
       if (googleLoginBtn) googleLoginBtn.style.display = 'flex';
       if (googleBtnContainer) googleBtnContainer.style.display = 'none';
+      if (googleBtnContainerRegister) googleBtnContainerRegister.style.display = 'none';
     }
   }
 
@@ -278,14 +314,41 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  // --- 📜 INTERACCIONES DEL MODAL LEGAL (Términos y Privacidad) ---
+  if (legalTabTermsBtn && legalTabPrivacyBtn) {
+    legalTabTermsBtn.addEventListener('click', () => {
+      legalTabTermsBtn.classList.add('active');
+      legalTabPrivacyBtn.classList.remove('active');
+      legalTermsPane.classList.add('active');
+      legalPrivacyPane.classList.remove('active');
+    });
+
+    legalTabPrivacyBtn.addEventListener('click', () => {
+      legalTabPrivacyBtn.classList.add('active');
+      legalTabTermsBtn.classList.remove('active');
+      legalPrivacyPane.classList.add('active');
+      legalTermsPane.classList.remove('active');
+    });
+  }
+
+  if (legalConsentCheckbox) {
+    legalConsentCheckbox.addEventListener('change', () => {
+      acceptConsentBtn.disabled = !legalConsentCheckbox.checked;
+    });
+  }
+
   acceptConsentBtn.addEventListener('click', () => {
+    if (legalConsentCheckbox && !legalConsentCheckbox.checked) {
+      alert('Debe marcar la casilla de aceptación para continuar.');
+      return;
+    }
     localStorage.setItem('privacy_accepted', 'true');
     privacyConsentModal.classList.remove('active');
     checkSessionAndStart();
   });
 
   declineConsentBtn.addEventListener('click', () => {
-    alert('Debe aceptar el Aviso de Privacidad y Consentimiento para ingresar y utilizar la plataforma AlertaVecinal.');
+    alert('Debe aceptar los Términos de Uso y el Aviso de Privacidad para ingresar y utilizar la plataforma AlertaVecinal.');
   });
 
   function logInSuccess(session) {
@@ -322,24 +385,107 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  // --- 🔄 TOGGLE ENTRE INICIO DE SESIÓN Y REGISTRO ---
+  if (toRegisterBtn && toLoginBtn && authLoginForm && authRegisterForm) {
+    toRegisterBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      authLoginForm.style.display = 'none';
+      authRegisterForm.style.display = 'block';
+    });
+
+    toLoginBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      authRegisterForm.style.display = 'none';
+      authLoginForm.style.display = 'block';
+    });
+  }
+
+  // --- 💾 REGISTRO DE NUEVO VECINO ---
+  if (submitRegisterBtn) {
+    submitRegisterBtn.addEventListener('click', () => {
+      const name = registerName.value.trim();
+      const email = registerEmail.value.trim();
+      const password = registerPassword.value.trim();
+
+      if (!name || !email || !password) {
+        alert('Por favor complete todos los campos.');
+        return;
+      }
+
+      if (email.toLowerCase() === 'admin@alertavecinal.com') {
+        alert('Este correo ya está registrado como administrador.');
+        return;
+      }
+
+      const registeredUsers = JSON.parse(localStorage.getItem('registered_users') || '[]');
+      const userExists = registeredUsers.some(u => u.email.toLowerCase() === email.toLowerCase());
+      if (userExists) {
+        alert('Este correo ya está registrado.');
+        return;
+      }
+
+      // Hashing de contraseña (SHA256) antes de persistir
+      const hashedPassword = CryptoJS.SHA256(password).toString();
+
+      registeredUsers.push({
+        name: name,
+        email: email,
+        passwordHash: hashedPassword
+      });
+      localStorage.setItem('registered_users', JSON.stringify(registeredUsers));
+
+      showToast('🎉 ¡Registro completado con éxito!');
+      
+      registerName.value = '';
+      registerEmail.value = '';
+      registerPassword.value = '';
+      authRegisterForm.style.display = 'none';
+      authLoginForm.style.display = 'block';
+
+      loginEmail.value = email;
+      loginPassword.value = '';
+    });
+  }
+
+  // --- 🔑 INICIO DE SESIÓN MULTI-USUARIO ---
   normalLoginBtn.addEventListener('click', () => {
     if (checkLockout()) return;
 
     const email = loginEmail.value.trim();
     const password = loginPassword.value.trim();
 
-    if (email === 'admin@alertavecinal.com' && password === 'admin123') {
+    let authenticatedUser = null;
+
+    if (email.toLowerCase() === 'admin@alertavecinal.com' && password === 'admin123') {
+      authenticatedUser = {
+        name: 'Administrador',
+        email: email,
+        provider: 'credentials'
+      };
+    } else {
+      const registeredUsers = JSON.parse(localStorage.getItem('registered_users') || '[]');
+      const user = registeredUsers.find(u => u.email.toLowerCase() === email.toLowerCase());
+      
+      if (user) {
+        const inputPasswordHash = CryptoJS.SHA256(password).toString();
+        if (user.passwordHash === inputPasswordHash) {
+          authenticatedUser = {
+            name: user.name,
+            email: user.email,
+            provider: 'credentials'
+          };
+        }
+      }
+    }
+
+    if (authenticatedUser) {
       authFailures = 0;
       localStorage.removeItem('auth_failures');
       localStorage.removeItem('lockout_timestamp');
       
       deriveSessionKey(password);
 
-      logInSuccess({
-        name: 'Administrador',
-        email: email,
-        provider: 'credentials'
-      });
+      logInSuccess(authenticatedUser);
     } else {
       authFailures++;
       localStorage.setItem('auth_failures', authFailures);
