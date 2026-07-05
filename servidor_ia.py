@@ -343,7 +343,12 @@ def bucle_audio_rtsp(url_rtsp, socket_cliente, loop):
     global hilo_audio_activo
     print(f"[Audio] Hilo de transmisión de audio iniciado para: {url_rtsp}")
     try:
-        container = av.open(url_rtsp)
+        # Configurar transporte TCP para evitar bloqueos por UDP en la red local
+        options = {
+            'rtsp_transport': 'tcp',
+            'stimeout': '5000000' # 5 segundos de timeout
+        }
+        container = av.open(url_rtsp, options=options)
         audio_stream = next((s for s in container.streams if s.type == 'audio'), None)
         if not audio_stream:
             print("[Audio] La cámara no tiene ninguna pista de audio activa.")
@@ -359,24 +364,26 @@ def bucle_audio_rtsp(url_rtsp, socket_cliente, loop):
             rate=8000,
         )
 
-        for packet in container.demux(audio_stream):
+        print("[Audio] Pista de audio detectada con éxito. Transmitiendo stream PCM a la PWA...")
+
+        # Decodificar frames de audio directamente
+        for frame in container.decode(audio_stream):
             with bloqueo_audio:
                 if not hilo_audio_activo:
                     break
             
-            for frame in packet.decode():
-                resampled = resampler.resample(frame)
-                for rf in resampled:
-                    # Obtener bytes PCM 16-bit
-                    pcm_bytes = rf.to_ndarray().tobytes()
-                    # Codificar en base64 para evitar tráficos binarios y parseos erróneos
-                    b64_audio = base64.b64encode(pcm_bytes).decode('utf-8')
-                    # Transmitir al cliente por WebSocket
-                    if loop and not loop.is_closed():
-                        asyncio.run_coroutine_threadsafe(
-                            _enviar_seguro(socket_cliente, {"type": "audio", "data": b64_audio}),
-                            loop
-                        )
+            resampled = resampler.resample(frame)
+            for rf in resampled:
+                # Obtener bytes PCM 16-bit mono
+                pcm_bytes = rf.to_ndarray().tobytes()
+                # Codificar en base64 para evitar tráficos binarios y parseos erróneos
+                b64_audio = base64.b64encode(pcm_bytes).decode('utf-8')
+                # Transmitir al cliente por WebSocket
+                if loop and not loop.is_closed():
+                    asyncio.run_coroutine_threadsafe(
+                        _enviar_seguro(socket_cliente, {"type": "audio", "data": b64_audio}),
+                        loop
+                    )
     except Exception as e:
         print(f"[Audio] Error en la extracción del audio de la cámara: {e}")
     finally:
