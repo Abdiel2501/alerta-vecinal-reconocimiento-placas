@@ -769,14 +769,36 @@ document.addEventListener('DOMContentLoaded', () => {
   function connectWebSocket() {
     if (demoMode) return;
 
-    const ip = serverIpInput.value.trim() || '127.0.0.1';
-    const port = serverPortInput.value.trim() || '8765';
+    let ip = serverIpInput.value.trim() || '127.0.0.1';
+    let port = serverPortInput.value.trim() || '8765';
     
     localStorage.setItem('server_ip', ip);
     localStorage.setItem('server_port', port);
 
-    // Conectar a la ruta /ws correcta del servidor FastAPI
-    const wsUrl = `ws://${ip}:${port}/ws`;
+    let wsUrl = '';
+    
+    // Si la IP/Dirección ya contiene un esquema de websocket
+    if (ip.startsWith('ws://') || ip.startsWith('wss://')) {
+      wsUrl = ip;
+      if (!wsUrl.endsWith('/ws')) {
+        wsUrl = wsUrl.replace(/\/?$/, '/ws');
+      }
+    } else if (ip.startsWith('http://') || ip.startsWith('https://')) {
+      wsUrl = ip.replace(/^http/, 'ws');
+      if (!wsUrl.endsWith('/ws')) {
+        wsUrl = wsUrl.replace(/\/?$/, '/ws');
+      }
+    } else {
+      // Es una IP o un dominio sin protocolo
+      const protocol = (window.location.protocol === 'https:') ? 'wss' : 'ws';
+      const isDomain = ip.includes('.') && !/^[0-9.]+$/.test(ip) && ip !== 'localhost';
+      
+      if (isDomain && (port === '80' || port === '443' || port === '')) {
+        wsUrl = `${protocol}://${ip}/ws`;
+      } else {
+        wsUrl = `${protocol}://${ip}:${port}/ws`;
+      }
+    }
 
     if (ws) ws.close();
 
@@ -856,29 +878,61 @@ document.addEventListener('DOMContentLoaded', () => {
           }
 
           const imageBitmap = await createImageBitmap(event.data);
-          const halfHeight = imageBitmap.height / 2;
+          const w = imageBitmap.width;
+          const h = imageBitmap.height;
 
-          if (videoCanvasPtz.width !== imageBitmap.width || videoCanvasPtz.height !== halfHeight) {
-            videoCanvasPtz.width = imageBitmap.width;
-            videoCanvasPtz.height = halfHeight;
-            videoCanvasFixed.width = imageBitmap.width;
-            videoCanvasFixed.height = halfHeight;
+          // Si la altura es mayor o igual a la anchura, es doble lente (dos frames de 16:9 apilados verticalmente)
+          const isDualLens = (h / w) >= 1.0;
+
+          if (isDualLens) {
+            const halfHeight = h / 2;
+
+            if (videoCanvasPtz.width !== w || videoCanvasPtz.height !== halfHeight) {
+              videoCanvasPtz.width = w;
+              videoCanvasPtz.height = halfHeight;
+              videoCanvasFixed.width = w;
+              videoCanvasFixed.height = halfHeight;
+            }
+
+            // Asegurar que el contenedor del lente fijo esté visible
+            if (lensFixedContainer.classList.contains('collapsed')) {
+              lensFixedContainer.classList.remove('collapsed');
+            }
+            ptzOverlay.style.display = 'flex'; // Mostrar pad de PTZ
+
+            // Lente Superior (Fijo): Dibuja la mitad superior del frame de video
+            ctxFixed.drawImage(imageBitmap, 
+              0, 0, w, halfHeight, 
+              0, 0, videoCanvasFixed.width, videoCanvasFixed.height
+            );
+            
+            // Lente Inferior (PTZ): Dibuja la mitad inferior del frame de video
+            ctxPtz.drawImage(imageBitmap, 
+              0, halfHeight, w, halfHeight, 
+              0, 0, videoCanvasPtz.width, videoCanvasPtz.height
+            );
+            placeholderFixed.style.display = 'none';
+          } else {
+            // Mapear pantalla simple (webcam, laptop camera, etc.)
+            if (videoCanvasPtz.width !== w || videoCanvasPtz.height !== h) {
+              videoCanvasPtz.width = w;
+              videoCanvasPtz.height = h;
+            }
+
+            // Colapsar el lente fijo y ocultar los controles PTZ
+            if (!lensFixedContainer.classList.contains('collapsed')) {
+              lensFixedContainer.classList.add('collapsed');
+            }
+            ptzOverlay.style.display = 'none';
+
+            // Dibujar el frame completo en el canvas principal (PTZ)
+            ctxPtz.drawImage(imageBitmap, 
+              0, 0, w, h, 
+              0, 0, videoCanvasPtz.width, videoCanvasPtz.height
+            );
           }
-          
-          // Lente Superior (Fijo): Dibuja la mitad superior del frame de video
-          ctxFixed.drawImage(imageBitmap, 
-            0, 0, imageBitmap.width, halfHeight, 
-            0, 0, videoCanvasFixed.width, videoCanvasFixed.height
-          );
-          
-          // Lente Inferior (PTZ): Dibuja la mitad inferior del frame de video
-          ctxPtz.drawImage(imageBitmap, 
-            0, halfHeight, imageBitmap.width, halfHeight, 
-            0, 0, videoCanvasPtz.width, videoCanvasPtz.height
-          );
 
           placeholderPtz.style.display = 'none';
-          placeholderFixed.style.display = 'none';
         } catch (err) {
           console.error(err);
         }
