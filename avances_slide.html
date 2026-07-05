@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Avances al Dia de Hoy - Proyecto ANPR</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #ffffff;
+            margin: 0;
+            padding: 0;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Banner Superior */
+        .top-banner {
+            background-color: #1363a9; /* El azul de la diapositiva original */
+            width: 100%;
+            height: 16vh;
+            display: flex;
+            align-items: center;
+            padding-left: 50px;
+            position: relative;
+        }
+
+        .top-banner h1 {
+            color: #ffffff;
+            font-size: 44px;
+            font-weight: 700;
+            margin: 0;
+            letter-spacing: -0.5px;
+        }
+
+        .banner-line {
+            background-color: #d9381e; /* La línea roja debajo del banner */
+            width: 100%;
+            height: 6px;
+        }
+
+        /* Contenedor Principal de las Columnas */
+        .content-container {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 40px 50px;
+            background-color: #ffffff;
+        }
+
+        .board-wrapper {
+            border: 2px solid #b3d7f7; /* Borde exterior azul claro de la diapositiva */
+            border-radius: 12px;
+            width: 100%;
+            height: 100%;
+            padding: 24px;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            background-color: #ffffff;
+        }
+
+        /* Columnas del Kanban */
+        .kanban-column {
+            display: flex;
+            flex-direction: column;
+            border-radius: 8px;
+            overflow: hidden;
+            height: 100%;
+        }
+
+        /* Fondos claros para los cuerpos de las columnas */
+        .col-completed {
+            background-color: #f0f7fd; /* Azul muy tenue */
+        }
+
+        .col-inprogress {
+            background-color: #fdf2f2; /* Rojo muy tenue */
+        }
+
+        .col-tostart {
+            background-color: #f8fafc; /* Gris muy tenue */
+        }
+
+        /* Encabezados de Columnas */
+        .column-header {
+            color: #ffffff;
+            font-size: 18px;
+            font-weight: 800;
+            text-align: center;
+            padding: 14px 0;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+        }
+
+        .header-completed {
+            background-color: #1d70b8; /* Azul de completado */
+        }
+
+        .header-inprogress {
+            background-color: #d9381e; /* Rojo de en proceso */
+        }
+
+        .header-tostart {
+            background-color: #595959; /* Gris de por iniciar */
+        }
+
+        /* Cuerpo de la Columna y Tarjetas */
+        .column-body {
+            flex: 1;
+            padding: 30px 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-evenly; /* Distribución uniforme */
+            align-items: center;
+            text-align: center;
+        }
+
+        /* Elementos dentro de las columnas */
+        .item {
+            font-weight: 700;
+            font-size: 18px;
+            line-height: 1.4;
+            margin: 15px 0;
+            width: 100%;
+        }
+
+        .text-completed {
+            color: #1363a9;
+        }
+
+        .text-inprogress {
+            color: #d9381e;
+        }
+
+        .text-tostart {
+            color: #4a5568;
+        }
+
+        .phase-label {
+            display: block;
+            font-weight: 700;
+            font-size: 16px;
+            margin-top: 4px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Banner superior de la diapositiva -->
+    <div class="top-banner">
+        <h1>Avances al Dia de Hoy</h1>
+    </div>
+    <div class="banner-line"></div>
+
+    <!-- Contenedor del tablero Kanban -->
+    <div class="content-container">
+        <div class="board-wrapper">
+            
+            <!-- Columna 1: Completado -->
+            <div class="kanban-column col-completed">
+                <div class="column-header header-completed">Completado</div>
+                <div class="column-body">
+                    <div class="item text-completed">
+                        - DISEÑO Y<br>PLANIFICACIÓN
+                        <span class="phase-label">(Fase 1)</span>
+                    </div>
+                    <div class="item text-completed">
+                        - MODELOS DE IA /<br>BD SQLITE
+                        <span class="phase-label">(Fase 2)</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Columna 2: Completado -->
+            <div class="kanban-column col-completed">
+                <div class="column-header header-completed">Completado</div>
+                <div class="column-body">
+                    <div class="item text-completed">
+                        - ASPECTOS<br>LEGALES Y<br>PRIVACIDAD
+                        <span class="phase-label">(Fase 3)</span>
+                    </div>
+                    <div class="item text-completed">
+                        - PIPELINE DE<br>VISIÓN (IA & OCR)
+                        <span class="phase-label">(Fase 4)</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Columna 3: En Proceso -->
+            <div class="kanban-column col-inprogress">
+                <div class="column-header header-inprogress">En Proceso</div>
+                <div class="column-body">
+                    <!-- CIBERSEGURIDAD Y CIFRADO movida aquí, en rojo -->
+                    <div class="item text-inprogress">
+                        - CIBERSEGURIDAD<br>Y CIFRADO
+                        <span class="phase-label">(Fase 5)</span>
+                    </div>
+                    <div class="item text-inprogress">
+                        - Alertas Telegram
+                        <span class="phase-label">(Fase 6)</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Columna 4: Por Iniciar -->
+            <div class="kanban-column col-tostart">
+                <div class="column-header header-tostart">Por Iniciar</div>
+                <div class="column-body">
+                    <div class="item text-tostart">
+                        App Flutter<br>Integración
+                        <span class="phase-label">(Fase 7)</span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+</body>
+</html>

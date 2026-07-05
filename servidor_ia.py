@@ -566,7 +566,8 @@ try:
 except ImportError:
     pass
 import ctypes
-from ctypes import wintypes
+if sys.platform == 'win32':
+    from ctypes import wintypes
 
 class CapturaPantalla:
     def __init__(self, monitor_id=1):
@@ -583,43 +584,44 @@ class CapturaPantalla:
         if self.sct is None:
             self.sct = mss.mss()
             
-        # Intentar localizar la ventana activa de YI IOT buscando por proceso
+        # Intentar localizar la ventana activa de YI IOT buscando por proceso (solo en Windows)
         rect_ventana = None
-        try:
-            import psutil
-            pids = []
-            for proc in psutil.process_iter(['pid', 'name']):
-                try:
-                    name = proc.info['name']
-                    if name and ('yiiot' in name.lower() or 'yi_iot' in name.lower() or 'yi' in name.lower()):
-                        if 'client' in name.lower() or 'yiiot' in name.lower():
-                            pids.append(proc.info['pid'])
-                except Exception:
-                    pass
-            
-            if pids:
-                max_area = 0
-                rect_temp = ctypes.wintypes.RECT()
+        if sys.platform == 'win32':
+            try:
+                import psutil
+                pids = []
+                for proc in psutil.process_iter(['pid', 'name']):
+                    try:
+                        name = proc.info['name']
+                        if name and ('yiiot' in name.lower() or 'yi_iot' in name.lower() or 'yi' in name.lower()):
+                            if 'client' in name.lower() or 'yiiot' in name.lower():
+                                pids.append(proc.info['pid'])
+                    except Exception:
+                        pass
                 
-                def foreach_window(hwnd, lParam):
-                    nonlocal rect_ventana, max_area
-                    win_pid = ctypes.c_ulong()
-                    ctypes.windll.user32.GetWindowThreadProcessId(hwnd, ctypes.byref(win_pid))
-                    if win_pid.value in pids:
-                        ctypes.windll.user32.GetWindowRect(hwnd, ctypes.byref(rect_temp))
-                        w = rect_temp.right - rect_temp.left
-                        h = rect_temp.bottom - rect_temp.top
-                        if rect_temp.left > -10000 and rect_temp.top > -10000:
-                            if w > 200 and h > 200:
-                                area = w * h
-                                if area > max_area:
-                                    max_area = area
-                                    rect_ventana = (rect_temp.left, rect_temp.top, w, h)
-                    return True
-                
-                ctypes.windll.user32.EnumWindows(ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.c_int, ctypes.POINTER(ctypes.c_int))(foreach_window), None)
-        except Exception:
-            pass
+                if pids:
+                    max_area = 0
+                    rect_temp = ctypes.wintypes.RECT()
+                    
+                    def foreach_window(hwnd, lParam):
+                        nonlocal rect_ventana, max_area
+                        win_pid = ctypes.c_ulong()
+                        ctypes.windll.user32.GetWindowThreadProcessId(hwnd, ctypes.byref(win_pid))
+                        if win_pid.value in pids:
+                            ctypes.windll.user32.GetWindowRect(hwnd, ctypes.byref(rect_temp))
+                            w = rect_temp.right - rect_temp.left
+                            h = rect_temp.bottom - rect_temp.top
+                            if rect_temp.left > -10000 and rect_temp.top > -10000:
+                                if w > 200 and h > 200:
+                                    area = w * h
+                                    if area > max_area:
+                                        max_area = area
+                                        rect_ventana = (rect_temp.left, rect_temp.top, w, h)
+                        return True
+                    
+                    ctypes.windll.user32.EnumWindows(ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.c_int, ctypes.POINTER(ctypes.c_int))(foreach_window), None)
+            except Exception:
+                pass
 
         if rect_ventana:
             region = {
@@ -672,8 +674,15 @@ def abrir_captura(fuente_str: str) -> cv2.VideoCapture:
     if fuente_str.isdigit():
         idx = int(fuente_str)
         print(f"📹 Abriendo cámara USB índice {idx}...")
-        # En Windows moderno MSMF es el más compatible, DSHOW falla en muchas webcams.
-        backends = [(cv2.CAP_MSMF, "MSMF"), (cv2.CAP_DSHOW, "DSHOW"), (cv2.CAP_ANY, "ANY")]
+        # Definir backends según la plataforma
+        backends = []
+        if sys.platform == 'win32':
+            if hasattr(cv2, 'CAP_MSMF'): backends.append((cv2.CAP_MSMF, "MSMF"))
+            if hasattr(cv2, 'CAP_DSHOW'): backends.append((cv2.CAP_DSHOW, "DSHOW"))
+        else:
+            if hasattr(cv2, 'CAP_V4L2'): backends.append((cv2.CAP_V4L2, "V4L2"))
+        backends.append((cv2.CAP_ANY, "ANY"))
+
         for backend, nombre in backends:
             try:
                 c = cv2.VideoCapture(idx, backend)
@@ -708,12 +717,19 @@ def abrir_captura(fuente_str: str) -> cv2.VideoCapture:
 
 
 def detectar_camaras_usb() -> list[dict]:
-    """Detecta cámaras USB disponibles en Windows."""
+    """Detecta cámaras USB disponibles."""
     camaras = []
+    backends = []
+    if sys.platform == 'win32':
+        if hasattr(cv2, 'CAP_MSMF'): backends.append(cv2.CAP_MSMF)
+        if hasattr(cv2, 'CAP_DSHOW'): backends.append(cv2.CAP_DSHOW)
+    else:
+        if hasattr(cv2, 'CAP_V4L2'): backends.append(cv2.CAP_V4L2)
+    backends.append(cv2.CAP_ANY)
+
     for i in range(8):
         encontrada = False
-        # Intentar MSMF primero, luego DSHOW como fallback
-        for backend in (cv2.CAP_MSMF, cv2.CAP_DSHOW, cv2.CAP_ANY):
+        for backend in backends:
             try:
                 c = cv2.VideoCapture(i, backend)
             except Exception:

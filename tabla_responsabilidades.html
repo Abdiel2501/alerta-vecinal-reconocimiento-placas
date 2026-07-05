@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tabla de Responsabilidades - Estilo Original Alta Calidad</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Georgia', 'Times New Roman', Times, serif;
+            background-color: #ffffff;
+            margin: 0;
+            padding: 0;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        .table-container {
+            width: 100%;
+            height: 100%;
+            padding: 30px;
+            background: #ffffff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        table {
+            width: 100%;
+            height: 100%;
+            border-collapse: collapse;
+            border: 1.5px solid #000000;
+        }
+
+        th, td {
+            border: 1.2px solid #000000;
+            padding: 20px 24px;
+            vertical-align: top;
+            color: #000000;
+            line-height: 1.5;
+        }
+
+        th {
+            font-weight: bold;
+            font-size: 22px;
+            text-align: left;
+            padding: 22px 24px;
+        }
+
+        /* Nombres e Integrantes */
+        .member-name {
+            font-weight: bold;
+            font-size: 21px;
+            margin: 0;
+        }
+
+        .member-role {
+            font-style: italic;
+            font-size: 19px;
+            margin-top: 4px;
+            display: block;
+        }
+
+        /* Área Especializada */
+        .area-text {
+            font-size: 20px;
+            display: block;
+        }
+
+        /* Lista de Responsabilidades */
+        .phase-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .phase-list li {
+            position: relative;
+            padding-left: 28px;
+            margin-bottom: 16px;
+            font-size: 19px;
+        }
+
+        .phase-list li:last-child {
+            margin-bottom: 0;
+        }
+
+        /* Viñeta cuadrada idéntica a la original */
+        .square-bullet {
+            position: absolute;
+            left: 0;
+            top: 2px;
+            font-size: 12px;
+            color: #000000;
+        }
+
+        .phase-title {
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 26%;">Integrante y Rol</th>
+                    <th style="width: 28%;">Área Especializada</th>
+                    <th style="width: 46%;">Fases y Responsabilidades Específicas</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Geovani Coronado -->
+                <tr>
+                    <td>
+                        <p class="member-name">Geovani Coronado</p>
+                        <span class="member-role">Lead de IA</span>
+                    </td>
+                    <td>
+                        <span class="area-text">Procesamiento de Imágenes y Visión por Computadora</span>
+                    </td>
+                    <td>
+                        <ul class="phase-list">
+                            <li>
+                                <span class="square-bullet">▪</span>
+                                <span class="phase-title">Fase 2:</span> Entrenamiento y ajuste de los modelos YOLO.
+                            </li>
+                            <li>
+                                <span class="square-bullet">▪</span>
+                                <span class="phase-title">Fase 4:</span> Integración de YOLO y EasyOCR para extracción de texto.
+                            </li>
+                            <li>
+                                <span class="square-bullet">▪</span>
+                                <span class="phase-title">Fase 10:</span> Optimización final y afinación de los modelos.
+                            </li>
+                        </ul>
+                    </td>
+                </tr>
+
+                <!-- Abdiel Hernández -->
+                <tr>
+                    <td>
+                        <p class="member-name">Abdiel Hernández</p>
+                        <span class="member-role">Lead de DevSecOps / Backend</span>
+                    </td>
+                    <td>
+                        <span class="area-text">Servidor, Base de Datos, Redes y Seguridad</span>
+                    </td>
+                    <td>
+                        <ul class="phase-list">
+                            <li>
+                                <span class="square-bullet">▪</span>
+                                <span class="phase-title">Fase 3:</span> Definición técnica de protección de datos personales.
+                            </li>
+                            <li>
+                                <span class="square-bullet">▪</span>
+                                <span class="phase-title">Fase 5:</span> Cifrado de matrículas y autenticación segura de la API.
+                            </li>
+                            <li>
+                                <span class="square-bullet">▪</span>
+                                <span class="phase-title">Fase 6:</span> Creación de la API (FastAPI), WebSockets y alertas automáticas (Telegram/WhatsApp).
+                            </li>
+                        </ul>
+                    </td>
+                </tr>
+
+                <!-- Jorge Heredia -->
+                <tr>
+                    <td>
+                        <p class="member-name">Jorge Heredia</p>
+                        <span class="member-role">Lead de Frontend & Diseño</span>
+                    </td>
+                    <td>
+                        <span class="area-text">Diseño de Interfaces, Aplicación de Usuario y Difusión</span>
+                    </td>
+                    <td>
+                        <ul class="phase-list">
+                            <li>
+                                <span class="square-bullet">▪</span>
+                                <span class="phase-title">Fase 1:</span> Maquetado y diseño visual de UI/UX (dashboard e interfaz móvil).
+                            </li>
+                            <li>
+                                <span class="square-bullet">▪</span>
+                                <span class="phase-title">Fase 7:</span> Programación de la app multiplataforma en Flutter para monitoreo en tiempo real.
+                            </li>
+                            <li>
+                                <span class="square-bullet">▪</span>
+                                <span class="phase-title">Fase 8:</span> Creación de presentación comercial, manuales y difusión.
+                            </li>
+                        </ul>
+                    </td>
+                </tr>
+
+                <!-- Colaboración Conjunta -->
+                <tr>
+                    <td>
+                        <p class="member-name">Colaboración Conjunta</p>
+                        <span class="member-role">(Los 3 Integrantes)</span>
+                    </td>
+                    <td>
+                        <span class="area-text">Integración General y Aseguramiento de Calidad</span>
+                    </td>
+                    <td>
+                        <ul class="phase-list">
+                            <li>
+                                <span class="square-bullet">▪</span>
+                                <span class="phase-title">Fase 9 (QA y Bugs):</span> Pruebas de extremo a extremo (End-to-End) conectando la app cliente (Jorge), la API de red (Geovani) y el procesamiento de IA (Abdiel) para corregir fallos.
+                            </li>
+                        </ul>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+</body>
+</html>

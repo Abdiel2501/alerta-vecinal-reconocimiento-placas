@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Metodología: Enfoque Híbrido - Proyecto ANPR</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #ffffff;
+            margin: 0;
+            padding: 0;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Banner Superior */
+        .top-banner {
+            background-color: #1363a9; /* El azul de la diapositiva original */
+            width: 100%;
+            height: 16vh;
+            display: flex;
+            align-items: center;
+            padding-left: 50px;
+            position: relative;
+        }
+
+        .top-banner h1 {
+            color: #ffffff;
+            font-size: 44px;
+            font-weight: 700;
+            margin: 0;
+            letter-spacing: -0.5px;
+        }
+
+        .banner-line {
+            background-color: #d9381e; /* La línea roja debajo del banner */
+            width: 100%;
+            height: 6px;
+        }
+
+        /* Contenedor Principal */
+        .content-container {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 30px 40px;
+            background-color: #ffffff;
+        }
+
+        /* Contenedor del Tablero (Estilo rosado/beige claro original) */
+        .board-wrapper {
+            background-color: #fae9e7; /* Fondo beige/rosado claro de la diapositiva original */
+            border: 2px solid #e8c4c1; /* Borde suave a juego */
+            border-radius: 12px;
+            width: 100%;
+            height: 100%;
+            padding: 20px;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+        }
+
+        /* Columnas del Tablero */
+        .kanban-column {
+            background-color: #f1f3f5; /* Fondo gris muy suave para el cuerpo de la columna */
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            overflow: hidden;
+            border: 1px solid #e2e8f0;
+        }
+
+        /* Encabezados de Columnas con sus respectivos colores originales */
+        .column-header {
+            color: #ffffff;
+            font-size: 19px;
+            font-weight: 800;
+            text-align: center;
+            padding: 12px 0;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+        }
+
+        .header-todo {
+            background-color: #595959; /* Gris */
+        }
+
+        .header-progress {
+            background-color: #e67e22; /* Naranja */
+        }
+
+        .header-testing {
+            background-color: #e74c3c; /* Rojo */
+        }
+
+        .header-done {
+            background-color: #0f9d58; /* Verde */
+        }
+
+        /* Cuerpo de la Columna */
+        .column-body {
+            flex: 1;
+            padding: 16px 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            overflow-y: auto;
+        }
+
+        /* Tarjetas de Tareas (Cards) */
+        .task-card {
+            background-color: #ffffff;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            padding: 14px 16px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        /* Títulos de Tarjetas dinámicos según la columna */
+        .task-title {
+            font-weight: 700;
+            font-size: 16px;
+            margin: 0;
+        }
+
+        .todo-card .task-title {
+            color: #595959;
+        }
+
+        .progress-card .task-title {
+            color: #e67e22;
+        }
+
+        .testing-card .task-title {
+            color: #e74c3c;
+        }
+
+        .done-card .task-title {
+            color: #0f9d58;
+        }
+
+        /* Subtítulo (Fase) */
+        .task-subtitle {
+            font-weight: 600;
+            color: #334155;
+            font-size: 12px;
+            margin: 0;
+        }
+
+        /* Descripción */
+        .task-desc {
+            color: #64748b;
+            font-size: 12px;
+            margin: 0;
+            line-height: 1.3;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Banner superior de la diapositiva -->
+    <div class="top-banner">
+        <h1>Metodología: Enfoque Híbrido</h1>
+    </div>
+    <div class="banner-line"></div>
+
+    <!-- Contenedor del tablero Kanban -->
+    <div class="content-container">
+        <div class="board-wrapper">
+            
+            <!-- Columna 1: POR HACER -->
+            <div class="kanban-column">
+                <div class="column-header header-todo">Por Hacer</div>
+                <div class="column-body">
+                    
+                    <!-- App Flutter -->
+                    <div class="task-card todo-card">
+                        <h4 class="task-title">App Flutter</h4>
+                        <span class="task-subtitle">Fase 7: App Cliente</span>
+                        <p class="task-desc">Desarrollo multiplataforma</p>
+                    </div>
+
+                    <!-- Manual de Usuario -->
+                    <div class="task-card todo-card">
+                        <h4 class="task-title">Manual de Usuario</h4>
+                        <span class="task-subtitle">Fase 8: Documentación</span>
+                        <p class="task-desc">Guía y soporte técnico</p>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Columna 2: EN PROCESO -->
+            <div class="kanban-column">
+                <div class="column-header header-progress">En Proceso</div>
+                <div class="column-body">
+                    
+                    <!-- Latencia Telegram -->
+                    <div class="task-card progress-card">
+                        <h4 class="task-title">Latencia Telegram</h4>
+                        <span class="task-subtitle">Fase 6: Alertas</span>
+                        <p class="task-desc">Integración y pruebas de bot</p>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Columna 3: EN PRUEBAS -->
+            <div class="kanban-column">
+                <div class="column-header header-testing">En Pruebas</div>
+                <div class="column-body">
+                    
+                    <!-- Cifrado AES -->
+                    <div class="task-card testing-card">
+                        <h4 class="task-title">Cifrado AES</h4>
+                        <span class="task-subtitle">Fase 5: Ciberseguridad</span>
+                        <p class="task-desc">Seguridad de datos</p>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Columna 4: LISTO -->
+            <div class="kanban-column">
+                <div class="column-header header-done">Listo</div>
+                <div class="column-body">
+                    
+                    <!-- OCR Texto -->
+                    <div class="task-card done-card">
+                        <h4 class="task-title">OCR Texto</h4>
+                        <span class="task-subtitle">Fase 4: Visión</span>
+                        <p class="task-desc">Reconocimiento de caracteres</p>
+                    </div>
+
+                    <!-- Aspectos Legales -->
+                    <div class="task-card done-card">
+                        <h4 class="task-title">Aspectos Legales</h4>
+                        <span class="task-subtitle">Fase 3: Cumplimiento</span>
+                        <p class="task-desc">Privacidad de datos personales</p>
+                    </div>
+
+                    <!-- Calibrar YOLOv8 -->
+                    <div class="task-card done-card">
+                        <h4 class="task-title">Calibrar YOLOv8</h4>
+                        <span class="task-subtitle">Fase 2: Modelos</span>
+                        <p class="task-desc">Ajuste fino de pesos</p>
+                    </div>
+
+                    <!-- UI/UX & Arquitectura -->
+                    <div class="task-card done-card">
+                        <h4 class="task-title">UI/UX & Arquitectura</h4>
+                        <span class="task-subtitle">Fase 1: Diseño</span>
+                        <p class="task-desc">Maquetado de interfaces</p>
+                    </div>
+
+                    <!-- NOTA: "BD SQLite" y "Entorno Python" han sido eliminados de esta columna por solicitud del usuario -->
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+</body>
+</html>
