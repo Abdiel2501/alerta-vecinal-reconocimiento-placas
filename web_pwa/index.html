@@ -7,6 +7,10 @@
   <link rel="stylesheet" href="styles.css">
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#0E121A">
+  <!-- CryptoJS Library CDN for AES-256 local storage encryption -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js" integrity="sha512-E8QSvWZ0GE9L/YJ27zGVmUqHyCXD6DI1HBcPenJRHLhtxg3TXDx6cZTPcMvGdEhG0obmJsKmWPsnBatMYbY8Q==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <!-- Google Identity Services (GSI) Client Library for standard login -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
 
@@ -38,6 +42,10 @@
         <input type="password" id="loginPassword" placeholder="••••••••" value="admin123">
       </div>
 
+      <div id="loginLockoutError" style="display: none; color: var(--alert-color); font-size: 0.85rem; font-weight: 700; text-align: center; background: rgba(255, 107, 107, 0.1); padding: 8px; border-radius: 8px; border: 1px solid rgba(255, 107, 107, 0.2);">
+        ⚠️ Cuenta bloqueada. Intente de nuevo en <span id="lockoutTimer">300</span>s.
+      </div>
+
       <button id="normalLoginBtn" class="btn">Iniciar Sesión</button>
 
       <div class="divider">o</div>
@@ -51,6 +59,9 @@
         </svg>
         <span>Iniciar Sesión con Google</span>
       </button>
+
+      <!-- Contenedor para el botón nativo oficial de Google (necesario en Brave/Chrome) -->
+      <div id="googleBtnContainer" style="display: none; justify-content: center; width: 100%;"></div>
     </div>
   </div>
 
@@ -68,9 +79,12 @@
         <button class="tab-btn" data-target="view-settings">⚙️ Ajustes</button>
       </nav>
 
-      <div class="status-indicator">
-        <span class="dot" id="wsStatusDot"></span>
-        <span id="wsStatusText">Desconectado</span>
+      <div style="display:flex; align-items:center; gap:16px;">
+        <button id="themeToggleBtn" class="theme-toggle-btn" title="Cambiar Tema">🌙</button>
+        <div class="status-indicator">
+          <span class="dot" id="wsStatusDot"></span>
+          <span id="wsStatusText">Desconectado</span>
+        </div>
       </div>
     </header>
 
@@ -189,7 +203,20 @@
         <div class="card">
           <div class="history-controls">
             <h2>Historial de Alertas</h2>
-            <button id="clearHistoryBtn" class="btn btn-secondary btn-alert">🗑️ Vaciar Logs</button>
+            <div class="history-actions">
+              <button id="exportCsvBtn" class="btn btn-secondary" title="Exportar historial a CSV">📥 Exportar CSV</button>
+              <button id="clearHistoryBtn" class="btn btn-secondary btn-alert">🗑️ Vaciar Logs</button>
+            </div>
+          </div>
+          
+          <!-- Filtros e Historial -->
+          <div class="history-filters">
+            <input type="text" id="searchPlate" placeholder="🔍 Buscar por placa...">
+            <select id="filterStatus">
+              <option value="all">Todos los vehículos</option>
+              <option value="stolen">⚠️ Solo robados</option>
+              <option value="authorized">✅ Solo autorizados</option>
+            </select>
           </div>
           
           <!-- Desktop Table View -->
@@ -327,6 +354,38 @@
       </div>
       <button class="btn btn-secondary" id="closeCameraModalBtn" style="margin-top:8px;">Cerrar</button>
     </div>
+  </div>
+
+  <!-- 📜 PRIVACY POLICY & CONSENT MODAL -->
+  <div class="modal-overlay" id="privacyConsentModal">
+    <div class="security-consent-modal" style="max-width: 500px; background: var(--surface-color); padding: 24px; border-radius: var(--border-radius); border: var(--card-border); box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 16px; position: relative;">
+      <h2 style="font-size: 1.3rem; font-weight: 700; color: var(--text-primary); text-align: center;">📋 Aviso de Privacidad y Consentimiento</h2>
+      <p style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.5; text-align: justify;">
+        Conforme a la Ley General de Protección de Datos Personales, la Constitución y las regulaciones locales sobre el derecho a la privacidad e intimidad, le informamos que esta aplicación recopila información de identificación vehicular (placas de vehículos, modelo y propietario) en tiempo real con fines de seguridad vecinal y prevención del delito.
+      </p>
+      <div style="font-size: 0.8rem; color: var(--text-secondary); background: var(--bg-color); padding: 12px; border-radius: 8px; max-height: 120px; overflow-y: auto; text-align: justify; border: var(--card-border);">
+        <strong>Declaración de Consentimiento:</strong><br>
+        Al presionar "Aceptar", usted reconoce y acepta que:
+        1. Las lecturas de placas serán procesadas por modelos de IA localmente.
+        2. Los datos de vehículos se almacenarán de forma encriptada en la base de datos de este dispositivo.
+        3. El sistema puede alertar y notificar al bot de Telegram configurado.
+        4. No se revelará información a terceros sin consentimiento previo, salvo mandato legal o autoridad competente.
+      </div>
+      <div style="display: flex; gap: 12px; margin-top: 8px;">
+        <button class="btn btn-secondary" id="declineConsentBtn" style="flex: 1;">Rechazar</button>
+        <button class="btn" id="acceptConsentBtn" style="flex: 1;">Aceptar y Continuar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 🔒 SECURITY BLOCK / HARDENING SCREEN -->
+  <div class="security-block-screen" id="securityBlockScreen" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #0b0e14; z-index: 100000; align-items: center; justify-content: center; text-align: center; color: #ff6b6b; padding: 20px; flex-direction: column; gap: 16px;">
+    <div style="font-size: 4rem;">🔒</div>
+    <h2 style="font-size: 1.8rem; font-weight: 800; color: #ff6b6b;">BLOQUEO DE SEGURIDAD</h2>
+    <p style="color: #94a3b8; max-width: 450px; font-size: 0.95rem; line-height: 1.6;">
+      Se ha detectado una herramienta de desarrollo activa (DevTools/F12) o un intento de inspección de memoria en ejecución. Por seguridad de los datos de privacidad recopilados, el acceso ha sido revocado y la sesión activa destruida.
+    </p>
+    <button class="btn" onclick="window.location.reload()" style="background: #ff6b6b; color: #0b0e14; font-weight: 700; margin-top: 12px;">Reintentar Conexión</button>
   </div>
 
   <!-- 💬 FLOATING TOAST NOTIFICATION -->

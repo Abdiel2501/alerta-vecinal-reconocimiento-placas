@@ -1,4 +1,16 @@
 document.addEventListener('DOMContentLoaded', () => {
+  // --- 🌐 CONFIGURACIÓN DE ENTORNO (Google Sign-In) ---
+  const CONFIG = {
+    // Para activar el inicio de sesión real, pega tu Google Client ID aquí:
+    GOOGLE_CLIENT_ID: '540888178617-fvqcrjai0avtn0bv90b4c5dtcjeplsgm.apps.googleusercontent.com', 
+
+    // Credenciales del usuario simulador local (se usa si GOOGLE_CLIENT_ID está vacío)
+    MOCK_GOOGLE_USER: {
+      name: 'Geovani Lara',
+      email: 'geovanilara@example.com'
+    }
+  };
+
   // DOM Elements - Navigation & Shells
   const splashScreen = document.getElementById('splash-screen');
   const loginScreen = document.getElementById('login-screen');
@@ -15,6 +27,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const loginPassword = document.getElementById('loginPassword');
   const normalLoginBtn = document.getElementById('normalLoginBtn');
   const googleLoginBtn = document.getElementById('googleLoginBtn');
+  const googleBtnContainer = document.getElementById('googleBtnContainer');
   const googleProfileCard = document.getElementById('googleProfileCard');
   const profileName = document.getElementById('profileName');
   const profileEmail = document.getElementById('profileEmail');
@@ -107,7 +120,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let lastDemoPlate = '';
 
   // Load cache from localStorage
-  let history = JSON.parse(localStorage.getItem('alert_history') || '[]');
+  let history = [];
   serverIpInput.value = localStorage.getItem('server_ip') || '127.0.0.1';
   serverPortInput.value = localStorage.getItem('server_port') || '8765';
   telegramTokenInput.value = localStorage.getItem('telegram_token') || '';
@@ -123,22 +136,164 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // --- 🌀 SPLASH SCREEN & AUTH LOGIC ---
+  const privacyConsentModal = document.getElementById('privacyConsentModal');
+  const acceptConsentBtn = document.getElementById('acceptConsentBtn');
+  const declineConsentBtn = document.getElementById('declineConsentBtn');
+
   // Lanzamiento de la pantalla de carga (Splash Screen) por 2 segundos
   setTimeout(() => {
     splashScreen.classList.add('fade-out');
     
-    // Validar si hay sesión guardada
+    const privacyAccepted = localStorage.getItem('privacy_accepted') === 'true';
+    if (!privacyAccepted) {
+      privacyConsentModal.classList.add('active');
+    } else {
+      checkSessionAndStart();
+    }
+  }, 2000);
+
+  // --- 🔒 SEGURIDAD DE ACCESO Y CIFRADO ---
+  let sessionCryptoKey = sessionStorage.getItem('session_crypto_key') || null;
+  let authFailures = parseInt(localStorage.getItem('auth_failures') || '0');
+  let lockoutTimestamp = parseInt(localStorage.getItem('lockout_timestamp') || '0');
+  const loginLockoutError = document.getElementById('loginLockoutError');
+  const lockoutTimerSpan = document.getElementById('lockoutTimer');
+  let lockoutInterval = null;
+
+  function deriveSessionKey(passphrase) {
+    try {
+      const salt = CryptoJS.enc.Hex.parse('1a7c8e9b0d2f4e3c');
+      const key = CryptoJS.PBKDF2(passphrase, salt, {
+        keySize: 256 / 32,
+        iterations: 1000
+      });
+      sessionCryptoKey = key.toString();
+      sessionStorage.setItem('session_crypto_key', sessionCryptoKey);
+    } catch (e) {
+      console.error("Error derivando clave simétrica:", e);
+    }
+  }
+
+  function checkLockout() {
+    if (lockoutTimestamp > 0) {
+      const now = Date.now();
+      const timePassed = now - lockoutTimestamp;
+      const cooldown = 5 * 60 * 1000; // 5 minutos
+      
+      if (timePassed < cooldown) {
+        const secondsLeft = Math.ceil((cooldown - timePassed) / 1000);
+        normalLoginBtn.disabled = true;
+        loginLockoutError.style.display = 'block';
+        lockoutTimerSpan.textContent = secondsLeft;
+        
+        if (!lockoutInterval) {
+          lockoutInterval = setInterval(() => {
+            const currentNow = Date.now();
+            const currentPassed = currentNow - lockoutTimestamp;
+            if (currentPassed >= cooldown) {
+              clearInterval(lockoutInterval);
+              lockoutInterval = null;
+              normalLoginBtn.disabled = false;
+              loginLockoutError.style.display = 'none';
+              authFailures = 0;
+              lockoutTimestamp = 0;
+              localStorage.removeItem('auth_failures');
+              localStorage.removeItem('lockout_timestamp');
+            } else {
+              lockoutTimerSpan.textContent = Math.ceil((cooldown - currentPassed) / 1000);
+            }
+          }, 1000);
+        }
+        return true;
+      } else {
+        normalLoginBtn.disabled = false;
+        loginLockoutError.style.display = 'none';
+        authFailures = 0;
+        lockoutTimestamp = 0;
+        localStorage.removeItem('auth_failures');
+        localStorage.removeItem('lockout_timestamp');
+      }
+    }
+    return false;
+  }
+
+  // Verificar estado de bloqueo al cargar
+  checkLockout();
+
+  // --- 🗝️ INICIALIZAR GOOGLE SIGN-IN ---
+  function initGoogleSignIn() {
+    if (CONFIG.GOOGLE_CLIENT_ID) {
+      if (googleLoginBtn) googleLoginBtn.style.display = 'none';
+      if (googleBtnContainer) googleBtnContainer.style.display = 'flex';
+
+      try {
+        google.accounts.id.initialize({
+          client_id: CONFIG.GOOGLE_CLIENT_ID,
+          callback: handleGoogleCredentialResponse
+        });
+
+        google.accounts.id.renderButton(
+          googleBtnContainer,
+          {
+            theme: 'outline',
+            size: 'large',
+            width: 320,
+            text: 'signin_with',
+            locale: 'es',
+            shape: 'rectangular'
+          }
+        );
+      } catch (err) {
+        console.error("Error inicializando Google Sign-In real:", err);
+        if (googleLoginBtn) googleLoginBtn.style.display = 'flex';
+        if (googleBtnContainer) googleBtnContainer.style.display = 'none';
+      }
+    } else {
+      if (googleLoginBtn) googleLoginBtn.style.display = 'flex';
+      if (googleBtnContainer) googleBtnContainer.style.display = 'none';
+    }
+  }
+
+  // Ejecutar inicialización al cargar scripts de Google
+  if (window.google && window.google.accounts) {
+    initGoogleSignIn();
+  } else {
+    window.addEventListener('load', initGoogleSignIn);
+  }
+
+  function checkSessionAndStart() {
     const savedSession = JSON.parse(localStorage.getItem('user_session'));
     if (savedSession) {
-      logInSuccess(savedSession);
+      if (!sessionCryptoKey) {
+        localStorage.removeItem('user_session');
+        loginScreen.style.display = 'flex';
+        appLayout.style.display = 'none';
+        showToast('🔒 Sesión expirada por inactividad. Inicie sesión de nuevo.');
+      } else {
+        logInSuccess(savedSession);
+      }
     } else {
       loginScreen.style.display = 'flex';
       appLayout.style.display = 'none';
     }
-  }, 2000);
+  }
+
+  acceptConsentBtn.addEventListener('click', () => {
+    localStorage.setItem('privacy_accepted', 'true');
+    privacyConsentModal.classList.remove('active');
+    checkSessionAndStart();
+  });
+
+  declineConsentBtn.addEventListener('click', () => {
+    alert('Debe aceptar el Aviso de Privacidad y Consentimiento para ingresar y utilizar la plataforma AlertaVecinal.');
+  });
 
   function logInSuccess(session) {
     localStorage.setItem('user_session', JSON.stringify(session));
+    
+    // Cargar historial cifrado localmente
+    history = loadHistoryEncrypted();
+
     loginScreen.style.display = 'none';
     appLayout.style.display = 'flex';
 
@@ -168,43 +323,122 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   normalLoginBtn.addEventListener('click', () => {
+    if (checkLockout()) return;
+
     const email = loginEmail.value.trim();
     const password = loginPassword.value.trim();
 
     if (email === 'admin@alertavecinal.com' && password === 'admin123') {
+      authFailures = 0;
+      localStorage.removeItem('auth_failures');
+      localStorage.removeItem('lockout_timestamp');
+      
+      deriveSessionKey(password);
+
       logInSuccess({
         name: 'Administrador',
         email: email,
         provider: 'credentials'
       });
     } else {
-      alert('Credenciales incorrectas. Prueba con admin@alertavecinal.com / admin123');
+      authFailures++;
+      localStorage.setItem('auth_failures', authFailures);
+      
+      if (authFailures >= 5) {
+        lockoutTimestamp = Date.now();
+        localStorage.setItem('lockout_timestamp', lockoutTimestamp);
+        checkLockout();
+        showToast('⚠️ Cuenta bloqueada temporalmente por exceso de intentos.');
+      } else {
+        alert(`Credenciales incorrectas. Intento ${authFailures} de 5.`);
+      }
     }
   });
 
   googleLoginBtn.addEventListener('click', () => {
-    googleLoginBtn.textContent = 'Autenticando con Google...';
+    if (CONFIG.GOOGLE_CLIENT_ID) {
+      googleLoginBtn.textContent = 'Cargando Google...';
+      googleLoginBtn.disabled = true;
+
+      try {
+        google.accounts.id.initialize({
+          client_id: CONFIG.GOOGLE_CLIENT_ID,
+          callback: handleGoogleCredentialResponse
+        });
+        
+        google.accounts.id.prompt((notification) => {
+          if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+            googleLoginBtn.textContent = 'Iniciar Sesión con Google';
+            googleLoginBtn.disabled = false;
+          }
+        });
+      } catch (err) {
+        console.error("Error inicializando Google Identity Services:", err);
+        showToast("⚠️ Falló conexión con Google OAuth. Usando mock configurado.");
+        loginWithMockGoogle();
+      }
+    } else {
+      loginWithMockGoogle();
+    }
+  });
+
+  function loginWithMockGoogle() {
+    googleLoginBtn.textContent = 'Autenticando...';
     googleLoginBtn.disabled = true;
 
-    // Simular el Login con Google
+    const mockUser = CONFIG.MOCK_GOOGLE_USER || { name: 'Usuario Demo', email: 'demo@example.com' };
+    showToast(`🔄 Autenticando (modo local) como ${mockUser.name}...`);
+
     setTimeout(() => {
       googleLoginBtn.textContent = 'Iniciar Sesión con Google';
       googleLoginBtn.disabled = false;
+      
+      deriveSessionKey(`google_mock_${mockUser.email}`);
+
       logInSuccess({
-        name: 'Jorge G. Lara',
-        email: 'jorgegalara13@gmail.com',
+        name: mockUser.name,
+        email: mockUser.email,
         provider: 'google'
       });
     }, 1000);
-  });
+  }
+
+  function handleGoogleCredentialResponse(response) {
+    googleLoginBtn.textContent = 'Iniciar Sesión con Google';
+    googleLoginBtn.disabled = false;
+
+    try {
+      const base64Url = response.credential.split('.')[1];
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) {
+          return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+      }).join(''));
+
+      const payload = JSON.parse(jsonPayload);
+      
+      deriveSessionKey(payload.sub || payload.email);
+
+      logInSuccess({
+        name: payload.name,
+        email: payload.email,
+        provider: 'google'
+      });
+    } catch (e) {
+      console.error("Error decodificando token de Google:", e);
+      showToast("❌ Error al autenticar con Google.");
+    }
+  }
 
   logoutBtn.addEventListener('click', () => {
     localStorage.removeItem('user_session');
+    sessionStorage.removeItem('session_crypto_key');
+    sessionCryptoKey = null;
     
     if (ws) ws.close();
     if (demoCanvasInterval) clearInterval(demoCanvasInterval);
     if (demoAlertInterval) clearInterval(demoAlertInterval);
     if (fixedLensInterval) clearInterval(fixedLensInterval);
+    stopAlarmSound();
     
     appLayout.style.display = 'none';
     loginScreen.style.display = 'flex';
@@ -550,22 +784,67 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // --- HISTORY MANAGEMENT ---
+  function loadHistoryEncrypted() {
+    try {
+      const encryptedData = localStorage.getItem('alert_history');
+      if (!encryptedData) return [];
+      if (!sessionCryptoKey) {
+        console.warn("Intento de leer el historial sin clave de sesión activa.");
+        return [];
+      }
+      
+      const bytes = CryptoJS.AES.decrypt(encryptedData, sessionCryptoKey);
+      const decryptedText = bytes.toString(CryptoJS.enc.Utf8);
+      if (!decryptedText) {
+        console.warn("No se pudo descifrar el historial (llave incorrecta o corrupta).");
+        return [];
+      }
+      return JSON.parse(decryptedText);
+    } catch (e) {
+      console.error("Error al descifrar el historial:", e);
+      return [];
+    }
+  }
+
   function saveHistory() {
-    localStorage.setItem('alert_history', JSON.stringify(history));
+    if (!sessionCryptoKey) return;
+    try {
+      const plainText = JSON.stringify(history);
+      const encryptedData = CryptoJS.AES.encrypt(plainText, sessionCryptoKey).toString();
+      localStorage.setItem('alert_history', encryptedData);
+    } catch (e) {
+      console.error("Error al cifrar el historial:", e);
+    }
   }
 
   function renderHistory() {
     historyTableBody.innerHTML = '';
     mobileHistoryList.innerHTML = '';
 
-    if (history.length === 0) {
-      const emptyRow = `<tr><td colspan="5" style="text-align:center; color: var(--text-secondary);">No hay detecciones registradas</td></tr>`;
+    const searchInput = document.getElementById('searchPlate');
+    const filterInput = document.getElementById('filterStatus');
+    const searchQuery = searchInput ? searchInput.value.trim().toUpperCase() : '';
+    const filterValue = filterInput ? filterInput.value : 'all';
+
+    const filtered = history.filter(item => {
+      const matchesSearch = (item.placa || '').toUpperCase().includes(searchQuery);
+      let matchesFilter = true;
+      if (filterValue === 'stolen') {
+        matchesFilter = item.es_robado;
+      } else if (filterValue === 'authorized') {
+        matchesFilter = !item.es_robado;
+      }
+      return matchesSearch && matchesFilter;
+    });
+
+    if (filtered.length === 0) {
+      const emptyRow = `<tr><td colspan="5" style="text-align:center; color: var(--text-secondary);">No hay detecciones que coincidan</td></tr>`;
       historyTableBody.innerHTML = emptyRow;
-      mobileHistoryList.innerHTML = `<div style="text-align:center; color: var(--text-secondary); padding: 20px;">No hay detecciones registradas</div>`;
+      mobileHistoryList.innerHTML = `<div style="text-align:center; color: var(--text-secondary); padding: 20px;">No hay detecciones que coincidan</div>`;
       return;
     }
 
-    history.forEach(item => {
+    filtered.forEach(item => {
       // 1. Desktop Table Row
       const tr = document.createElement('tr');
       if (item.es_robado) {
@@ -680,6 +959,82 @@ document.addEventListener('DOMContentLoaded', () => {
     renderHistory();
   }
 
+  // --- 🚨 SYNTHESIZED SIREN ALARM SOUND (Web Audio API) ---
+  let alarmAudioCtx = null;
+  let alarmOscillator1 = null;
+  let alarmOscillator2 = null;
+  let alarmGainNode = null;
+  let alarmInterval = null;
+
+  function playAlarmSound() {
+    try {
+      if (!alarmAudioCtx) {
+        alarmAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (alarmAudioCtx.state === 'suspended') {
+        alarmAudioCtx.resume();
+      }
+      if (alarmInterval) return;
+
+      alarmGainNode = alarmAudioCtx.createGain();
+      alarmGainNode.gain.setValueAtTime(0.2, alarmAudioCtx.currentTime);
+      alarmGainNode.connect(alarmAudioCtx.destination);
+
+      alarmOscillator1 = alarmAudioCtx.createOscillator();
+      alarmOscillator1.type = 'sawtooth';
+      alarmOscillator1.frequency.setValueAtTime(700, alarmAudioCtx.currentTime);
+      alarmOscillator1.connect(alarmGainNode);
+      alarmOscillator1.start();
+
+      alarmOscillator2 = alarmAudioCtx.createOscillator();
+      alarmOscillator2.type = 'sine';
+      alarmOscillator2.frequency.setValueAtTime(2.5, alarmAudioCtx.currentTime);
+      
+      const lfoGain = alarmAudioCtx.createGain();
+      lfoGain.gain.setValueAtTime(150, alarmAudioCtx.currentTime);
+      
+      alarmOscillator2.connect(lfoGain);
+      lfoGain.connect(alarmOscillator1.frequency);
+      alarmOscillator2.start();
+
+      let alt = false;
+      alarmInterval = setInterval(() => {
+        if (alarmOscillator1 && alarmAudioCtx.state === 'running') {
+          const nextFreq = alt ? 850 : 600;
+          alarmOscillator1.frequency.linearRampToValueAtTime(nextFreq, alarmAudioCtx.currentTime + 0.35);
+          alt = !alt;
+        }
+      }, 400);
+    } catch (e) {
+      console.error("No se pudo iniciar el sonido de alarma:", e);
+    }
+  }
+
+  function stopAlarmSound() {
+    if (alarmInterval) {
+      clearInterval(alarmInterval);
+      alarmInterval = null;
+    }
+    try {
+      if (alarmOscillator1) {
+        alarmOscillator1.stop();
+        alarmOscillator1.disconnect();
+        alarmOscillator1 = null;
+      }
+      if (alarmOscillator2) {
+        alarmOscillator2.stop();
+        alarmOscillator2.disconnect();
+        alarmOscillator2 = null;
+      }
+      if (alarmGainNode) {
+        alarmGainNode.disconnect();
+        alarmGainNode = null;
+      }
+    } catch (e) {
+      console.error("Error al detener la sirena:", e);
+    }
+  }
+
   // --- CRITICAL MODAL SCREEN ---
   function showCriticalModal(alertData) {
     criticalPlate.textContent = alertData.placa;
@@ -690,10 +1045,12 @@ document.addEventListener('DOMContentLoaded', () => {
     
     criticalAlertModal.classList.add('active');
     speakAlert(alertData.placa);
+    playAlarmSound();
   }
 
   dismissAlertBtn.addEventListener('click', () => {
     criticalAlertModal.classList.remove('active');
+    stopAlarmSound();
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
     }
@@ -777,20 +1134,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let wsUrl = '';
     
-    // Si la IP/Dirección ya contiene un esquema de websocket
+    // Enforce WSS (WebSocket Secure) for protection against sniffing
     if (ip.startsWith('ws://') || ip.startsWith('wss://')) {
-      wsUrl = ip;
+      wsUrl = ip.replace(/^ws:\/\//, 'wss://');
       if (!wsUrl.endsWith('/ws')) {
         wsUrl = wsUrl.replace(/\/?$/, '/ws');
       }
     } else if (ip.startsWith('http://') || ip.startsWith('https://')) {
-      wsUrl = ip.replace(/^http/, 'ws');
+      wsUrl = ip.replace(/^http/, 'wss');
       if (!wsUrl.endsWith('/ws')) {
         wsUrl = wsUrl.replace(/\/?$/, '/ws');
       }
     } else {
-      // Es una IP o un dominio sin protocolo
-      const protocol = (window.location.protocol === 'https:') ? 'wss' : 'ws';
+      const protocol = 'wss';
       const isDomain = ip.includes('.') && !/^[0-9.]+$/.test(ip) && ip !== 'localhost';
       
       if (isDomain && (port === '80' || port === '443' || port === '')) {
@@ -1258,4 +1614,147 @@ document.addEventListener('DOMContentLoaded', () => {
       showToast('🗑️ Historial vaciado.');
     }
   });
+
+  // --- MANUAL THEME SELECTION LOGIC ---
+  const themeToggleBtn = document.getElementById('themeToggleBtn');
+  const savedTheme = localStorage.getItem('theme');
+  const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  let currentTheme = savedTheme || (systemPrefersDark ? 'dark' : 'light');
+  
+  document.documentElement.setAttribute('data-theme', currentTheme);
+  updateThemeIcon(currentTheme);
+
+  if (themeToggleBtn) {
+    themeToggleBtn.addEventListener('click', () => {
+      currentTheme = (currentTheme === 'dark') ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', currentTheme);
+      localStorage.setItem('theme', currentTheme);
+      updateThemeIcon(currentTheme);
+      showToast(`🌓 Modo ${currentTheme === 'dark' ? 'oscuro' : 'claro'} activado`);
+    });
+  }
+
+  function updateThemeIcon(theme) {
+    if (!themeToggleBtn) return;
+    themeToggleBtn.textContent = (theme === 'dark') ? '☀️' : '🌙';
+  }
+
+  // --- HISTORY SEARCH & FILTER LISTENERS ---
+  const searchPlateInput = document.getElementById('searchPlate');
+  const filterStatusSelect = document.getElementById('filterStatus');
+
+  if (searchPlateInput) {
+    searchPlateInput.addEventListener('input', renderHistory);
+  }
+  if (filterStatusSelect) {
+    filterStatusSelect.addEventListener('change', renderHistory);
+  }
+
+  // --- EXPORT TO CSV LOGIC ---
+  const exportCsvBtn = document.getElementById('exportCsvBtn');
+  if (exportCsvBtn) {
+    exportCsvBtn.addEventListener('click', () => {
+      if (history.length === 0) {
+        alert('No hay registros en el historial para exportar.');
+        return;
+      }
+
+      let csvContent = "data:text/csv;charset=utf-8,\uFEFF"; // UTF-8 BOM for Excel
+      csvContent += "Placa,Estado,Modelo y Color,Propietario,Fecha y Hora\n";
+
+      history.forEach(item => {
+        const placa = (item.placa || '').replace(/"/g, '""');
+        const estado = item.es_robado ? 'ROBADO' : 'LIBRE';
+        const vehiculo = `${item.modelo || '?'} (${item.color || '?'})`.replace(/"/g, '""');
+        const propietario = (item.propietario || '?').replace(/"/g, '""');
+        const fecha = (item.timeStr || '?').replace(/"/g, '""');
+
+        csvContent += `"${placa}","${estado}","${vehiculo}","${propietario}","${fecha}"\n`;
+      });
+
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", `Historial_Alertas_AlertaVecinal_${Date.now()}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      showToast('📥 Historial exportado como CSV.');
+    });
+  }
+
+  // --- SERVICE WORKER REGISTRATION ---
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js')
+        .then(reg => console.log('Service Worker registrado con éxito:', reg.scope))
+        .catch(err => console.error('Error al registrar Service Worker:', err));
+    });
+  }
+
+  // --- 🔒 ANTI-DEBUGGING & SECURITY HARDENING ---
+  const securityBlockScreen = document.getElementById('securityBlockScreen');
+  let securityBlockTriggered = false;
+
+  function triggerSecurityBlock() {
+    if (securityBlockTriggered) return;
+    securityBlockTriggered = true;
+    
+    console.clear();
+    console.error("🔒 BLOQUEO DE SEGURIDAD: Inspección de código / consola detectada.");
+
+    // Destruir sesión y llaves simétricas
+    localStorage.removeItem('user_session');
+    sessionStorage.removeItem('session_crypto_key');
+    sessionCryptoKey = null;
+
+    // Desconectar WS
+    if (ws) {
+      try {
+        ws.close();
+      } catch (e) {}
+    }
+
+    // Limpiar intervalos
+    if (demoCanvasInterval) clearInterval(demoCanvasInterval);
+    if (demoAlertInterval) clearInterval(demoAlertInterval);
+    if (fixedLensInterval) clearInterval(fixedLensInterval);
+    stopAlarmSound();
+
+    // Mostrar pantalla de bloqueo
+    if (securityBlockScreen) {
+      securityBlockScreen.style.display = 'flex';
+    }
+  }
+
+  // 1. Detección por diferencia de tamaño de ventana (consola acoplada)
+  function checkWindowDimensions() {
+    const threshold = 160;
+    const widthDiff = window.outerWidth - window.innerWidth;
+    const heightDiff = window.outerHeight - window.innerHeight;
+    
+    if (widthDiff > threshold || heightDiff > threshold) {
+      triggerSecurityBlock();
+    }
+  }
+
+  // 2. Detección por tiempo de ejecución de la sentencia 'debugger'
+  function checkDebuggerDelay() {
+    const startTime = Date.now();
+    debugger; // Se detendrá o demorará si la consola del programador está abierta
+    const endTime = Date.now();
+    
+    if (endTime - startTime > 100) {
+      triggerSecurityBlock();
+    }
+  }
+
+  // Ejecutar los monitoreos periódicamente
+  setInterval(() => {
+    checkWindowDimensions();
+    checkDebuggerDelay();
+  }, 1000);
+
+  // Escuchar redimensiones para detectar si abren la consola
+  window.addEventListener('resize', checkWindowDimensions);
 });

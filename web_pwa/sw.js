@@ -1,9 +1,12 @@
-const CACHE_NAME = 'alertavecinal-v1';
+const CACHE_NAME = 'alertavecinal-v3';
 const APP_SHELL = [
   'index.html',
   'styles.css',
   'app.js',
-  'manifest.json'
+  'manifest.json',
+  'icon.png',
+  'https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js',
+  'https://accounts.google.com/gsi/client'
 ];
 
 self.addEventListener('install', (event) => {

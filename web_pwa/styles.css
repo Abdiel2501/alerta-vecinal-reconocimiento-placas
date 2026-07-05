@@ -21,7 +21,7 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     /* iCSee Dark Mode Palette */
     --bg-color: #0E121A;
     --surface-color: #1C2331;
@@ -35,6 +35,21 @@
     --success-bg: rgba(129, 199, 132, 0.15);
     --card-border: 1px solid rgba(255, 255, 255, 0.05);
   }
+}
+
+:root[data-theme="dark"] {
+  /* iCSee Dark Mode Palette */
+  --bg-color: #0E121A;
+  --surface-color: #1C2331;
+  --primary-color: #00C2D1;
+  --primary-glow: rgba(0, 194, 209, 0.3);
+  --text-primary: #F8F9FA;
+  --text-secondary: #94A3B8;
+  --alert-color: #FF6B6B;
+  --alert-glow: rgba(255, 107, 107, 0.4);
+  --success-color: #81C784;
+  --success-bg: rgba(129, 199, 132, 0.15);
+  --card-border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 * {
@@ -1143,4 +1158,73 @@ input:checked + .slider:before {
   border-radius: 50%;
   animation: spin 1s linear infinite;
   display: inline-block;
+}
+
+/* Theme selector styling */
+.theme-toggle-btn {
+  background: none;
+  border: none;
+  font-size: 1.3rem;
+  cursor: pointer;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-primary);
+  transition: background-color var(--transition-speed), transform 0.1s;
+}
+
+.theme-toggle-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+:root[data-theme="light"] .theme-toggle-btn:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.theme-toggle-btn:active {
+  transform: scale(0.9);
+}
+
+/* History filter and query styling */
+.history-filters {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+  width: 100%;
+}
+
+.history-filters input, .history-filters select {
+  flex: 1;
+  min-width: 180px;
+  padding: 10px 14px !important;
+  font-size: 0.85rem !important;
+  height: 42px;
+}
+
+.history-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 480px) {
+  .history-filters {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .history-controls {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .history-actions {
+    width: 100%;
+  }
+  .history-actions button {
+    flex: 1;
+  }
 }
