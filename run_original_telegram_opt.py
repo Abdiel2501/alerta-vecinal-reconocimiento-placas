@@ -114,7 +114,7 @@ def enviar_telegram_hilo(placa_detectada: str, info: dict, rutas_imagenes: list)
     desc_str = f"\nNota: {descripcion}" if descripcion else ""
 
     mensaje = (
-        f"🚨 *ALERTA DE VEHICULO ROBADO (IA ORIGINAL)* 🚨\n\n"
+        f"🚨 *ALERTA DE VEHICULO ROBADO (IA OPTIMIZADA)* 🚨\n\n"
         f"📋 Placa en BD: *{placa_bd}*{coincidencia_str}\n"
         f"🚗 Vehiculo: {modelo} -- {color}\n"
         f"👤 Propietario: {propietario}\n"
@@ -176,6 +176,22 @@ def put_text(frame, text, position, color=(0, 255, 0), font_scale=0.6, thickness
     box_coords = ((text_x, text_y - text_size[1] - 5), (text_x + text_size[0] + 5, text_y + 5))
     cv2.rectangle(frame, box_coords[0], box_coords[1], bg_color, cv2.FILLED)
     cv2.putText(frame, text, position, cv2.FONT_HERSHEY_SIMPLEX, font_scale, color, thickness)
+
+def preprocesar_placa(roi_placa):
+    """Pipeline de Grado Industrial: Ampliación Lanczos y Unsharp Masking sin binarización destructiva."""
+    h, w = roi_placa.shape[:2]
+    if h == 0:
+        return None
+    
+    # 1. Ampliación de alta definición usando Lanczos4 (conserva mejor los bordes curvos de las letras)
+    scale = 100.0 / h
+    resized = cv2.resize(roi_placa, None, fx=scale, fy=scale, interpolation=cv2.INTER_LANCZOS4)
+    
+    # 2. Unsharp Masking para resaltar micro-contraste y detalles de los caracteres
+    gaussian = cv2.GaussianBlur(resized, (5, 5), 2.0)
+    imagen_enfocada = cv2.addWeighted(resized, 1.5, gaussian, -0.5, 0)
+    
+    return imagen_enfocada
 
 def main():
     # Parameters 
@@ -283,37 +299,21 @@ def main():
                                         
                                     license_plate_roi = frame[py1:py2, px1:px2]
                                     
-                                    plate_height, plate_width = license_plate_roi.shape[:2]
-                                    if plate_height == 0 or plate_width == 0:
+                                    # Usar el preprocesador optimizado (Lanczos + Unsharp)
+                                    imagen_ocr = preprocesar_placa(license_plate_roi)
+                                    if imagen_ocr is None:
                                         continue
-                                    scale_factor = 100.0 / plate_height
-                                    resized_plate = cv2.resize(
-                                        license_plate_roi, None, fx=scale_factor, fy=scale_factor,
-                                        interpolation=cv2.INTER_CUBIC)
     
-                                    gray_plate = cv2.cvtColor(resized_plate, cv2.COLOR_BGR2GRAY)
-    
-                                    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
-                                    equalized_plate = clahe.apply(gray_plate)
-    
-                                    denoised_plate = cv2.fastNlMeansDenoising(equalized_plate, None, 10, 7, 21)
-    
-                                    thresh_plate = cv2.adaptiveThreshold(
-                                        denoised_plate, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-                                        cv2.THRESH_BINARY_INV, 11, 2)
-    
-                                    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
-                                    morph_plate = cv2.morphologyEx(thresh_plate, cv2.MORPH_CLOSE, kernel)
-                                    morph_plate = cv2.morphologyEx(morph_plate, cv2.MORPH_OPEN, kernel)
-                                    morph_plate = cv2.bitwise_not(morph_plate)
-    
-                                    plate_ocr_results = reader.readtext(morph_plate, allowlist='0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ')
+                                    plate_ocr_results = reader.readtext(imagen_ocr, allowlist='0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ')
                                     
                                     if plate_ocr_results:
-                                        license_plate_text = plate_ocr_results[0][-2]
+                                        text_raw = plate_ocr_results[0][-2].strip().upper().replace(" ", "").replace("-", "")
                                         plate_confidence = round(plate_ocr_results[0][-1], 2)
                                         
-                                        if plate_confidence >= 0.2:
+                                        # Evitar registrar textos muy cortos como "7"
+                                        if plate_confidence >= 0.2 and len(text_raw) >= 4:
+                                            license_plate_text = text_raw
+                                            
                                             if (track_id not in vehicle_plates) or (plate_confidence > vehicle_plates[track_id]['confidence']):
                                                 vehicle_plates[track_id] = {
                                                     'plate': license_plate_text,
@@ -324,7 +324,7 @@ def main():
                                                     'info': None
                                                 }
                                                 os.makedirs('plates', exist_ok=True)
-                                                cv2.imwrite(f'plates/{frame_number}_{track_id}_{license_plate_text}.png', morph_plate)
+                                                cv2.imwrite(f'plates/{frame_number}_{track_id}_{license_plate_text}.png', imagen_ocr)
     
                                             mx1, my1, mx2, my2 = px1, py1, px2, py2
                                         
@@ -348,7 +348,7 @@ def main():
                                             ruta_v = f"alertas/{sello}_placa_{assigned_plate['plate']}_vehiculo.jpg"
                                             ruta_p = f"alertas/{sello}_placa_{assigned_plate['plate']}_recorte.jpg"
                                             cv2.imwrite(ruta_v, frame)
-                                            cv2.imwrite(ruta_p, morph_plate)
+                                            cv2.imwrite(ruta_p, imagen_ocr)
                                             
                                             # Registrar en historial
                                             db.registrar_alerta(
@@ -366,7 +366,7 @@ def main():
                                                 daemon=True
                                             )
                                             hilo.start()
-
+ 
                                         background_color = (255, 255, 255)
                                         high_contrast_color = (0, 0, 255) if assigned_plate.get('es_robado', False) else (0, 0, 0)
                                         label_prefix = "ROBADO: " if assigned_plate.get('es_robado', False) else "Plate: "
