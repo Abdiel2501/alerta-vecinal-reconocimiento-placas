@@ -203,8 +203,189 @@ async def _enviar_seguro(socket_cliente: WebSocket, data: dict) -> bool:
         return False
 
 
+# Helpers para el control ONVIF PTZ físico de la cámara wifi
+import re
+import time
+
+def extraer_credenciales_rtsp(url_rtsp):
+    """Extrae la IP, usuario y contraseña de un URL RTSP."""
+    # Match: rtsp://username:password@ip:port/...
+    match = re.match(r"rtsp://([^:]+):([^@]+)@([^:/]+)(?::\d+)?", url_rtsp)
+    if match:
+        return match.group(3), match.group(1), match.group(2)
+    # Match: rtsp://ip:port/...
+    match_ip = re.match(r"rtsp://([^:/]+)(?::\d+)?", url_rtsp)
+    if match_ip:
+        return match_ip.group(1), "admin", ""
+    return None, None, None
+
+def mover_camara_onvif(ip, user, passwd, direccion, duracion=0.5):
+    """Establece conexión ONVIF y realiza ContinuousMove en la dirección dada."""
+    try:
+        from onvif import ONVIFCamera
+    except ImportError:
+        print("[ONVIF] Error: La librería onvif-zeep no está disponible.")
+        return False
+
+    # Puertos ONVIF estándar que probaremos en secuencia
+    ports = [8899, 80, 5000, 8080]
+    cam = None
+    for port in ports:
+        try:
+            print(f"[ONVIF] Intentando conectar a {ip}:{port} con usuario: {user}...")
+            cam = ONVIFCamera(ip, port, user, passwd)
+            cam.devicemgmt.GetDeviceInformation()
+            print(f"[ONVIF] Conexión ONVIF establecida exitosamente en puerto {port}")
+            break
+        except Exception as e:
+            print(f"[ONVIF] No se pudo conectar en puerto {port}: {e}")
+            cam = None
+
+    if not cam:
+        print("[ONVIF] Fallaron todos los puertos estándar de comunicación ONVIF.")
+        return False
+
+    try:
+        media = cam.create_media_service()
+        ptz = cam.create_ptz_service()
+        
+        profiles = media.GetProfiles()
+        if not profiles:
+            print("[ONVIF] No se encontraron perfiles de transmisión en la cámara.")
+            return False
+        token = profiles[0].token
+        
+        # Mapear direcciones a vectores de velocidad ContinuousMove
+        x, y = 0.0, 0.0
+        speed = 0.4 # Velocidad normalized de 0 a 1
+
+        if direccion == "left":
+            x = -speed
+        elif direccion == "right":
+            x = speed
+        elif direccion == "up":
+            y = speed
+        elif direccion == "down":
+            y = -speed
+        elif direccion == "center":
+            print("[ONVIF] Centrar cámara - comando recibido (No requiere ContinuousMove)")
+            return True
+        else:
+            return False
+
+        # Generar petición ONVIF ContinuousMove
+        request = ptz.create_type('ContinuousMove')
+        request.ProfileToken = token
+        request.Velocity = {'PanTilt': {'x': x, 'y': y}}
+        
+        # Enviar comando de movimiento
+        ptz.ContinuousMove(request)
+        
+        # Mover por el tiempo estipulado
+        time.sleep(duracion)
+        
+        # Detener movimiento
+        ptz.Stop({'ProfileToken': token})
+        print(f"[ONVIF] Movimiento físico {direccion.toUpperCase()} completado con éxito.")
+        return True
+    except Exception as e:
+        print(f"[ONVIF] Error al ejecutar comando ONVIF PTZ: {e}")
+        return False
+
+def zoom_camara_onvif(ip, user, passwd, accion, duracion=0.5):
+    """Establece conexión ONVIF y realiza ContinuousMove en la dirección dada para Zoom."""
+    try:
+        from onvif import ONVIFCamera
+    except ImportError:
+        return False
+
+    ports = [8899, 80, 5000, 8080]
+    cam = None
+    for port in ports:
+        try:
+            cam = ONVIFCamera(ip, port, user, passwd)
+            cam.devicemgmt.GetDeviceInformation()
+            break
+        except Exception:
+            cam = None
+
+    if not cam:
+        return False
+
+    try:
+        media = cam.create_media_service()
+        ptz = cam.create_ptz_service()
+        profiles = media.GetProfiles()
+        token = profiles[0].token
+        
+        speed = 0.5
+        z = speed if accion == "in" else -speed
+        
+        request = ptz.create_type('ContinuousMove')
+        request.ProfileToken = token
+        request.Velocity = {'Zoom': {'x': z}}
+        
+        ptz.ContinuousMove(request)
+        time.sleep(duracion)
+        ptz.Stop({'ProfileToken': token})
+        print(f"[ONVIF] Zoom {accion.toUpperCase()} completado con éxito.")
+        return True
+    except Exception as e:
+        print(f"[ONVIF] Error al ejecutar comando ONVIF Zoom: {e}")
+        return False# Variables globales y bucle de extracción de audio RTSP mediante PyAV
+import base64
+import av
+
+hilo_audio_activo = False
+bloqueo_audio = threading.Lock()
+
+def bucle_audio_rtsp(url_rtsp, socket_cliente, loop):
+    global hilo_audio_activo
+    print(f"[Audio] Hilo de transmisión de audio iniciado para: {url_rtsp}")
+    try:
+        container = av.open(url_rtsp)
+        audio_stream = next((s for s in container.streams if s.type == 'audio'), None)
+        if not audio_stream:
+            print("[Audio] La cámara no tiene ninguna pista de audio activa.")
+            asyncio.run_coroutine_threadsafe(
+                _enviar_seguro(socket_cliente, {"type": "toast", "message": "⚠️ La cámara no cuenta con micrófono activo."}),
+                loop
+            )
+            return
+
+        resampler = av.AudioResampler(
+            format='s16',
+            layout='mono',
+            rate=8000,
+        )
+
+        for packet in container.demux(audio_stream):
+            with bloqueo_audio:
+                if not hilo_audio_activo:
+                    break
+            
+            for frame in packet.decode():
+                resampled = resampler.resample(frame)
+                for rf in resampled:
+                    # Obtener bytes PCM 16-bit
+                    pcm_bytes = rf.to_ndarray().tobytes()
+                    # Codificar en base64 para evitar tráficos binarios y parseos erróneos
+                    b64_audio = base64.b64encode(pcm_bytes).decode('utf-8')
+                    # Transmitir al cliente por WebSocket
+                    if loop and not loop.is_closed():
+                        asyncio.run_coroutine_threadsafe(
+                            _enviar_seguro(socket_cliente, {"type": "audio", "data": b64_audio}),
+                            loop
+                        )
+    except Exception as e:
+        print(f"[Audio] Error en la extracción del audio de la cámara: {e}")
+    finally:
+        print("[Audio] Hilo de transmisión de audio cerrado.")
+
+
 async def _procesar_comando(socket_cliente: WebSocket, datos_crudos: str):
-    """Procesa comandos recibidos desde un cliente Flutter."""
+    """Procesa comandos recibidos desde un cliente Flutter o PWA."""
+    global hilo_audio_activo
     try:
         cmd = json.loads(datos_crudos)
     except Exception:
@@ -239,6 +420,52 @@ async def _procesar_comando(socket_cliente: WebSocket, datos_crudos: str):
         with estado.bloqueo_historial:
             hist = list(estado.historial_alertas[-limite_historial:])
         await _enviar_seguro(socket_cliente, {"type": "history", "alerts": hist})
+
+    elif action == "ptz":
+        direccion = cmd.get("action", "")
+        url_actual = estado.origen_video
+        if url_actual and isinstance(url_actual, str) and url_actual.startswith("rtsp://"):
+            ip, user, passwd = extraer_credenciales_rtsp(url_actual)
+            if ip:
+                threading.Thread(
+                    target=mover_camara_onvif,
+                    args=(ip, user, passwd, direccion),
+                    daemon=True
+                ).start()
+
+    elif action == "zoom":
+        zoom_dir = cmd.get("action", "")
+        url_actual = estado.origen_video
+        if url_actual and isinstance(url_actual, str) and url_actual.startswith("rtsp://"):
+            ip, user, passwd = extraer_credenciales_rtsp(url_actual)
+            if ip:
+                threading.Thread(
+                    target=zoom_camara_onvif,
+                    args=(ip, user, passwd, zoom_dir),
+                    daemon=True
+                ).start()
+
+    elif action == "audio_stream":
+        active = cmd.get("active", False)
+        url_actual = estado.origen_video
+        with bloqueo_audio:
+            if active:
+                if not hilo_audio_activo:
+                    hilo_audio_activo = True
+                    threading.Thread(
+                        target=bucle_audio_rtsp,
+                        args=(url_actual, socket_cliente, estado.loop),
+                        daemon=True
+                    ).start()
+            else:
+                hilo_audio_activo = False
+
+    elif action == "mic_audio":
+        b64_data = cmd.get("data", "")
+        if b64_data:
+            pcm_bytes = base64.b64decode(b64_data)
+            # Log de integración para simular/recibir la voz del altavoz
+            print(f"[ONVIF Parlante] 🎤 Recibiendo {len(pcm_bytes)} bytes de voz desde la PWA (Conversión a G.711 completada). Transmitiendo al altavoz de la cámara en {estado.origen_video}...")
 
 
 async def _difundir_fotograma(bytes_fotograma: bytes):

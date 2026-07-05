@@ -238,10 +238,121 @@ document.addEventListener('DOMContentLoaded', () => {
     stopTalking();
   });
 
+  // --- 🎙️ AUDIO CAPTURE AND PLAYBACK HELPER FUNCTIONS ---
+  let audioCtx = null;
+  let nextAudioTime = 0;
+
+  function playRawPcm(base64Data) {
+    try {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 8000 });
+        nextAudioTime = audioCtx.currentTime;
+      }
+      
+      const binaryString = atob(base64Data);
+      const len = binaryString.length;
+      const bytes = new Uint8Array(len);
+      for (let i = 0; i < len; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      
+      const int16Array = new Int16Array(bytes.buffer);
+      const float32Array = new Float32Array(int16Array.length);
+      for (let i = 0; i < int16Array.length; i++) {
+        float32Array[i] = int16Array[i] / 32768.0;
+      }
+      
+      const audioBuffer = audioCtx.createBuffer(1, float32Array.length, 8000);
+      audioBuffer.copyToChannel(float32Array, 0);
+      
+      const source = audioCtx.createBufferSource();
+      source.buffer = audioBuffer;
+      source.connect(audioCtx.destination);
+      
+      if (nextAudioTime < audioCtx.currentTime) {
+        nextAudioTime = audioCtx.currentTime;
+      }
+      source.start(nextAudioTime);
+      nextAudioTime += audioBuffer.duration;
+    } catch (e) {
+      console.error("Error al reproducir audio: ", e);
+    }
+  }
+
+  let audioContextMic = null;
+  let micSource = null;
+  let processor = null;
+  let micStream = null;
+
+  async function startMicCapture() {
+    try {
+      micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      audioContextMic = new (window.AudioContext || window.webkitAudioContext)();
+      micSource = audioContextMic.createMediaStreamSource(micStream);
+      
+      processor = audioContextMic.createScriptProcessor(2048, 1, 1);
+      
+      processor.onaudioprocess = (e) => {
+        const inputData = e.inputBuffer.getChannelData(0);
+        
+        const targetSampleRate = 8000;
+        const ratio = audioContextMic.sampleRate / targetSampleRate;
+        const length = Math.round(inputData.length / ratio);
+        const pcmData = new Int16Array(length);
+        
+        for (let i = 0; i < length; i++) {
+          const idx = Math.round(i * ratio);
+          const sample = Math.max(-1, Math.min(1, inputData[idx] || 0));
+          pcmData[i] = sample < 0 ? sample * 0x8000 : sample * 0x7FFF;
+        }
+        
+        const binary = String.fromCharCode.apply(null, new Uint8Array(pcmData.buffer));
+        const base64 = btoa(binary);
+        
+        if (ws && ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({
+            "cmd": "mic_audio",
+            "data": base64
+          }));
+        }
+      };
+      
+      micSource.connect(processor);
+      processor.connect(audioContextMic.destination);
+    } catch (err) {
+      console.error("Error capturando micrófono:", err);
+      showToast("⚠️ Permiso de micrófono denegado o no disponible.");
+    }
+  }
+
+  function stopMicCapture() {
+    try {
+      if (processor) {
+        processor.disconnect();
+        processor = null;
+      }
+      if (micSource) {
+        micSource.disconnect();
+        micSource = null;
+      }
+      if (audioContextMic) {
+        audioContextMic.close();
+        audioContextMic = null;
+      }
+      if (micStream) {
+        micStream.getTracks().forEach(track => track.stop());
+        micStream = null;
+      }
+    } catch (e) {
+      console.error("Error deteniendo captura mic:", e);
+    }
+  }
+
   function startTalking() {
     if (!toolTalk.classList.contains('active')) {
       toolTalk.classList.add('active');
       showToast('🎤 Micrófono abierto. Transmitiendo voz a la bocina de la cámara...');
+      startMicCapture();
     }
   }
 
@@ -249,6 +360,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (toolTalk.classList.contains('active')) {
       toolTalk.classList.remove('active');
       showToast('🎤 Micrófono cerrado.');
+      stopMicCapture();
     }
   }
 
@@ -256,6 +368,13 @@ document.addEventListener('DOMContentLoaded', () => {
     toolListen.classList.toggle('active');
     const active = toolListen.classList.contains('active');
     showToast(active ? '🔊 Audio ambiental de la cámara activado.' : '🔇 Audio ambiental silenciado.');
+    
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({
+        "cmd": "audio_stream",
+        "active": active
+      }));
+    }
   });
 
   // --- 📷 SNAPSHOT CAPTURE ---
@@ -717,6 +836,12 @@ document.addEventListener('DOMContentLoaded', () => {
           }
           else if (data.type === 'frame_meta') {
             videoMetaText.textContent = `FPS de Servidor: ${data.fps || '0.0'} | Clientes: ${data.clients || '0'}`;
+          }
+          else if (data.type === 'audio') {
+            playRawPcm(data.data);
+          }
+          else if (data.type === 'toast') {
+            showToast(data.message);
           }
         } catch (err) {
           console.error(err);
