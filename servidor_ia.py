@@ -286,7 +286,7 @@ def mover_camara_onvif(ip, user, passwd, direccion, duracion=0.5):
         
         # Detener movimiento
         ptz.Stop({'ProfileToken': token})
-        print(f"[ONVIF] Movimiento físico {direccion.toUpperCase()} completado con éxito.")
+        print(f"[ONVIF] Movimiento físico {direccion.upper()} completado con éxito.")
         return True
     except Exception as e:
         print(f"[ONVIF] Error al ejecutar comando ONVIF PTZ: {e}")
@@ -328,7 +328,7 @@ def zoom_camara_onvif(ip, user, passwd, accion, duracion=0.5):
         ptz.ContinuousMove(request)
         time.sleep(duracion)
         ptz.Stop({'ProfileToken': token})
-        print(f"[ONVIF] Zoom {accion.toUpperCase()} completado con éxito.")
+        print(f"[ONVIF] Zoom {accion.upper()} completado con éxito.")
         return True
     except Exception as e:
         print(f"[ONVIF] Error al ejecutar comando ONVIF Zoom: {e}")
