@@ -724,13 +724,36 @@ document.addEventListener('DOMContentLoaded', () => {
       } 
       else if (event.data instanceof Blob) {
         try {
-          const imageBitmap = await createImageBitmap(event.data);
-          if (videoCanvasPtz.width !== imageBitmap.width || videoCanvasPtz.height !== imageBitmap.height) {
-            videoCanvasPtz.width = imageBitmap.width;
-            videoCanvasPtz.height = imageBitmap.height;
+          // Detener el loop de la simulación fija si empieza a llegar video real
+          if (fixedLensInterval) {
+            clearInterval(fixedLensInterval);
+            fixedLensInterval = null;
           }
-          ctxPtz.drawImage(imageBitmap, 0, 0);
+
+          const imageBitmap = await createImageBitmap(event.data);
+          const halfHeight = imageBitmap.height / 2;
+
+          if (videoCanvasPtz.width !== imageBitmap.width || videoCanvasPtz.height !== halfHeight) {
+            videoCanvasPtz.width = imageBitmap.width;
+            videoCanvasPtz.height = halfHeight;
+            videoCanvasFixed.width = imageBitmap.width;
+            videoCanvasFixed.height = halfHeight;
+          }
+          
+          // Lente Superior (Fijo): Dibuja la mitad superior del frame de video
+          ctxFixed.drawImage(imageBitmap, 
+            0, 0, imageBitmap.width, halfHeight, 
+            0, 0, videoCanvasFixed.width, videoCanvasFixed.height
+          );
+          
+          // Lente Inferior (PTZ): Dibuja la mitad inferior del frame de video
+          ctxPtz.drawImage(imageBitmap, 
+            0, halfHeight, imageBitmap.width, halfHeight, 
+            0, 0, videoCanvasPtz.width, videoCanvasPtz.height
+          );
+
           placeholderPtz.style.display = 'none';
+          placeholderFixed.style.display = 'none';
         } catch (err) {
           console.error(err);
         }
@@ -746,6 +769,10 @@ document.addEventListener('DOMContentLoaded', () => {
       placeholderPtz.style.display = 'flex';
       videoSpinner.style.display = 'none';
       ptzMsg.textContent = 'Servidor desconectado.';
+      
+      // Reiniciar la simulación del lente fijo al desconectarse del backend
+      startFixedLensRender();
+      placeholderFixed.style.display = 'flex';
       
       if (!userDisconnected) {
         scheduleReconnect();
