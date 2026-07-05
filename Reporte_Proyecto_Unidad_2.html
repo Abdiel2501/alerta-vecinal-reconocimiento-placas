@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Reporte de Proyecto Unidad 2</title>
+    <style>
+        body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-size: 16pt;
+    line-height: 1.8;
+    color: #333333;
+    margin: 2cm;
+}
+
+h1, h2, h3 {
+    color: #2c3e50;
+    font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+}
+
+h1 {
+    font-size: 28pt;
+    text-align: center;
+    border-bottom: 3px solid #3498db;
+    padding-bottom: 10px;
+    margin-bottom: 30px;
+}
+
+h2 {
+    font-size: 22pt;
+    color: #2980b9;
+    border-bottom: 2px solid #ecf0f1;
+    padding-bottom: 5px;
+    margin-top: 40px;
+}
+
+h3 {
+    font-size: 18pt;
+    color: #34495e;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 25px 0;
+    font-size: 14pt;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+}
+
+th, td {
+    padding: 15px 20px;
+    text-align: left;
+    border: 1px solid #ddd;
+}
+
+th {
+    background-color: #3498db;
+    color: #ffffff;
+    font-weight: bold;
+}
+
+tr:nth-child(even) {
+    background-color: #f8f9fa;
+}
+
+strong, b {
+    color: #e67e22; /* Un naranja elegante para resaltar las negritas */
+    font-weight: bold;
+}
+
+img {
+    max-width: 100%;
+    height: auto;
+    border: 2px solid #bdc3c7;
+    border-radius: 8px;
+    margin: 20px 0;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+ul, ol {
+    margin-bottom: 20px;
+}
+
+li {
+    margin-bottom: 10px;
+}
+
+hr {
+    border: 0;
+    height: 1px;
+    background: #3498db;
+    background-image: linear-gradient(to right, #ccc, #3498db, #ccc);
+    margin: 40px 0;
+}
+
+    </style>
+</head>
+<body>
+    <div class="content">
+        <h1>Reporte de Proyecto Unidad 2</h1>
+<p><strong>Proyecto:</strong> Sistema Inteligente de Reconocimiento de Matrículas<br />
+<strong>Equipo:</strong> Jorge Gabriel Heredia Lara, Abdiel Gerardo Alonso Herrera, Geovani Coronado Cruz<br />
+<strong>Materia:</strong> Proyecto Integrador<br />
+<strong>Fecha:</strong> 13 de Junio de 2026  </p>
+<hr />
+<h2>1. INTRODUCCIÓN</h2>
+<p>El robo de vehículos y la inseguridad vial representan problemáticas crecientes en las zonas urbanas. Ante este panorama, nuestro equipo ha decidido desarrollar una solución tecnológica: un Sistema Inteligente de Reconocimiento de Matrículas (ANPR) diseñado para operar en tiempo real. </p>
+<p>Hasta el día de hoy, hemos avanzado fuertemente en el desarrollo, implementando el modelo YOLOv8 para la detección de objetos y PaddleOCR para la lectura de caracteres, además de sentar las bases de la aplicación cliente en Flutter. Si bien contamos con avances operativos significativos y una infraestructura sólida, somos conscientes de que aún nos falta pulir diversos detalles y optimizar el sistema en nuestras próximas iteraciones. El presente portafolio documenta el proceso que tuvimos durante la unidad 2 para el proceso de la creacion de nuestro proyecto y los avances tangibles logrados hasta este momento.</p>
+<hr />
+<h2>2. DESARROLLO</h2>
+<h3>2.1. Técnica aplicable para la generación de ruta o plan de acción</h3>
+<p>Para estructurar nuestras actividades y garantizar entregas o avances que motivaran al equipo, hicimos que cada cierto tiempo se presentaran avances, pues hablamos que es gratificante sentir que avanzamos rápidamente y eso nos motivaba. Por ello, hemos optado por un <strong>Enfoque Híbrido</strong> combinando metodologías <strong>Gantt (Predictivo)</strong> y <strong>Kanban (Ágil)</strong>.</p>
+<p><strong>Justificación:</strong>
+Decidimos usar el diagrama de Gantt para organizar el trabajo con la Inteligencia Artificial (es decir, la parte donde le enseñamos al programa a reconocer las placas). Usamos esta técnica porque necesitábamos seguir pasos en orden y con tiempos fijos antes de poder conectar la Inteligencia Artificial con el resto del sistema. Por otro lado, elegimos usar tableros Kanban para la creación de la pantalla principal (la aplicación visual) y el sistema de envío de alertas. Kanban nos resultó más fácil de entender porque nos permitía hacer cambios rápidos, corregir errores sobre la marcha y ver visualmente en equipo qué tareas estaban pendientes, cuáles en proceso y cuáles ya estaban terminadas.</p>
+<p><strong>Ejemplo Visual:</strong>
+A continuación, se muestra el estado de flujo de nuestras tareas en el tablero Kanban:</p>
+<p><img alt="TABLERO KANBAN DEL PROYECTO" src="tablero_kanban.png" /></p>
+<hr />
+<h3>2.2. Objetivos, metas, alcances y limitaciones del proyecto</h3>
+<p><strong>Objetivos:</strong>
+*   <strong>Propósito general:</strong> Desarrollar y lanzar un sistema integral de reconocimiento automático de matrículas basado en visión artificial capaz de emitir notificaciones de seguridad en tiempo real.</p>
+<p><strong>Metas (Resultados específicos y medibles):</strong>
+*   Alcanzar una precisión de lectura de los números y letras de las placas superior al 95% en los próximos 2 meses.
+*   Lograr que el programa procese y analice el video muy rápido, tardando menos de 50 milisegundos en revisar cada imagen o cuadro del video.
+*   Integrar con éxito el envío de alertas automáticas vía Telegram con un tiempo de entrega de menos de 3 segundos después de detectar una placa sospechosa.</p>
+<p><strong>Alcance:</strong>
+*   <strong>Entregables y fronteras:</strong> El proyecto abarca todo el proceso de funcionamiento del sistema de forma local (es decir, corriendo en nuestras propias computadoras sin depender de internet para funcionar de forma general). Esto incluye el modelo de Inteligencia Artificial ya entrenado (<code>yolo11n.pt</code>), el servidor o cerebro detrás de la aplicación (<code>main.py</code> y <code>database.py</code>), y la aplicación visual (Flutter) para gestionar los registros.</p>
+<p><strong>Limitaciones:</strong>
+*   <strong>Restricciones:</strong> El desempeño del sistema depende fuertemente de contar con una buena tarjeta de video (GPU) instalada en la computadora para poder procesar la cámara sin que se trabe. Asimismo, existen limitaciones climáticas (baja visibilidad por lluvia intensa o poca luz) que restringen la capacidad de visión de las cámaras instaladas.</p>
+<hr />
+<h3>2.3. Recursos necesarios para el proyecto</h3>
+<p>Para lograr nuestros avances actuales, hemos requerido e identificado los siguientes recursos:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Tipo</th>
+<th style="text-align: left;">Detalle</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>Humanos</strong></td>
+<td style="text-align: left;">Equipo multidisciplinario con habilidades en: Inteligencia Artificial (para entrenar los modelos visuales con Python), Manejo de Datos (para guardar las placas en una base de datos local SQLite), y Desarrollo de Interfaces (creación de pantallas y botones de la aplicación en Flutter).</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Materiales</strong></td>
+<td style="text-align: left;">Computadoras de escritorio o laptops con tarjetas de video dedicadas NVIDIA, programas gratuitos para escribir código (Jupyter/VS Code), y miles de fotografías de placas mexicanas para entrenar a la Inteligencia Artificial.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Financieros</strong></td>
+<td style="text-align: left;">Presupuesto estimado en <strong>$30,000 MXN</strong> distribuidos en: Computadora principal para correr el sistema ($20,000 MXN), renta de servidores en internet para entrenar la inteligencia artificial más rápido ($3,000 MXN), un par de cámaras de vigilancia de buena calidad ($6,000 MXN) y saldo para el sistema de envío de mensajes ($1,000 MXN).</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3>2.4. Interesados/usuarios del proyecto</h3>
+<ul>
+<li><strong>Operadores de Seguridad Privada (Usuarios finales):</strong> Necesitan una pantalla de control clara, fácil de usar y que mande alertas inmediatas. Esperan que el programa no se congele ni falle durante los turnos continuos de vigilancia.</li>
+<li><strong>Propietarios de Vehículos / Residentes:</strong> Requieren recibir alertas de seguridad precisas y confiables en sus celulares cuando su automóvil entra o sale de las instalaciones.</li>
+<li><strong>Equipo de Desarrollo (Nosotros):</strong> Requerimos computadoras bien configuradas, apuntes ordenados sobre los errores que vayan saliendo y buena comunicación para seguir mejorando el código sin descomponer lo que ya funciona.</li>
+</ul>
+<hr />
+<h3>2.5. Responsables en cada etapa del proyecto</h3>
+<p>Hemos asignado responsabilidades y roles claros dentro del equipo para el avance en cada fase:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Fase</th>
+<th style="text-align: left;">Roles Asignados y Tareas Específicas</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>Iniciación</strong></td>
+<td style="text-align: left;"><strong>Encargado de Inteligencia Artificial:</strong> Recopilación, recorte de imágenes, y organización de las miles de fotografías de placas vehiculares.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Ejecución (Cerebro del Sistema e IA)</strong></td>
+<td style="text-align: left;"><strong>Programador Backend / Encargado de IA:</strong> Enseñanza y ajustes del modelo visual YOLO, creación de la base de datos para guardar la información, y escritura del código principal que une todo (<code>main.py</code>).</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Ejecución (Pantallas de la App)</strong></td>
+<td style="text-align: left;"><strong>Programador Frontend:</strong> Diseño y creación de las pantallas visuales de la aplicación que usarán los guardias de seguridad.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Cierre y Revisión de Calidad</strong></td>
+<td style="text-align: left;"><strong>Revisor de Pruebas:</strong> Hacer pruebas para ver cuánto tarda el programa en detectar placas, mandar muchos mensajes de prueba por Telegram para verificar que no falle, y revisar que todo el proyecto corra de forma fluida.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3>2.6. Trabajos prioritarios por realizar</h3>
+<p>Para determinar qué tareas debíamos hacer primero y cuáles podíamos dejar para después, utilizamos la técnica de priorización <strong>MoSCoW</strong>. Si bien hemos abarcado las tareas más urgentes (lo que es obligatorio para que funcione), esta tabla guía nuestros esfuerzos para seguir puliendo el programa:</p>
+<p><strong>Ejemplo Visual:</strong>
+<img alt="PRIORIZACIÓN DE TRABAJOS (Técnica MoSCoW)" src="priorizacion_moscow.png" /></p>
+<hr />
+<h3>2.7. Duración de las tareas y/o actividades del proyecto</h3>
+<p>Hemos detallado un calendario de trabajo para asegurar que la parte visual y la inteligencia artificial se conecten a tiempo sin retrasar el proyecto:</p>
+<ul>
+<li><strong>Inicio:</strong> Identificar qué necesitábamos hacer y cómo íbamos a guardar la información (5 días).</li>
+<li><strong>Desarrollo en Orden:</strong> Enseñanza y ajustes de la Inteligencia Artificial (7 días), seguido de la conexión a la base de datos (5 días).<ul>
+<li><strong>Primer Avance Importante:</strong> El "cerebro" del sistema detecta placas y guarda la información sin errores.</li>
+</ul>
+</li>
+<li><strong>Desarrollo al Mismo Tiempo:</strong> Creación de las pantallas visuales de la app (10 días) y conexión con los mensajes de Telegram (3 días).<ul>
+<li><strong>Segundo Avance Importante:</strong> La aplicación ya se puede usar visualmente.</li>
+</ul>
+</li>
+<li><strong>Cierre:</strong> Hacer muchas pruebas forzando el sistema a equivocarse (4 días) seguidas de corrección de esos últimos errores (3 días).<ul>
+<li><strong>Tercer Avance Importante:</strong> Entrega Final del proyecto.</li>
+</ul>
+</li>
+</ul>
+<p><strong>Ejemplo Visual:</strong>
+<img alt="CRONOGRAMA DE ACTIVIDADES (Diagrama de Gantt)" src="cronograma_gantt.png" /></p>
+<hr />
+<h2>3. CONCLUSIONES</h2>
+<p>A lo largo de este periodo de planificación y trabajo continuo, hemos corroborado que construir un sistema con Inteligencia Artificial exige mucha organización. Combinar dos formas de trabajo fue un acierto: nos ayudó a ser rigurosos con los tiempos al entrenar la Inteligencia Artificial (diagrama de Gantt), y al mismo tiempo nos permitió ser rápidos y adaptarnos fácilmente al construir las pantallas de la aplicación (tableros Kanban).</p>
+<p>Hasta el día de hoy, hemos avanzado fuertemente asegurando las funciones obligatorias del proyecto, logrando que el sistema ya detecte placas de video y envíe notificaciones. Sin embargo, este proceso nos dejó como lección que programar siempre requiere ensayo y error; hacer que todo el programa funcione a la perfección y rápido en situaciones de la vida real toma más tiempo del que imaginamos al inicio. A futuro, nuestro esfuerzo en equipo se concentrará en pulir todos esos pequeños detalles técnicos para entregar un sistema altamente eficiente, rápido y fácil de usar.</p>
+    </div>
+</body>
+</html>

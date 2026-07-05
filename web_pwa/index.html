@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>🛡️ AlertaVecinal PWA</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0E121A">
+</head>
+<body>
+  <header class="header">
+    <div class="brand-area">
+      <h1 class="brand-title">🛡️ AlertaVecinal</h1>
+      <span class="badge-demo" id="demoBadge">MODO DEMO</span>
+    </div>
+    
+    <nav class="nav-tabs">
+      <button class="tab-btn active" data-target="view-monitor">📺 Monitor</button>
+      <button class="tab-btn" data-target="view-history">📋 Historial</button>
+      <button class="tab-btn" data-target="view-settings">⚙️ Ajustes</button>
+    </nav>
+
+    <div class="status-indicator">
+      <span class="dot" id="wsStatusDot"></span>
+      <span id="wsStatusText">Desconectado</span>
+    </div>
+  </header>
+
+  <main class="main-content">
+    
+    <!-- 📺 MONITOR SECTION -->
+    <section id="view-monitor" class="view-section active">
+      <div class="monitor-grid">
+        <!-- Live Video Feed -->
+        <div class="card video-card">
+          <div class="video-container">
+            <span class="placeholder-text" id="videoPlaceholder">
+              <span class="spinner" id="videoSpinner"></span>
+              <span id="videoPlaceholderMsg">Esperando conexión de video...</span>
+            </span>
+            <canvas id="videoCanvas"></canvas>
+            <div class="video-info-overlay">
+              <span class="overlay-badge">
+                <span class="live-dot"></span> VIVO
+              </span>
+              <span class="overlay-badge" id="videoMetaBadge">
+                FPS: 0.0 | Clientes: 0
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Camera Controls -->
+        <div class="card">
+          <h2>Controles de Cámara</h2>
+          
+          <div class="input-group">
+            <label>Cámara del Sistema:</label>
+            <button id="listCamerasBtn" class="btn btn-secondary">🔍 Escanear Cámaras USB</button>
+          </div>
+
+          <div class="input-group">
+            <label for="rtspUrl">Configurar URL de Cámara (RTSP / HTTP / Video):</label>
+            <div class="input-with-action">
+              <input type="text" id="rtspUrl" placeholder="rtsp://usuario:password@ip:554/stream1">
+              <button id="applyRtspBtn" class="btn">Aplicar</button>
+            </div>
+          </div>
+
+          <div class="input-group">
+            <label>Información de Fuente:</label>
+            <input type="text" id="activeCameraInfo" readonly value="Ninguna cámara activa" style="opacity: 0.8; font-size: 0.85rem;">
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 📋 HISTORY SECTION -->
+    <section id="view-history" class="view-section">
+      <div class="card">
+        <div class="history-controls">
+          <h2>Historial de Detecciones</h2>
+          <button id="clearHistoryBtn" class="btn btn-secondary btn-alert">🗑️ Borrar Todo</button>
+        </div>
+        
+        <!-- Desktop Table View -->
+        <div class="history-table-wrapper">
+          <table class="history-table">
+            <thead>
+              <tr>
+                <th>Placa</th>
+                <th>Estado</th>
+                <th>Modelo y Color</th>
+                <th>Propietario</th>
+                <th>Fecha y Hora</th>
+              </tr>
+            </thead>
+            <tbody id="historyTableBody">
+              <!-- Carga dinámica -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Mobile Cards View -->
+        <div class="mobile-history-list" id="mobileHistoryList">
+          <!-- Carga dinámica -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ⚙️ SETTINGS SECTION -->
+    <section id="view-settings" class="view-section">
+      <div class="card">
+        <h2>Conexión al Servidor IA</h2>
+        
+        <div class="input-group">
+          <label for="serverIp">Dirección IP del Servidor:</label>
+          <input type="text" id="serverIp" value="127.0.0.1" placeholder="Ej: 192.168.1.72">
+        </div>
+
+        <div class="input-group">
+          <label for="serverPort">Puerto del Servidor:</label>
+          <input type="number" id="serverPort" value="8765" placeholder="8765">
+        </div>
+
+        <button id="connectBtn" class="btn">Conectar</button>
+      </div>
+
+      <div class="card">
+        <h2>Pruebas y Demostración</h2>
+        <div class="toggle-wrapper">
+          <div>
+            <h3 style="font-size: 1rem; font-weight: 700;">Modo Demo</h3>
+            <p style="font-size: 0.85rem; color: var(--text-secondary);">Simular alertas y video sin servidor local</p>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="demoModeToggle">
+            <span class="slider"></span>
+          </label>
+        </div>
+        <button id="triggerDemoAlertBtn" class="btn btn-secondary" style="display: none;">🚨 Forzar Alerta Demo Ahora</button>
+      </div>
+    </section>
+  </main>
+
+  <!-- 🚨 CRITICAL ALERT FULL-SCREEN MODAL -->
+  <div class="modal-overlay" id="criticalAlertModal">
+    <div class="critical-modal">
+      <div class="alert-icon">🚨</div>
+      <h2>ALERTA DE ROBO</h2>
+      <p>Se ha detectado una coincidencia en la Base de Datos</p>
+      
+      <div class="critical-plate-display" id="criticalPlate">ABC-123</div>
+      
+      <div class="critical-details-grid">
+        <div>
+          <label>Modelo</label>
+          <span id="criticalModel">Nissan Sentra</span>
+        </div>
+        <div>
+          <label>Color</label>
+          <span id="criticalColor">Rojo</span>
+        </div>
+        <div>
+          <label>Propietario</label>
+          <span id="criticalOwner">Juan Pérez</span>
+        </div>
+        <div>
+          <label>Fecha / Hora</label>
+          <span id="criticalTime">12:30:15</span>
+        </div>
+      </div>
+      
+      <button class="btn btn-dismiss" id="dismissAlertBtn">Entendido</button>
+    </div>
+  </div>
+
+  <!-- 📹 SYSTEM CAMERAS MODAL -->
+  <div class="modal-overlay" id="cameraSelectModal">
+    <div class="camera-select-modal">
+      <h2 style="font-size: 1.2rem; margin-bottom: 8px;">Seleccionar Cámara USB</h2>
+      <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 12px;">Elige uno de los dispositivos detectados en el servidor:</p>
+      <div id="cameraListContainer" style="display:flex; flex-direction:column; gap:8px;">
+        <!-- Botones de opciones se inyectan dinámicamente -->
+      </div>
+      <button class="btn btn-secondary" id="closeCameraModalBtn" style="margin-top:8px;">Cerrar</button>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
