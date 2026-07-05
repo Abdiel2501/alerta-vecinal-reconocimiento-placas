@@ -1,35 +1,77 @@
 document.addEventListener('DOMContentLoaded', () => {
-  // DOM Elements - Navigation & Headers
+  // DOM Elements - Navigation & Shells
+  const splashScreen = document.getElementById('splash-screen');
+  const loginScreen = document.getElementById('login-screen');
+  const appLayout = document.getElementById('app-layout');
   const tabButtons = document.querySelectorAll('.tab-btn');
   const views = document.querySelectorAll('.view-section');
   const demoBadge = document.getElementById('demoBadge');
   const wsStatusDot = document.getElementById('wsStatusDot');
   const wsStatusText = document.getElementById('wsStatusText');
+  const toast = document.getElementById('toast-notification');
 
-  // DOM Elements - Monitor Section
-  const videoCanvas = document.getElementById('videoCanvas');
-  const ctx = videoCanvas.getContext('2d');
-  const placeholder = document.getElementById('videoPlaceholder');
-  const videoPlaceholderMsg = document.getElementById('videoPlaceholderMsg');
+  // DOM Elements - Login
+  const loginEmail = document.getElementById('loginEmail');
+  const loginPassword = document.getElementById('loginPassword');
+  const normalLoginBtn = document.getElementById('normalLoginBtn');
+  const googleLoginBtn = document.getElementById('googleLoginBtn');
+  const googleProfileCard = document.getElementById('googleProfileCard');
+  const profileName = document.getElementById('profileName');
+  const profileEmail = document.getElementById('profileEmail');
+  const userInitial = document.getElementById('userInitial');
+  const logoutBtn = document.getElementById('logoutBtn');
+
+  // DOM Elements - Dual Lens Cameras
+  const videoCanvasFixed = document.getElementById('videoCanvasFixed');
+  const ctxFixed = videoCanvasFixed.getContext('2d');
+  const videoCanvasPtz = document.getElementById('videoCanvasPtz');
+  const ctxPtz = videoCanvasPtz.getContext('2d');
+  
+  const lensFixedContainer = document.getElementById('lensFixedContainer');
+  const lensPtzContainer = document.getElementById('lensPtzContainer');
+  const toggleFixedBtn = document.getElementById('toggleFixedBtn');
+  const togglePtzBtn = document.getElementById('togglePtzBtn');
+  const placeholderFixed = document.getElementById('placeholderFixed');
+  const placeholderPtz = document.getElementById('placeholderPtz');
   const videoSpinner = document.getElementById('videoSpinner');
+  const ptzMsg = document.getElementById('ptzMsg');
   const recIndicator = document.getElementById('recIndicator');
-  const videoMetaBadge = document.getElementById('videoMetaBadge');
+  const videoMetaText = document.getElementById('videoMetaText');
+
+  // DOM Elements - PTZ & Zoom Overlay
+  const ptzOverlay = document.getElementById('ptzOverlay');
+  const zoomOverlay = document.getElementById('zoomOverlay');
+  const ptzDirs = document.querySelectorAll('.ptz-dir');
+  const zoomBtns = document.querySelectorAll('.zoom-btn');
+  const ptzCenterBtn = document.getElementById('ptzCenterBtn');
+
+  // DOM Elements - Quick Tools
+  const toolTalk = document.getElementById('toolTalk');
+  const toolListen = document.getElementById('toolListen');
+  const toolCapture = document.getElementById('toolCapture');
+  const toolAi = document.getElementById('toolAi');
+
+  // DOM Elements - Settings & Config
   const listCamerasBtn = document.getElementById('listCamerasBtn');
   const rtspUrlInput = document.getElementById('rtspUrl');
   const applyRtspBtn = document.getElementById('applyRtspBtn');
   const activeCameraInfo = document.getElementById('activeCameraInfo');
-
-  // DOM Elements - History Section
-  const clearHistoryBtn = document.getElementById('clearHistoryBtn');
-  const historyTableBody = document.getElementById('historyTableBody');
-  const mobileHistoryList = document.getElementById('mobileHistoryList');
-
-  // DOM Elements - Settings Section
+  
   const serverIpInput = document.getElementById('serverIp');
   const serverPortInput = document.getElementById('serverPort');
   const connectBtn = document.getElementById('connectBtn');
+  
+  const telegramTokenInput = document.getElementById('telegramToken');
+  const telegramChatIdInput = document.getElementById('telegramChatId');
+  const saveTelegramBtn = document.getElementById('saveTelegramBtn');
+  
   const demoModeToggle = document.getElementById('demoModeToggle');
   const triggerDemoAlertBtn = document.getElementById('triggerDemoAlertBtn');
+
+  // DOM Elements - Alerts & History
+  const clearHistoryBtn = document.getElementById('clearHistoryBtn');
+  const historyTableBody = document.getElementById('historyTableBody');
+  const mobileHistoryList = document.getElementById('mobileHistoryList');
 
   // DOM Elements - Modals
   const criticalAlertModal = document.getElementById('criticalAlertModal');
@@ -49,25 +91,126 @@ document.addEventListener('DOMContentLoaded', () => {
   let reconnectTimeout = null;
   let userDisconnected = false;
   let demoMode = false;
+  let isAiActive = true;
+  
+  // PTZ Simulated coordinates offset
+  let ptzOffsetX = 0;
+  let ptzOffsetY = 0;
+  let demoZoomScale = 1.0;
+  
+  // Animation intervals
   let demoCanvasInterval = null;
   let demoAlertInterval = null;
+  let fixedLensInterval = null;
   let demoPlateIndex = 0;
   let lastDemoAlertTime = 0;
   let lastDemoPlate = '';
-  
-  // Load settings and history from localStorage
+
+  // Load cache from localStorage
   let history = JSON.parse(localStorage.getItem('alert_history') || '[]');
   serverIpInput.value = localStorage.getItem('server_ip') || '127.0.0.1';
   serverPortInput.value = localStorage.getItem('server_port') || '8765';
-  
-  // Register Service Worker using relative path
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js')
-      .then(reg => console.log('Service Worker registrado:', reg.scope))
-      .catch(err => console.error('Error registrando Service Worker:', err));
+  telegramTokenInput.value = localStorage.getItem('telegram_token') || '';
+  telegramChatIdInput.value = localStorage.getItem('telegram_chat_id') || '';
+
+  // --- 💬 FLOATING TOAST NOTIFICATION ---
+  function showToast(message) {
+    toast.textContent = message;
+    toast.classList.add('show');
+    setTimeout(() => {
+      toast.classList.remove('show');
+    }, 3000);
   }
 
-  // --- VIEW NAVIGATION TABS ---
+  // --- 🌀 SPLASH SCREEN & AUTH LOGIC ---
+  // Lanzamiento de la pantalla de carga (Splash Screen) por 2 segundos
+  setTimeout(() => {
+    splashScreen.classList.add('fade-out');
+    
+    // Validar si hay sesión guardada
+    const savedSession = JSON.parse(localStorage.getItem('user_session'));
+    if (savedSession) {
+      logInSuccess(savedSession);
+    } else {
+      loginScreen.classList.remove('hidden');
+    }
+  }, 2000);
+
+  function logInSuccess(session) {
+    localStorage.setItem('user_session', JSON.stringify(session));
+    loginScreen.classList.add('hidden');
+    appLayout.classList.remove('hidden');
+
+    if (session.provider === 'google') {
+      googleProfileCard.style.display = 'block';
+      profileName.textContent = session.name;
+      profileEmail.textContent = session.email;
+      userInitial.textContent = session.name.charAt(0);
+    } else {
+      googleProfileCard.style.display = 'none';
+    }
+
+    showToast(`👋 ¡Bienvenido de nuevo, ${session.name}!`);
+    
+    // Iniciar renderizado estático del lente fijo
+    startFixedLensRender();
+
+    // Iniciar conexión automática
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('demo') === 'true' || demoModeToggle.checked) {
+      demoModeToggle.checked = true;
+      startDemoMode();
+    } else {
+      renderHistory();
+      setTimeout(connectWebSocket, 500);
+    }
+  }
+
+  normalLoginBtn.addEventListener('click', () => {
+    const email = loginEmail.value.trim();
+    const password = loginPassword.value.trim();
+
+    if (email === 'admin@alertavecinal.com' && password === 'admin123') {
+      logInSuccess({
+        name: 'Administrador',
+        email: email,
+        provider: 'credentials'
+      });
+    } else {
+      alert('Credenciales incorrectas. Prueba con admin@alertavecinal.com / admin123');
+    }
+  });
+
+  googleLoginBtn.addEventListener('click', () => {
+    googleLoginBtn.textContent = 'Autenticando con Google...';
+    googleLoginBtn.disabled = true;
+
+    // Simular el Login con Google
+    setTimeout(() => {
+      googleLoginBtn.textContent = 'Iniciar Sesión con Google';
+      googleLoginBtn.disabled = false;
+      logInSuccess({
+        name: 'Jorge G. Lara',
+        email: 'jorgegalara13@gmail.com',
+        provider: 'google'
+      });
+    }, 1000);
+  });
+
+  logoutBtn.addEventListener('click', () => {
+    localStorage.removeItem('user_session');
+    
+    if (ws) ws.close();
+    if (demoCanvasInterval) clearInterval(demoCanvasInterval);
+    if (demoAlertInterval) clearInterval(demoAlertInterval);
+    if (fixedLensInterval) clearInterval(fixedLensInterval);
+    
+    appLayout.classList.add('hidden');
+    loginScreen.classList.remove('hidden');
+    showToast('🔒 Sesión cerrada correctamente.');
+  });
+
+  // --- VIEW TABS ROUTER ---
   tabButtons.forEach(btn => {
     btn.addEventListener('click', () => {
       tabButtons.forEach(b => b.classList.remove('active'));
@@ -79,11 +222,185 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // --- SPEECH SYNTHESIS (TTS) ---
+  // --- 🔊 AUDIO & MICROPHONE SIMULATION ---
+  toolTalk.addEventListener('mousedown', startTalking);
+  toolTalk.addEventListener('mouseup', stopTalking);
+  toolTalk.addEventListener('mouseleave', stopTalking); // Parar si arrastra el mouse afuera
+  
+  // Soporte para pantallas táctiles móviles
+  toolTalk.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    startTalking();
+  });
+  toolTalk.addEventListener('touchend', (e) => {
+    e.preventDefault();
+    stopTalking();
+  });
+
+  function startTalking() {
+    if (!toolTalk.classList.contains('active')) {
+      toolTalk.classList.add('active');
+      showToast('🎤 Micrófono abierto. Transmitiendo voz a la bocina de la cámara...');
+    }
+  }
+
+  function stopTalking() {
+    if (toolTalk.classList.contains('active')) {
+      toolTalk.classList.remove('active');
+      showToast('🎤 Micrófono cerrado.');
+    }
+  }
+
+  toolListen.addEventListener('click', () => {
+    toolListen.classList.toggle('active');
+    const active = toolListen.classList.contains('active');
+    showToast(active ? '🔊 Audio ambiental de la cámara activado.' : '🔇 Audio ambiental silenciado.');
+  });
+
+  // --- 📷 SNAPSHOT CAPTURE ---
+  toolCapture.addEventListener('click', () => {
+    // Animación visual de flash en la pantalla
+    lensPtzContainer.style.filter = 'brightness(2) contrast(1.2)';
+    setTimeout(() => {
+      lensPtzContainer.style.filter = '';
+    }, 150);
+
+    // Convertir el canvas activo a imagen y forzar descarga
+    try {
+      const link = document.createElement('a');
+      link.download = `AlertaVecinal_Captura_${Date.now()}.jpg`;
+      link.href = videoCanvasPtz.toDataURL('image/jpeg', 0.85);
+      link.click();
+      showToast('📷 Captura de pantalla guardada en Descargas.');
+    } catch (err) {
+      console.error(err);
+      showToast('❌ No se pudo guardar la captura (Sin origen de video activo).');
+    }
+  });
+
+  // --- 🤖 AI TOGGLE CONTROL ---
+  toolAi.addEventListener('click', () => {
+    isAiActive = !isAiActive;
+    
+    if (isAiActive) {
+      toolAi.classList.add('active');
+      showToast('🤖 Procesamiento de IA para lectura de placas ACTIVADO.');
+    } else {
+      toolAi.classList.remove('active');
+      showToast('🤖 Detección de placas DESACTIVADO. Ignorando escaneos.');
+    }
+
+    // Enviar comando al servidor real
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({
+        "cmd": "toggle_ai",
+        "active": isAiActive
+      }));
+    }
+  });
+
+  // --- ⤢ DUAL-LENS COLLAPSE & EXPAND LOGIC ---
+  toggleFixedBtn.addEventListener('click', () => {
+    const isExpanded = lensPtzContainer.classList.contains('collapsed');
+    
+    if (isExpanded) {
+      // Contraer
+      lensPtzContainer.classList.remove('collapsed');
+      toggleFixedBtn.textContent = '⤢';
+      ptzOverlay.style.display = 'flex';
+      zoomOverlay.style.display = 'flex';
+    } else {
+      // Expandir
+      lensPtzContainer.classList.add('collapsed');
+      toggleFixedBtn.textContent = '⤡';
+    }
+  });
+
+  togglePtzBtn.addEventListener('click', () => {
+    const isExpanded = lensFixedContainer.classList.contains('collapsed');
+    
+    if (isExpanded) {
+      // Contraer
+      lensFixedContainer.classList.remove('collapsed');
+      togglePtzBtn.textContent = '⤢';
+    } else {
+      // Expandir
+      lensFixedContainer.classList.add('collapsed');
+      togglePtzBtn.textContent = '⤡';
+    }
+  });
+
+  // --- 🕹️ PTZ JOYSTICK & ZOOM OVERLAYS ---
+  ptzDirs.forEach(dirBtn => {
+    dirBtn.addEventListener('click', () => {
+      const direction = dirBtn.getAttribute('data-dir');
+      if (!direction) return;
+
+      // Efecto botón
+      dirBtn.style.color = 'var(--primary-color)';
+      setTimeout(() => dirBtn.style.color = '', 200);
+
+      showToast(`🕹️ Moviendo cámara hacia: ${direction.toUpperCase()}`);
+
+      // Enviar comando PTZ al servidor en modo real
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({
+          "cmd": "ptz",
+          "action": direction
+        }));
+      }
+
+      // Desplazar coordenadas del radar en Modo Demo
+      if (demoMode) {
+        const step = 20;
+        if (direction === 'up') ptzOffsetY -= step;
+        if (direction === 'down') ptzOffsetY += step;
+        if (direction === 'left') ptzOffsetX -= step;
+        if (direction === 'right') ptzOffsetX += step;
+      }
+    });
+  });
+
+  ptzCenterBtn.addEventListener('click', () => {
+    showToast('🕹️ Cámara centrada.');
+    
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({
+        "cmd": "ptz",
+        "action": "center"
+      }));
+    }
+
+    if (demoMode) {
+      ptzOffsetX = 0;
+      ptzOffsetY = 0;
+      demoZoomScale = 1.0;
+    }
+  });
+
+  zoomBtns.forEach(zBtn => {
+    zBtn.addEventListener('click', () => {
+      const zoomAction = zBtn.getAttribute('data-zoom');
+      showToast(`🔍 Ajustando zoom: ZOOM ${zoomAction.toUpperCase()}`);
+
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({
+          "cmd": "zoom",
+          "action": zoomAction
+        }));
+      }
+
+      if (demoMode) {
+        if (zoomAction === 'in') demoZoomScale = Math.min(demoZoomScale + 0.2, 2.5);
+        if (zoomAction === 'out') demoZoomScale = Math.max(demoZoomScale - 0.2, 0.6);
+      }
+    });
+  });
+
+  // --- 📢 TEXT-TO-SPEECH (TTS) ALERTS ---
   function speakAlert(plate) {
     if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel(); // Parar cualquier audio anterior
-      // Deletrear la placa para mejor pronunciación
+      window.speechSynthesis.cancel();
       const spelledPlate = plate.split('').join(' ');
       const utterance = new SpeechSynthesisUtterance(`Alerta, placa ${spelledPlate} con reporte de robo detectada`);
       utterance.lang = 'es-ES';
@@ -91,6 +408,26 @@ document.addEventListener('DOMContentLoaded', () => {
       window.speechSynthesis.speak(utterance);
     }
   }
+
+  // --- 💾 TELEGRAM CONFIG SAVING ---
+  saveTelegramBtn.addEventListener('click', () => {
+    const token = telegramTokenInput.value.trim();
+    const chatId = telegramChatIdInput.value.trim();
+
+    localStorage.setItem('telegram_token', token);
+    localStorage.setItem('telegram_chat_id', chatId);
+
+    showToast('💾 Configuración de Telegram guardada localmente.');
+    
+    // Enviar configuración al servidor si está conectado
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({
+        "cmd": "save_telegram_config",
+        "token": token,
+        "chat_id": chatId
+      }));
+    }
+  });
 
   // --- HISTORY MANAGEMENT ---
   function saveHistory() {
@@ -154,7 +491,8 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function addAlert(alertData) {
-    // Formatear la hora legible
+    if (!isAiActive) return; // Si la IA está apagada en el control rápido, ignorar alertas.
+
     let timeStr = '';
     if (alertData.timestamp) {
       const dateObj = new Date(alertData.timestamp);
@@ -186,6 +524,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // Si es robado, disparar modal y TTS
     if (formattedAlert.es_robado) {
       showCriticalModal(formattedAlert);
+    } else {
+      showToast(`✅ Placa autorizada detectada: ${formattedAlert.placa}`);
     }
   }
 
@@ -193,11 +533,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!serverAlerts || !Array.isArray(serverAlerts)) return;
     
     serverAlerts.forEach(alert => {
-      // Evitar duplicados por placa y fecha exacta
       const exists = history.some(h => h.placa === alert.placa && h.timestamp === alert.timestamp);
       if (!exists) {
         const dateObj = new Date(alert.timestamp || Date.now());
-        const timeStr = dateObj.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ' ' + 
+        const timeStr = dateObj.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) + ' ' + 
                         dateObj.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' });
 
         history.push({
@@ -212,7 +551,6 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
-    // Ordenar de más reciente a más antiguo
     history.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
     if (history.length > 100) {
       history = history.slice(0, 100);
@@ -222,7 +560,7 @@ document.addEventListener('DOMContentLoaded', () => {
     renderHistory();
   }
 
-  // --- CRITICAL ALERT MODAL ---
+  // --- CRITICAL MODAL SCREEN ---
   function showCriticalModal(alertData) {
     criticalPlate.textContent = alertData.placa;
     criticalModel.textContent = alertData.modelo || '?';
@@ -237,9 +575,75 @@ document.addEventListener('DOMContentLoaded', () => {
   dismissAlertBtn.addEventListener('click', () => {
     criticalAlertModal.classList.remove('active');
     if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel(); // Silenciar al confirmar
+      window.speechSynthesis.cancel();
     }
   });
+
+  // --- 📷 FIXED LENS STATIC SECURITY OVERVIEW ---
+  function startFixedLensRender() {
+    if (fixedLensInterval) clearInterval(fixedLensInterval);
+    
+    videoCanvasFixed.width = 640;
+    videoCanvasFixed.height = 360;
+    placeholderFixed.style.display = 'none';
+
+    fixedLensInterval = setInterval(() => {
+      // 1. Dibujar fondo de calles/esquema
+      ctxFixed.fillStyle = '#0F1626';
+      ctxFixed.fillRect(0, 0, videoCanvasFixed.width, videoCanvasFixed.height);
+
+      // 2. Líneas de calle
+      ctxFixed.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+      ctxFixed.lineWidth = 3;
+      ctxFixed.beginPath();
+      ctxFixed.moveTo(0, 240);
+      ctxFixed.lineTo(videoCanvasFixed.width, 240);
+      ctxFixed.stroke();
+
+      ctxFixed.strokeStyle = 'rgba(255, 255, 255, 0.04)';
+      ctxFixed.setLineDash([12, 12]);
+      ctxFixed.beginPath();
+      ctxFixed.moveTo(0, 160);
+      ctxFixed.lineTo(videoCanvasFixed.width, 160);
+      ctxFixed.stroke();
+      ctxFixed.setLineDash([]); // reset
+
+      // 3. Edificios del esquema
+      ctxFixed.fillStyle = '#1B2A4A';
+      ctxFixed.fillRect(0, 0, 110, 140);
+      ctxFixed.fillRect(530, 0, 110, 140);
+      
+      // Dibujar plantas/árboles esquemáticos
+      ctxFixed.fillStyle = '#223B2F';
+      ctxFixed.beginPath();
+      ctxFixed.arc(50, 180, 20, 0, Math.PI * 2);
+      ctxFixed.arc(590, 180, 20, 0, Math.PI * 2);
+      ctxFixed.fill();
+
+      // 4. Dibujar auto estático en el carril izquierdo
+      ctxFixed.fillStyle = 'var(--text-secondary)';
+      ctxFixed.fillRect(200, 180, 50, 30);
+      ctxFixed.fillStyle = 'rgba(255,255,255,0.4)';
+      ctxFixed.fillRect(210, 185, 10, 20); // Ventana
+
+      // 5. Leyenda y Marca de agua
+      ctxFixed.fillStyle = '#00C2D1';
+      ctxFixed.font = '600 12px Outfit';
+      ctxFixed.fillText('CÁMARA REJILLA - RESUMEN GENERAL (FIJO)', 20, 30);
+      
+      ctxFixed.fillStyle = 'rgba(255, 255, 255, 0.4)';
+      ctxFixed.font = '500 11px Outfit';
+      ctxFixed.fillText('CAM-LENTE-SUPERIOR | 30 FPS', 20, 48);
+
+      // 6. Dot de grabación verde parpadeando
+      if (Math.floor(Date.now() / 800) % 2 === 0) {
+        ctxFixed.fillStyle = 'var(--success-color)';
+        ctxFixed.beginPath();
+        ctxFixed.arc(610, 25, 6, 0, Math.PI*2);
+        ctxFixed.fill();
+      }
+    }, 1000 / 15);
+  }
 
   // --- WEBSOCKET CONNECTION & MANAGEMENT ---
   function connectWebSocket() {
@@ -248,42 +652,49 @@ document.addEventListener('DOMContentLoaded', () => {
     const ip = serverIpInput.value.trim() || '127.0.0.1';
     const port = serverPortInput.value.trim() || '8765';
     
-    // Persistir IPs en localStorage
     localStorage.setItem('server_ip', ip);
     localStorage.setItem('server_port', port);
 
+    // Conectar a la ruta /ws correcta del servidor FastAPI
     const wsUrl = `ws://${ip}:${port}/ws`;
 
-    if (ws) {
-      ws.close();
-    }
+    if (ws) ws.close();
 
     wsStatusText.textContent = 'Conectando...';
     wsStatusDot.className = 'dot connecting';
     connectBtn.textContent = 'Conectando...';
     
     videoSpinner.style.display = 'inline-block';
-    videoPlaceholderMsg.textContent = 'Conectando al servidor IA...';
-    placeholder.style.display = 'flex';
+    ptzMsg.textContent = 'Conectando al servidor IA...';
+    placeholderPtz.style.display = 'flex';
 
     ws = new WebSocket(wsUrl);
     ws.binaryType = 'blob';
 
     ws.onopen = () => {
-      console.log('WS Conectado');
+      console.log('WebSocket Conectado');
       wsStatusText.textContent = 'Conectado';
       wsStatusDot.className = 'dot connected';
       connectBtn.textContent = 'Desconectar';
       connectBtn.className = 'btn btn-alert';
-      placeholder.style.display = 'none';
+      placeholderPtz.style.display = 'none';
       recIndicator.style.display = 'flex';
       
-      // Solicitar el historial reciente al servidor al iniciar
+      // Sincronizar datos iniciales
       ws.send(JSON.stringify({ "cmd": "get_history", "limite_historial": 15 }));
+      
+      const token = telegramTokenInput.value.trim();
+      const chatId = telegramChatIdInput.value.trim();
+      if (token && chatId) {
+        ws.send(JSON.stringify({
+          "cmd": "save_telegram_config",
+          "token": token,
+          "chat_id": chatId
+        }));
+      }
     };
 
     ws.onmessage = async (event) => {
-      // Mensajes de texto (JSON)
       if (typeof event.data === 'string') {
         try {
           const data = JSON.parse(event.data);
@@ -298,59 +709,50 @@ document.addEventListener('DOMContentLoaded', () => {
             if (data.camera) {
               activeCameraInfo.value = data.camera;
             }
-            videoMetaBadge.textContent = `FPS: ${data.fps || '0.0'} | Clientes: ${data.clients || '0'}`;
+            videoMetaText.textContent = `FPS de Servidor: ${data.fps || '0.0'} | Clientes: ${data.clients || '0'}`;
           } 
           else if (data.type === 'cameras') {
             populateCamerasModal(data.list);
           }
           else if (data.type === 'frame_meta') {
-            // Recibe metadatos justo antes del frame binario
-            videoMetaBadge.textContent = `FPS: ${data.fps || '0.0'} | Clientes: ${data.clients || '0'}`;
+            videoMetaText.textContent = `FPS de Servidor: ${data.fps || '0.0'} | Clientes: ${data.clients || '0'}`;
           }
         } catch (err) {
-          console.error('Error parseando JSON de WebSocket:', err);
+          console.error(err);
         }
       } 
-      // Mensajes binarios (Blobs de imágenes de la cámara)
       else if (event.data instanceof Blob) {
         try {
           const imageBitmap = await createImageBitmap(event.data);
-          
-          // Redimensionar canvas si es necesario para calzar con la cámara
-          if (videoCanvas.width !== imageBitmap.width || videoCanvas.height !== imageBitmap.height) {
-            videoCanvas.width = imageBitmap.width;
-            videoCanvas.height = imageBitmap.height;
+          if (videoCanvasPtz.width !== imageBitmap.width || videoCanvasPtz.height !== imageBitmap.height) {
+            videoCanvasPtz.width = imageBitmap.width;
+            videoCanvasPtz.height = imageBitmap.height;
           }
-          
-          ctx.drawImage(imageBitmap, 0, 0);
-          placeholder.style.display = 'none';
+          ctxPtz.drawImage(imageBitmap, 0, 0);
+          placeholderPtz.style.display = 'none';
         } catch (err) {
-          console.error('Error dibujando frame binario:', err);
+          console.error(err);
         }
       }
     };
 
     ws.onclose = () => {
-      console.log('WS Cerrado');
       wsStatusText.textContent = 'Desconectado';
       wsStatusDot.className = 'dot';
       connectBtn.textContent = 'Conectar';
       connectBtn.className = 'btn';
       recIndicator.style.display = 'none';
-      placeholder.style.display = 'flex';
+      placeholderPtz.style.display = 'flex';
       videoSpinner.style.display = 'none';
-      videoPlaceholderMsg.textContent = 'Servidor desconectado.';
+      ptzMsg.textContent = 'Servidor desconectado.';
       
-      // Auto-reconexión programada
       if (!userDisconnected) {
         scheduleReconnect();
       }
     };
 
     ws.onerror = (err) => {
-      console.error('WS Error:', err);
-      wsStatusText.textContent = 'Error';
-      wsStatusDot.className = 'dot';
+      console.error(err);
       scheduleReconnect();
     };
   }
@@ -377,13 +779,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // --- MANUAL RTSP CAMERA SWITCHING ---
   applyRtspBtn.addEventListener('click', () => {
     const url = rtspUrlInput.value.trim();
     if (!url) return;
     
     if (demoMode) {
       activeCameraInfo.value = `[DEMO] ${url}`;
+      showToast('📡 Ruta de cámara demo aplicada.');
       return;
     }
 
@@ -392,24 +794,22 @@ document.addEventListener('DOMContentLoaded', () => {
         "cmd": "change_camera_url",
         "url": url
       }));
-      console.log('Enviando comando para cambiar cámara URL:', url);
+      showToast('📡 Enviando cambio de cámara RTSP...');
     } else {
-      alert('Debes estar conectado al servidor para cambiar la cámara.');
+      alert('Conéctate al servidor para cambiar la cámara.');
     }
   });
 
-  // --- SYSTEM CAMERAS SCAN & SELECT ---
   listCamerasBtn.addEventListener('click', () => {
     if (demoMode) {
-      populateCamerasModal(['📹 Cámara Integrada (Simulada)', 'Cámara USB Externa (Simulada)']);
+      populateCamerasModal(['📹 Lente Gran Angular Integrado', 'Lente Especial PTZ 4K']);
       return;
     }
 
     if (ws && ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify({ "cmd": "list_cameras" }));
-      console.log('Solicitando listado de cámaras...');
     } else {
-      alert('Debes estar conectado al servidor para escanear cámaras.');
+      alert('Conéctate al servidor para escanear cámaras.');
     }
   });
 
@@ -417,7 +817,7 @@ document.addEventListener('DOMContentLoaded', () => {
     cameraListContainer.innerHTML = '';
     
     if (!camerasList || camerasList.length === 0) {
-      cameraListContainer.innerHTML = `<p style="color:var(--text-secondary); text-align:center;">No se detectaron cámaras en el sistema.</p>`;
+      cameraListContainer.innerHTML = `<p style="color:var(--text-secondary); text-align:center;">No se detectaron lentes adicionales.</p>`;
     } else {
       camerasList.forEach((cam, index) => {
         const btn = document.createElement('button');
@@ -432,9 +832,9 @@ document.addEventListener('DOMContentLoaded', () => {
               "index": index
             }));
             activeCameraInfo.value = cam;
-            console.log(`Cambiando a cámara USB índice ${index}: ${cam}`);
           }
           cameraSelectModal.classList.remove('active');
+          showToast(`📹 Lente principal asignado a: ${cam}`);
         });
         cameraListContainer.appendChild(btn);
       });
@@ -447,32 +847,26 @@ document.addEventListener('DOMContentLoaded', () => {
     cameraSelectModal.classList.remove('active');
   });
 
-  // --- DEMO MODE MODULE ---
+  // --- DEMO MODE MODULE (OFFLINE INTERACTIVO) ---
   function startDemoMode() {
     demoMode = true;
     demoBadge.style.display = 'inline-block';
     triggerDemoAlertBtn.style.display = 'inline-block';
     
-    // UI Status
     wsStatusText.textContent = 'Conectado (Demo)';
     wsStatusDot.className = 'dot connected';
-    placeholder.style.display = 'none';
+    placeholderPtz.style.display = 'none';
     recIndicator.style.display = 'flex';
     
-    if (ws) {
-      ws.close();
-    }
+    if (ws) ws.close();
     
-    // Cargar historial demo si está vacío
     if (history.length === 0) {
       preloadDemoHistory();
     }
 
-    // Iniciar Canvas animado de Radar
     startDemoCanvasAnimation();
-
-    // Iniciar Generador Automático de Alertas Demo cada 15 segundos
     startDemoAlertGenerator();
+    showToast('🚀 Modo Demo iniciado. Puedes usar los joysticks e interruptores.');
   }
 
   function stopDemoMode() {
@@ -480,97 +874,106 @@ document.addEventListener('DOMContentLoaded', () => {
     demoBadge.style.display = 'none';
     triggerDemoAlertBtn.style.display = 'none';
 
-    // UI Status
     wsStatusText.textContent = 'Desconectado';
     wsStatusDot.className = 'dot';
     recIndicator.style.display = 'none';
-    placeholder.style.display = 'flex';
+    placeholderPtz.style.display = 'flex';
 
     if (demoCanvasInterval) clearInterval(demoCanvasInterval);
     if (demoAlertInterval) clearInterval(demoAlertInterval);
 
-    // Reconectar WebSocket real
     userDisconnected = false;
     connectWebSocket();
+    showToast('🔌 Modo Demo apagado. Intentando conectar al servidor backend.');
   }
 
   function startDemoCanvasAnimation() {
     if (demoCanvasInterval) clearInterval(demoCanvasInterval);
     
     let angle = 0;
-    videoCanvas.width = 640;
-    videoCanvas.height = 360;
+    videoCanvasPtz.width = 640;
+    videoCanvasPtz.height = 360;
 
     demoCanvasInterval = setInterval(() => {
-      ctx.fillStyle = '#0E121A'; // Fondo oscuro
-      ctx.fillRect(0, 0, videoCanvas.width, videoCanvas.height);
+      ctxPtz.fillStyle = '#0E121A'; 
+      ctxPtz.fillRect(0, 0, videoCanvasPtz.width, videoCanvasPtz.height);
 
-      // Dibujar cuadrícula de fondo
-      ctx.strokeStyle = 'rgba(0, 194, 209, 0.1)';
-      ctx.lineWidth = 1;
+      ctxPtz.save();
+      
+      // Aplicar desplazamiento PTZ y Escala de Zoom
+      ctxPtz.translate(videoCanvasPtz.width / 2, videoCanvasPtz.height / 2);
+      ctxPtz.scale(demoZoomScale, demoZoomScale);
+      ctxPtz.translate(-videoCanvasPtz.width / 2 + ptzOffsetX, -videoCanvasPtz.height / 2 + ptzOffsetY);
+
+      // Dibujar cuadrícula de radar
+      ctxPtz.strokeStyle = 'rgba(0, 194, 209, 0.12)';
+      ctxPtz.lineWidth = 1;
       const gridSize = 40;
-      for (let x = 0; x < videoCanvas.width; x += gridSize) {
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, videoCanvas.height);
-        ctx.stroke();
+      for (let x = -200; x < videoCanvasPtz.width + 200; x += gridSize) {
+        ctxPtz.beginPath();
+        ctxPtz.moveTo(x, -200);
+        ctxPtz.lineTo(x, videoCanvasPtz.height + 200);
+        ctxPtz.stroke();
       }
-      for (let y = 0; y < videoCanvas.height; y += gridSize) {
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(videoCanvas.width, y);
-        ctx.stroke();
+      for (let y = -200; y < videoCanvasPtz.height + 200; y += gridSize) {
+        ctxPtz.beginPath();
+        ctxPtz.moveTo(-200, y);
+        ctxPtz.lineTo(videoCanvasPtz.width + 200, y);
+        ctxPtz.stroke();
       }
 
-      // Dibujar línea de barrido de radar
-      ctx.strokeStyle = 'rgba(0, 194, 209, 0.4)';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      let scanX = (angle % videoCanvas.width);
-      ctx.moveTo(scanX, 0);
-      ctx.lineTo(scanX, videoCanvas.height);
-      ctx.stroke();
+      // Línea de barrido de radar
+      ctxPtz.strokeStyle = 'rgba(0, 194, 209, 0.35)';
+      ctxPtz.lineWidth = 2.5;
+      ctxPtz.beginPath();
+      let scanX = (angle % (videoCanvasPtz.width + 200)) - 100;
+      ctxPtz.moveTo(scanX, -100);
+      ctxPtz.lineTo(scanX, videoCanvasPtz.height + 100);
+      ctxPtz.stroke();
 
-      // Relleno degradado que sigue el escaneo
-      let gradient = ctx.createLinearGradient(scanX - 120, 0, scanX, 0);
+      // Degradado del barrido
+      let gradient = ctxPtz.createLinearGradient(scanX - 120, 0, scanX, 0);
       gradient.addColorStop(0, 'rgba(0, 194, 209, 0)');
       gradient.addColorStop(1, 'rgba(0, 194, 209, 0.15)');
-      ctx.fillStyle = gradient;
-      ctx.fillRect(scanX - 120, 0, 120, videoCanvas.height);
+      ctxPtz.fillStyle = gradient;
+      ctxPtz.fillRect(scanX - 120, -100, 120, videoCanvasPtz.height + 200);
 
-      // Dibujar cajas simuladas de detección
-      ctx.strokeStyle = 'var(--primary-color)';
-      ctx.lineWidth = 2;
-      ctx.strokeRect(150, 100, 120, 80);
-      ctx.fillStyle = 'var(--primary-color)';
-      ctx.font = '12px Outfit';
-      ctx.fillText('Vehículo [ID: 42] 94%', 150, 92);
+      // Dibujar auto simulado 1
+      ctxPtz.strokeStyle = 'var(--primary-color)';
+      ctxPtz.lineWidth = 2;
+      ctxPtz.strokeRect(120, 120, 130, 80);
+      ctxPtz.fillStyle = 'var(--primary-color)';
+      ctxPtz.font = '12px Outfit';
+      ctxPtz.fillText('Vehículo [ID: 72] 96%', 120, 112);
 
-      // Si hay alerta crítica demo activa (menos de 5 segundos)
+      // Si hay alerta activa demo
       if (Date.now() - lastDemoAlertTime < 5000) {
-        ctx.strokeStyle = 'var(--alert-color)';
-        ctx.lineWidth = 3;
-        ctx.strokeRect(340, 140, 160, 90);
-        ctx.fillStyle = 'var(--alert-color)';
-        ctx.font = '700 13px Outfit';
-        ctx.fillText('⚠️ PLACA REPORTADA: ' + lastDemoPlate, 340, 130);
+        ctxPtz.strokeStyle = 'var(--alert-color)';
+        ctxPtz.lineWidth = 3;
+        ctxPtz.strokeRect(320, 150, 160, 90);
+        ctxPtz.fillStyle = 'var(--alert-color)';
+        ctxPtz.font = '700 13px Outfit';
+        ctxPtz.fillText('⚠️ PLACA ROBADA: ' + lastDemoPlate, 320, 140);
       }
 
-      // Texto de Metadatos
-      ctx.fillStyle = '#F8F9FA';
-      ctx.font = '600 13px Outfit';
-      ctx.fillText('MONITOR ACTIVADO - SIMULACIÓN DE CÁMARA', 20, 30);
+      ctxPtz.restore();
+
+      // Texto de información fija
+      ctxPtz.fillStyle = '#F8F9FA';
+      ctxPtz.font = '600 12px Outfit';
+      ctxPtz.fillText('MONITOR LENTE MÓVIL (PTZ)', 20, 30);
       
-      angle += 5;
-    }, 1000 / 30); // 30 FPS
+      ctxPtz.fillStyle = 'rgba(255,255,255,0.5)';
+      ctxPtz.font = '500 11px Outfit';
+      ctxPtz.fillText(`PTZ Offset: X:${ptzOffsetX} Y:${ptzOffsetY} | Zoom: ${demoZoomScale.toFixed(1)}x`, 20, 48);
+
+      angle += 6;
+    }, 1000 / 30);
   }
 
   function startDemoAlertGenerator() {
     if (demoAlertInterval) clearInterval(demoAlertInterval);
-
-    demoAlertInterval = setInterval(() => {
-      triggerDemoAlert();
-    }, 15000);
+    demoAlertInterval = setInterval(triggerDemoAlert, 15000);
   }
 
   function triggerDemoAlert() {
@@ -630,7 +1033,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // --- ACTIONS & BINDINGS ---
-  // Switch toggle event
   demoModeToggle.addEventListener('change', (e) => {
     if (e.target.checked) {
       startDemoMode();
@@ -641,23 +1043,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   triggerDemoAlertBtn.addEventListener('click', triggerDemoAlert);
 
-  // Clear local logs
   clearHistoryBtn.addEventListener('click', () => {
-    if (confirm('¿Seguro que deseas vaciar el historial local?')) {
+    if (confirm('¿Deseas vaciar el historial de alertas local?')) {
       history = [];
       saveHistory();
       renderHistory();
+      showToast('🗑️ Historial vaciado.');
     }
   });
-
-  // Check URL query parameters to boot in Demo Mode
-  const urlParams = new URLSearchParams(window.location.search);
-  if (urlParams.get('demo') === 'true') {
-    demoModeToggle.checked = true;
-    startDemoMode();
-  } else {
-    // Initial standard loading
-    renderHistory();
-    setTimeout(connectWebSocket, 500);
-  }
 });

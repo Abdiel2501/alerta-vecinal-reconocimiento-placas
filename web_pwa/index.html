@@ -3,148 +3,289 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>🛡️ AlertaVecinal PWA</title>
+  <title>🛡️ AlertaVecinal Premium PWA</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#0E121A">
 </head>
 <body>
-  <header class="header">
-    <div class="brand-area">
-      <h1 class="brand-title">🛡️ AlertaVecinal</h1>
-      <span class="badge-demo" id="demoBadge">MODO DEMO</span>
-    </div>
-    
-    <nav class="nav-tabs">
-      <button class="tab-btn active" data-target="view-monitor">📺 Monitor</button>
-      <button class="tab-btn" data-target="view-history">📋 Historial</button>
-      <button class="tab-btn" data-target="view-settings">⚙️ Ajustes</button>
-    </nav>
 
-    <div class="status-indicator">
-      <span class="dot" id="wsStatusDot"></span>
-      <span id="wsStatusText">Desconectado</span>
+  <!-- 🌀 SPLASH SCREEN -->
+  <div id="splash-screen">
+    <div class="splash-logo">🛡️</div>
+    <div class="splash-title">AlertaVecinal</div>
+    <div class="splash-loader">
+      <div class="splash-bar"></div>
     </div>
-  </header>
+  </div>
 
-  <main class="main-content">
-    
-    <!-- 📺 MONITOR SECTION -->
-    <section id="view-monitor" class="view-section active">
-      <div class="monitor-grid">
-        <!-- Live Video Feed -->
-        <div class="card video-card">
-          <div class="video-container">
-            <span class="placeholder-text" id="videoPlaceholder">
-              <span class="spinner" id="videoSpinner"></span>
-              <span id="videoPlaceholderMsg">Esperando conexión de video...</span>
-            </span>
-            <canvas id="videoCanvas"></canvas>
-            <div class="video-info-overlay">
-              <span class="overlay-badge">
-                <span class="live-dot"></span> VIVO
-              </span>
-              <span class="overlay-badge" id="videoMetaBadge">
-                FPS: 0.0 | Clientes: 0
-              </span>
+  <!-- 🔐 AUTH / LOGIN SCREEN -->
+  <div id="login-screen" class="hidden">
+    <div class="auth-card">
+      <div class="auth-header">
+        <span style="font-size: 3rem;">🛡️</span>
+        <h2>AlertaVecinal</h2>
+        <p style="color: var(--text-secondary); font-size: 0.9rem;">Plataforma de Monitoreo Inteligente</p>
+      </div>
+
+      <div class="input-group">
+        <label for="loginEmail">Usuario / Correo:</label>
+        <input type="text" id="loginEmail" placeholder="correo@ejemplo.com" value="admin@alertavecinal.com">
+      </div>
+
+      <div class="input-group">
+        <label for="loginPassword">Contraseña:</label>
+        <input type="password" id="loginPassword" placeholder="••••••••" value="admin123">
+      </div>
+
+      <button id="normalLoginBtn" class="btn">Iniciar Sesión</button>
+
+      <div class="divider">o</div>
+
+      <button id="googleLoginBtn" class="btn-google">
+        <svg width="20" height="20" viewBox="0 0 24 24">
+          <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v3.92h6.69c-.29 1.5-.1.85-2.6 1.8l2.9 2.25c2.4-2.2 3.75-5.5 3.75-9.2C23.745 15.3 23.745 14.1 23.745 12.27z"/>
+          <path fill="#34A853" d="M12 24c3.24 0 5.97-1.08 7.96-2.91l-3.86-3c-1.08.72-2.45 1.16-4.1 1.16-3.14 0-5.8-2.11-6.75-4.96l-4 3.1c2 4 6.14 6.7 10.75 6.7z"/>
+          <path fill="#FBBC05" d="M5.25 14.29c-.25-.72-.39-1.5-.39-2.29s.14-1.57.39-2.29l-4-3.1C.46 8.24 0 10.07 0 12s.46 3.76 1.25 5.39l4-3.1z"/>
+          <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.96 1.19 15.24 0 12 0 7.39 0 3.25 2.7 1.25 6.7l4 3.1c.95-2.85 3.61-4.96 6.75-4.96z"/>
+        </svg>
+        <span>Iniciar Sesión con Google</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- 🖥️ MAIN APPLICATION SHELL -->
+  <div id="app-layout" class="hidden">
+    <header class="header">
+      <div class="brand-area">
+        <h1 class="brand-title">🛡️ AlertaVecinal</h1>
+        <span class="badge-demo" id="demoBadge">MODO DEMO</span>
+      </div>
+      
+      <nav class="nav-tabs">
+        <button class="tab-btn active" data-target="view-monitor">📺 Monitor</button>
+        <button class="tab-btn" data-target="view-history">📋 Historial</button>
+        <button class="tab-btn" data-target="view-settings">⚙️ Ajustes</button>
+      </nav>
+
+      <div class="status-indicator">
+        <span class="dot" id="wsStatusDot"></span>
+        <span id="wsStatusText">Desconectado</span>
+      </div>
+    </header>
+
+    <main class="main-content">
+      
+      <!-- 📺 MONITOR SECTION (DUAL LENS + CONTROLS) -->
+      <section id="view-monitor" class="view-section active">
+        <div class="monitor-grid">
+          
+          <!-- Dual Lens Panel -->
+          <div class="card dual-lens-card">
+            <div class="dual-lens-layout">
+              
+              <!-- 📷 Upper Camera: FIXED LENS (Wide Angle Panorama) -->
+              <div class="lens-view" id="lensFixedContainer">
+                <div class="lens-header">
+                  <span class="overlay-badge">Lente Gran Angular (Fijo)</span>
+                  <div class="lens-actions">
+                    <button class="lens-btn" id="toggleFixedBtn" title="Minimizar/Expandir">⤢</button>
+                  </div>
+                </div>
+                <canvas class="lens-canvas" id="videoCanvasFixed"></canvas>
+                <div class="placeholder-text" id="placeholderFixed">
+                  <span id="fixedMsg">Lente Fijo - Vista General</span>
+                </div>
+              </div>
+
+              <!-- 📷 Lower Camera: PTZ LENS (Movable zoom lens) -->
+              <div class="lens-view" id="lensPtzContainer">
+                <div class="lens-header">
+                  <span class="overlay-badge">
+                    <span class="live-dot" id="liveDot"></span> Lente Móvil (PTZ)
+                  </span>
+                  <div class="lens-actions">
+                    <button class="lens-btn" id="togglePtzBtn" title="Minimizar/Expandir">⤢</button>
+                  </div>
+                </div>
+                <canvas class="lens-canvas" id="videoCanvasPtz"></canvas>
+                <div class="placeholder-text" id="placeholderPtz">
+                  <span class="spinner" id="videoSpinner"></span>
+                  <span id="ptzMsg">Esperando transmisión del Lente PTZ...</span>
+                </div>
+
+                <!-- 🕹️ Virtual Joystick Overlay -->
+                <div class="ptz-overlay" id="ptzOverlay">
+                  <div class="ptz-pad">
+                    <button class="ptz-dir ptz-up" data-dir="up">▲</button>
+                    <button class="ptz-dir ptz-left" data-dir="left">◀</button>
+                    <button class="ptz-dir ptz-center" id="ptzCenterBtn">PTZ</button>
+                    <button class="ptz-dir ptz-right" data-dir="right">▶</button>
+                    <button class="ptz-dir ptz-down" data-dir="down">▼</button>
+                  </div>
+                </div>
+
+                <!-- 🔍 Zoom Buttons Overlay -->
+                <div class="ptz-zoom-overlay" id="zoomOverlay">
+                  <button class="zoom-btn" data-zoom="in" title="Zoom In">+</button>
+                  <button class="zoom-btn" data-zoom="out" title="Zoom Out">-</button>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- 🛠️ Quick Tools Bar -->
+            <div class="camera-tools-bar">
+              <button class="tool-btn" id="toolTalk" title="Mantener para Hablar">
+                <div class="tool-icon">🎤</div>
+                <span>Hablar</span>
+              </button>
+              <button class="tool-btn" id="toolListen" title="Activar/Silenciar Audio">
+                <div class="tool-icon">🔊</div>
+                <span>Escuchar</span>
+              </button>
+              <button class="tool-btn" id="toolCapture" title="Tomar Foto">
+                <div class="tool-icon">📷</div>
+                <span>Captura</span>
+              </button>
+              <button class="tool-btn danger active" id="toolAi" title="Activar/Desactivar IA de Placas">
+                <div class="tool-icon">🤖</div>
+                <span>IA Placas</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Camera Settings & Info Card -->
+          <div class="card">
+            <h2>Configuración de Cámara</h2>
+            
+            <div class="input-group">
+              <label>Seleccionar Cámara USB:</label>
+              <button id="listCamerasBtn" class="btn btn-secondary">🔍 Escanear Cámaras USB</button>
+            </div>
+
+            <div class="input-group">
+              <label for="rtspUrl">Cambiar dirección RTSP / Cámara WiFi:</label>
+              <div class="input-with-action">
+                <input type="text" id="rtspUrl" placeholder="rtsp://usuario:password@ip:554/stream1">
+                <button id="applyRtspBtn" class="btn">Aplicar</button>
+              </div>
+            </div>
+
+            <div class="input-group">
+              <label>Origen de Video Actual:</label>
+              <input type="text" id="activeCameraInfo" readonly value="Ninguna cámara activa" style="opacity: 0.8; font-size: 0.85rem;">
+            </div>
+
+            <div style="font-size: 0.85rem; color: var(--text-secondary); text-align: center;" id="videoMetaText">
+              FPS de Servidor: 0.0 | Clientes: 0
             </div>
           </div>
         </div>
+      </section>
 
-        <!-- Camera Controls -->
+      <!-- 📋 HISTORY SECTION -->
+      <section id="view-history" class="view-section">
         <div class="card">
-          <h2>Controles de Cámara</h2>
+          <div class="history-controls">
+            <h2>Historial de Alertas</h2>
+            <button id="clearHistoryBtn" class="btn btn-secondary btn-alert">🗑️ Vaciar Logs</button>
+          </div>
+          
+          <!-- Desktop Table View -->
+          <div class="history-table-wrapper">
+            <table class="history-table">
+              <thead>
+                <tr>
+                  <th>Placa</th>
+                  <th>Estado</th>
+                  <th>Modelo y Color</th>
+                  <th>Propietario</th>
+                  <th>Fecha y Hora</th>
+                </tr>
+              </thead>
+              <tbody id="historyTableBody">
+                <!-- Inyectado dinámicamente -->
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Mobile Cards View -->
+          <div class="mobile-history-list" id="mobileHistoryList">
+            <!-- Inyectado dinámicamente -->
+          </div>
+        </div>
+      </section>
+
+      <!-- ⚙️ SETTINGS SECTION -->
+      <section id="view-settings" class="view-section">
+        <div class="card">
+          <h2>Conexión Servidor Backend</h2>
           
           <div class="input-group">
-            <label>Cámara del Sistema:</label>
-            <button id="listCamerasBtn" class="btn btn-secondary">🔍 Escanear Cámaras USB</button>
+            <label for="serverIp">Dirección IP del Servidor:</label>
+            <input type="text" id="serverIp" value="127.0.0.1" placeholder="Ej: 192.168.1.72">
           </div>
 
           <div class="input-group">
-            <label for="rtspUrl">Configurar URL de Cámara (RTSP / HTTP / Video):</label>
-            <div class="input-with-action">
-              <input type="text" id="rtspUrl" placeholder="rtsp://usuario:password@ip:554/stream1">
-              <button id="applyRtspBtn" class="btn">Aplicar</button>
+            <label for="serverPort">Puerto WebSocket:</label>
+            <input type="number" id="serverPort" value="8765" placeholder="8765">
+          </div>
+
+          <button id="connectBtn" class="btn">Conectar</button>
+        </div>
+
+        <div class="card">
+          <h2>Configuración de Notificaciones (Telegram)</h2>
+          <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 8px;">
+            Introduce los datos de tu bot de Telegram para que el servidor le envíe alertas en tiempo real al detectar placas robadas.
+          </p>
+
+          <div class="input-group">
+            <label for="telegramToken">Token del Bot de Telegram:</label>
+            <input type="password" id="telegramToken" placeholder="123456789:ABCdefGhIJKlmNoPQRsT">
+          </div>
+
+          <div class="input-group">
+            <label for="telegramChatId">ID del Chat o Canal:</label>
+            <input type="text" id="telegramChatId" placeholder="-100123456789">
+          </div>
+
+          <button id="saveTelegramBtn" class="btn btn-secondary">💾 Guardar Configuración Telegram</button>
+        </div>
+
+        <div class="card">
+          <h2>Módulo de Demostración (Offline)</h2>
+          <div class="toggle-wrapper">
+            <div>
+              <h3 style="font-size: 1rem; font-weight: 700;">Modo Demo</h3>
+              <p style="font-size: 0.85rem; color: var(--text-secondary);">Simular flujo completo con radar y alertas ficticias</p>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="demoModeToggle">
+              <span class="slider"></span>
+            </label>
+          </div>
+          <button id="triggerDemoAlertBtn" class="btn btn-secondary" style="display: none;">🚨 Simular Alerta Crítica</button>
+        </div>
+
+        <!-- Google User profile mock -->
+        <div class="card" id="googleProfileCard" style="display: none;">
+          <h2>Perfil de Usuario (Google)</h2>
+          <div style="display:flex; align-items:center; gap:16px;">
+            <div style="width: 48px; height: 48px; border-radius: 50%; background-color: var(--primary-color); display:flex; align-items:center; justify-content:center; font-size:1.5rem; color:#fff;" id="userInitial">G</div>
+            <div>
+              <h3 id="profileName" style="font-size:1rem; font-weight:700;">Usuario Google</h3>
+              <p id="profileEmail" style="font-size:0.85rem; color:var(--text-secondary);">usuario@gmail.com</p>
             </div>
           </div>
-
-          <div class="input-group">
-            <label>Información de Fuente:</label>
-            <input type="text" id="activeCameraInfo" readonly value="Ninguna cámara activa" style="opacity: 0.8; font-size: 0.85rem;">
-          </div>
+          <button id="logoutBtn" class="btn btn-secondary btn-alert" style="margin-top: 12px;">Cerrar Sesión</button>
         </div>
-      </div>
-    </section>
+      </section>
+    </main>
+  </div>
 
-    <!-- 📋 HISTORY SECTION -->
-    <section id="view-history" class="view-section">
-      <div class="card">
-        <div class="history-controls">
-          <h2>Historial de Detecciones</h2>
-          <button id="clearHistoryBtn" class="btn btn-secondary btn-alert">🗑️ Borrar Todo</button>
-        </div>
-        
-        <!-- Desktop Table View -->
-        <div class="history-table-wrapper">
-          <table class="history-table">
-            <thead>
-              <tr>
-                <th>Placa</th>
-                <th>Estado</th>
-                <th>Modelo y Color</th>
-                <th>Propietario</th>
-                <th>Fecha y Hora</th>
-              </tr>
-            </thead>
-            <tbody id="historyTableBody">
-              <!-- Carga dinámica -->
-            </tbody>
-          </table>
-        </div>
-
-        <!-- Mobile Cards View -->
-        <div class="mobile-history-list" id="mobileHistoryList">
-          <!-- Carga dinámica -->
-        </div>
-      </div>
-    </section>
-
-    <!-- ⚙️ SETTINGS SECTION -->
-    <section id="view-settings" class="view-section">
-      <div class="card">
-        <h2>Conexión al Servidor IA</h2>
-        
-        <div class="input-group">
-          <label for="serverIp">Dirección IP del Servidor:</label>
-          <input type="text" id="serverIp" value="127.0.0.1" placeholder="Ej: 192.168.1.72">
-        </div>
-
-        <div class="input-group">
-          <label for="serverPort">Puerto del Servidor:</label>
-          <input type="number" id="serverPort" value="8765" placeholder="8765">
-        </div>
-
-        <button id="connectBtn" class="btn">Conectar</button>
-      </div>
-
-      <div class="card">
-        <h2>Pruebas y Demostración</h2>
-        <div class="toggle-wrapper">
-          <div>
-            <h3 style="font-size: 1rem; font-weight: 700;">Modo Demo</h3>
-            <p style="font-size: 0.85rem; color: var(--text-secondary);">Simular alertas y video sin servidor local</p>
-          </div>
-          <label class="switch">
-            <input type="checkbox" id="demoModeToggle">
-            <span class="slider"></span>
-          </label>
-        </div>
-        <button id="triggerDemoAlertBtn" class="btn btn-secondary" style="display: none;">🚨 Forzar Alerta Demo Ahora</button>
-      </div>
-    </section>
-  </main>
-
-  <!-- 🚨 CRITICAL ALERT FULL-SCREEN MODAL -->
+  <!-- 🚨 CRITICAL ALERT MODAL -->
   <div class="modal-overlay" id="criticalAlertModal">
     <div class="critical-modal">
       <div class="alert-icon">🚨</div>
@@ -176,17 +317,20 @@
     </div>
   </div>
 
-  <!-- 📹 SYSTEM CAMERAS MODAL -->
+  <!-- 📹 SYSTEM CAMERAS SELECT MODAL -->
   <div class="modal-overlay" id="cameraSelectModal">
     <div class="camera-select-modal">
-      <h2 style="font-size: 1.2rem; margin-bottom: 8px;">Seleccionar Cámara USB</h2>
+      <h2 style="font-size: 1.2rem; margin-bottom: 8px;">Seleccionar Lente Móvil (PTZ)</h2>
       <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 12px;">Elige uno de los dispositivos detectados en el servidor:</p>
       <div id="cameraListContainer" style="display:flex; flex-direction:column; gap:8px;">
-        <!-- Botones de opciones se inyectan dinámicamente -->
+        <!-- Botones de opciones inyectados -->
       </div>
       <button class="btn btn-secondary" id="closeCameraModalBtn" style="margin-top:8px;">Cerrar</button>
     </div>
   </div>
+
+  <!-- 💬 FLOATING TOAST NOTIFICATION -->
+  <div id="toast-notification">Notificación</div>
 
   <script src="app.js"></script>
 </body>
