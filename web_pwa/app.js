@@ -1280,19 +1280,34 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let wsUrl = '';
     
-    // Enforce WSS (WebSocket Secure) for protection against sniffing
+    // Autodetectar protocolo seguro si la página corre bajo HTTPS
+    const isHttpsPage = window.location.protocol === 'https:';
+
     if (ip.startsWith('ws://') || ip.startsWith('wss://')) {
-      wsUrl = ip.replace(/^ws:\/\//, 'wss://');
+      wsUrl = ip;
+      // Forzar wss sólo si la página web corre sobre HTTPS (exigido por seguridad del navegador)
+      if (isHttpsPage && wsUrl.startsWith('ws://')) {
+        wsUrl = wsUrl.replace(/^ws:\/\//, 'wss://');
+      }
       if (!wsUrl.endsWith('/ws')) {
         wsUrl = wsUrl.replace(/\/?$/, '/ws');
       }
     } else if (ip.startsWith('http://') || ip.startsWith('https://')) {
-      wsUrl = ip.replace(/^http/, 'wss');
+      wsUrl = ip.replace(/^http/, 'ws');
+      if (isHttpsPage && wsUrl.startsWith('ws://')) {
+        wsUrl = wsUrl.replace(/^ws:\/\//, 'wss://');
+      }
       if (!wsUrl.endsWith('/ws')) {
         wsUrl = wsUrl.replace(/\/?$/, '/ws');
       }
     } else {
-      const protocol = 'wss';
+      // Es una IP o un dominio sin protocolo
+      let protocol = 'ws';
+      const isLocal = ip === 'localhost' || ip === '127.0.0.1' || ip.startsWith('192.168.') || ip.startsWith('10.') || ip.startsWith('172.');
+      if (isHttpsPage || !isLocal) {
+        protocol = 'wss';
+      }
+      
       const isDomain = ip.includes('.') && !/^[0-9.]+$/.test(ip) && ip !== 'localhost';
       
       if (isDomain && (port === '80' || port === '443' || port === '')) {
