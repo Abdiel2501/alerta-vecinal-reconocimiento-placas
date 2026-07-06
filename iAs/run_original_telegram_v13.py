@@ -116,13 +116,7 @@ FUENTE_PESO = {
 # Credenciales
 # ─────────────────────────────────────────────────────────────────────
 
-def _get_appdata_dir():
-    appdata = os.getenv('APPDATA') or os.path.expanduser('~')
-    d = os.path.join(appdata, 'AlertaVecinal', 'System')
-    os.makedirs(d, exist_ok=True)
-    return d
-
-DB_PATH = os.path.join(_get_appdata_dir(), "secure_placas.db")
+DB_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "databases", "secure_placas.db"))
 TELEGRAM_TOKEN = ""
 TELEGRAM_CHAT_ID = ""
 GEMINI_API_KEY = ""
@@ -220,32 +214,48 @@ class DatabasePlacas:
 # ─────────────────────────────────────────────────────────────────────
 
 def enviar_alerta_telegram(mensaje, ruta_imagen=None):
-    """Envía la alerta real a Telegram. Si hay imagen, la manda como foto con
+    """Envía la alerta real a Telegram a todos los usuarios activos de la base de datos
+    más el chat_id por defecto de config.env. Si hay imagen, la manda como foto con
     caption; si no, manda solo texto. Nunca lanza excepción hacia afuera."""
-    if not TELEGRAM_TOKEN or not TELEGRAM_CHAT_ID:
-        print("⚠️ [Telegram] Token o chat_id no configurados — alerta NO enviada.")
+    if not TELEGRAM_TOKEN:
+        print("⚠️ [Telegram] Token no configurado — alerta NO enviada.")
         return False
-    try:
-        if ruta_imagen and os.path.exists(ruta_imagen):
-            url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendPhoto"
-            with open(ruta_imagen, 'rb') as foto:
-                r = requests.post(
-                    url,
-                    data={"chat_id": TELEGRAM_CHAT_ID, "caption": mensaje},
-                    files={"photo": foto},
-                    timeout=15
-                )
-        else:
-            url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
-            r = requests.post(url, data={"chat_id": TELEGRAM_CHAT_ID, "text": mensaje}, timeout=15)
-        if r.status_code != 200:
-            print(f"🚨 [Telegram] Error HTTP {r.status_code}: {r.text[:200]}")
-            return False
-        print("✅ [Telegram] Alerta enviada.")
-        return True
-    except Exception as e:
-        print(f"🚨 [Telegram] Excepción enviando alerta: {e}")
+
+    db = DatabasePlacas()
+    chat_ids = db.obtener_chat_ids_activos()
+    if TELEGRAM_CHAT_ID and TELEGRAM_CHAT_ID not in chat_ids:
+        chat_ids.append(TELEGRAM_CHAT_ID)
+
+    if not chat_ids:
+        print("⚠️ [Telegram] No hay destinatarios (Chat IDs) configurados — de la base de datos ni config.env.")
         return False
+
+    exito_al_menos_uno = False
+    for chat_id in chat_ids:
+        if not chat_id:
+            continue
+        try:
+            if ruta_imagen and os.path.exists(ruta_imagen):
+                url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendPhoto"
+                with open(ruta_imagen, 'rb') as foto:
+                    r = requests.post(
+                        url,
+                        data={"chat_id": chat_id, "caption": mensaje},
+                        files={"photo": foto},
+                        timeout=15
+                    )
+            else:
+                url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
+                r = requests.post(url, data={"chat_id": chat_id, "text": mensaje}, timeout=15)
+            if r.status_code != 200:
+                print(f"🚨 [Telegram] Error HTTP {r.status_code} al enviar a {chat_id}: {r.text[:200]}")
+            else:
+                print(f"✅ [Telegram] Alerta enviada a {chat_id}.")
+                exito_al_menos_uno = True
+        except Exception as e:
+            print(f"🚨 [Telegram] Excepción enviando alerta a {chat_id}: {e}")
+
+    return exito_al_menos_uno
 
 def enviar_alerta_telegram_async(mensaje, ruta_imagen=None):
     """Versión en hilo aparte para no congelar el loop principal de video."""

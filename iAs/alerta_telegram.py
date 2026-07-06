@@ -14,12 +14,14 @@ import requests
 import threading
 from datetime import datetime
 from pathlib import Path
-from database import DatabasePlacas
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+from databases.database import DatabasePlacas
 
 # Intentar cargar python-dotenv para leer las variables de entorno
 try:
     from dotenv import load_dotenv
-    load_dotenv("config.env")
+    load_dotenv(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "config.env")))
 except ImportError:
     pass
 

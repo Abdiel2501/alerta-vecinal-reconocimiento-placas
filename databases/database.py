@@ -8,15 +8,7 @@ import os
 import sys
 from datetime import datetime
 
-def _get_appdata_dir():
-    appdata = os.getenv('APPDATA')
-    if not appdata:
-        appdata = os.path.expanduser('~')
-    app_dir = os.path.join(appdata, 'AlertaVecinal', 'System')
-    os.makedirs(app_dir, exist_ok=True)
-    return app_dir
-
-DB_PATH = os.path.join(_get_appdata_dir(), "secure_placas.db")
+DB_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "secure_placas.db"))
 
 
 def obtener_conexion():

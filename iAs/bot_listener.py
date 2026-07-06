@@ -6,10 +6,12 @@ Escucha el comando /start usando Long Polling.
 import os
 import time
 import requests
+import sys
 from dotenv import load_dotenv
-from database import DatabasePlacas
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+from databases.database import DatabasePlacas
 
-load_dotenv("config.env")
+load_dotenv(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "config.env")))
 
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN", "")
 

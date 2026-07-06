@@ -12,3 +12,8 @@ __pycache__/
 build/
 dist/
 *.spec
+
+# Videos/Media output
+*.mp4
+*.avi
+*.gif

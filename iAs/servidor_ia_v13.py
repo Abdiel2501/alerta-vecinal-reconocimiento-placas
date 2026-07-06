@@ -41,7 +41,10 @@ from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 
-from database import DatabasePlacas, obtener_conexion
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+from databases.database import DatabasePlacas, obtener_conexion
 
 warnings.filterwarnings("ignore")
 sys.stdout.reconfigure(line_buffering=True)
