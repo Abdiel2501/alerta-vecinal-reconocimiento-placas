@@ -53,9 +53,16 @@ def inicializar_db():
             similitud       REAL,
             ruta_foto_vehiculo TEXT,
             ruta_foto_placa    TEXT,
-            fecha_alerta    TEXT DEFAULT CURRENT_TIMESTAMP
+            fecha_alerta    TEXT DEFAULT CURRENT_TIMESTAMP,
+            usuario_id      INTEGER DEFAULT 0
         )
     """)
+
+    # Intentar agregar la columna usuario_id si la tabla historial_alertas ya existía sin ella
+    try:
+        cursor.execute("ALTER TABLE historial_alertas ADD COLUMN usuario_id INTEGER DEFAULT 0")
+    except sqlite3.OperationalError:
+        pass
 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS usuarios (
@@ -64,6 +71,20 @@ def inicializar_db():
             telegram_chat_id TEXT NOT NULL UNIQUE,
             activo           INTEGER DEFAULT 1,
             fecha_registro   TEXT DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS cuentas_usuario (
+            id               INTEGER PRIMARY KEY AUTOINCREMENT,
+            email            TEXT NOT NULL UNIQUE,
+            password_hash    TEXT NOT NULL,
+            token            TEXT,
+            rtsp_url         TEXT,
+            telegram_chat_id TEXT,
+            telegram_token   TEXT,
+            gemini_api_key   TEXT,
+            created_at       TEXT DEFAULT CURRENT_TIMESTAMP
         )
     """)
 
@@ -129,20 +150,17 @@ class DatabasePlacas:
                 mejor_similitud = similitud
                 mejor_coincidencia = fila
 
-        if mejor_similitud >= umbral_similitud and mejor_coincidencia:
-            return True, {**dict(mejor_coincidencia), "similitud": round(mejor_similitud * 100, 1)}
-
         return False, None
 
     def registrar_alerta(self, placa_bd: str, placa_detectada: str, similitud: float,
-                         ruta_vehiculo: str = None, ruta_placa: str = None):
+                         ruta_vehiculo: str = None, ruta_placa: str = None, usuario_id: int = 0):
         """Registra una alerta detectada en el historial."""
         conn = obtener_conexion()
         cursor = conn.cursor()
         cursor.execute("""
-            INSERT INTO historial_alertas (placa, placa_detectada, similitud, ruta_foto_vehiculo, ruta_foto_placa)
-            VALUES (?, ?, ?, ?, ?)
-        """, (placa_bd, placa_detectada, similitud, ruta_vehiculo, ruta_placa))
+            INSERT INTO historial_alertas (placa, placa_detectada, similitud, ruta_foto_vehiculo, ruta_foto_placa, usuario_id)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, (placa_bd, placa_detectada, similitud, ruta_vehiculo, ruta_placa, usuario_id))
         conn.commit()
         conn.close()
 
@@ -197,13 +215,18 @@ class DatabasePlacas:
         conn.close()
         return [dict(f) for f in filas]
 
-    def listar_historial(self, limite: int = 20):
-        """Retorna el historial de alertas más recientes."""
+    def listar_historial(self, limite: int = 20, usuario_id: int = 0):
+        """Retorna el historial de alertas más recientes de un usuario (o todas si usuario_id es 0)."""
         conn = obtener_conexion()
         cursor = conn.cursor()
-        cursor.execute(
-            "SELECT * FROM historial_alertas ORDER BY fecha_alerta DESC LIMIT ?", (limite,)
-        )
+        if usuario_id > 0:
+            cursor.execute(
+                "SELECT * FROM historial_alertas WHERE usuario_id = ? ORDER BY fecha_alerta DESC LIMIT ?", (usuario_id, limite)
+            )
+        else:
+            cursor.execute(
+                "SELECT * FROM historial_alertas ORDER BY fecha_alerta DESC LIMIT ?", (limite,)
+            )
         filas = cursor.fetchall()
         conn.close()
         return [dict(f) for f in filas]
@@ -269,3 +292,68 @@ class DatabasePlacas:
             return []
         finally:
             conn.close()
+
+    # --- Gestión de Cuentas de Usuario SaaS ---
+
+    def crear_cuenta(self, email: str, password_hash: str) -> bool:
+        """Crea una nueva cuenta de usuario en el sistema."""
+        conn = obtener_conexion()
+        cursor = conn.cursor()
+        try:
+            cursor.execute("""
+                INSERT INTO cuentas_usuario (email, password_hash)
+                VALUES (?, ?)
+            """, (email.lower().strip(), password_hash))
+            conn.commit()
+            return True
+        except sqlite3.IntegrityError:
+            return False
+        finally:
+            conn.close()
+
+    def obtener_cuenta_por_email(self, email: str):
+        """Retorna los datos de una cuenta por su email."""
+        conn = obtener_conexion()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM cuentas_usuario WHERE email = ?", (email.lower().strip(),))
+        fila = cursor.fetchone()
+        conn.close()
+        return dict(fila) if fila else None
+
+    def obtener_cuenta_por_token(self, token: str):
+        """Retorna los datos de una cuenta buscando por su token activo."""
+        conn = obtener_conexion()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM cuentas_usuario WHERE token = ?", (token,))
+        fila = cursor.fetchone()
+        conn.close()
+        return dict(fila) if fila else None
+
+    def actualizar_token_cuenta(self, usuario_id: int, token: str):
+        """Actualiza el token JWT/sesión de un usuario."""
+        conn = obtener_conexion()
+        cursor = conn.cursor()
+        cursor.execute("UPDATE cuentas_usuario SET token = ? WHERE id = ?", (token, usuario_id))
+        conn.commit()
+        conn.close()
+
+    def actualizar_config_cuenta(self, usuario_id: int, rtsp_url: str, telegram_chat_id: str, telegram_token: str, gemini_api_key: str):
+        """Actualiza la configuración de cámara e integraciones de una cuenta."""
+        conn = obtener_conexion()
+        cursor = conn.cursor()
+        cursor.execute("""
+            UPDATE cuentas_usuario
+            SET rtsp_url = ?, telegram_chat_id = ?, telegram_token = ?, gemini_api_key = ?
+            WHERE id = ?
+        """, (rtsp_url, telegram_chat_id, telegram_token, gemini_api_key, usuario_id))
+        conn.commit()
+        conn.close()
+
+    def obtener_todas_las_cuentas_con_camara(self):
+        """Retorna todas las cuentas de usuario que tienen una cámara configurada."""
+        conn = obtener_conexion()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM cuentas_usuario WHERE rtsp_url IS NOT NULL AND rtsp_url != ''")
+        filas = cursor.fetchall()
+        conn.close()
+        return [dict(f) for f in filas]
