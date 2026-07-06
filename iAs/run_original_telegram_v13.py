@@ -885,6 +885,8 @@ class DeteccionOCRWorker:
 # ─────────────────────────────────────────────────────────────────────
 
 def main():
+    import os
+    os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "rtsp_transport;tcp"
     import argparse
     parser = argparse.ArgumentParser(description="AlertaVecinal V13 — Local GUI Preview")
     parser.add_argument('--video', type=str, default='rtsp://eaum:wr4a3u@192.168.137.131:554/stream1', help='Ruta de video, stream RTSP o índice de webcam (por defecto: cámara Ethernet)')
