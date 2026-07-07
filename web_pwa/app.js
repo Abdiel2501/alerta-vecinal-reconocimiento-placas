@@ -87,6 +87,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const telegramTokenInput = document.getElementById('telegramToken');
   const telegramChatIdInput = document.getElementById('telegramChatId');
   const saveTelegramBtn = document.getElementById('saveTelegramBtn');
+  const showPasswordCheckbox = document.getElementById('showPasswordCheckbox');
+  const lensSelector = document.getElementById('lensSelector');
   
   const demoModeToggle = document.getElementById('demoModeToggle');
   const triggerDemoAlertBtn = document.getElementById('triggerDemoAlertBtn');
@@ -133,8 +135,8 @@ document.addEventListener('DOMContentLoaded', () => {
   let history = [];
   serverIpInput.value = localStorage.getItem('server_ip') || '127.0.0.1';
   serverPortInput.value = localStorage.getItem('server_port') || '8765';
-  telegramTokenInput.value = localStorage.getItem('telegram_token') || '';
-  telegramChatIdInput.value = localStorage.getItem('telegram_chat_id') || '';
+  if (telegramTokenInput) telegramTokenInput.value = localStorage.getItem('telegram_token') || '';
+  if (telegramChatIdInput) telegramChatIdInput.value = localStorage.getItem('telegram_chat_id') || '';
 
   // --- 💬 FLOATING TOAST NOTIFICATION ---
   function showToast(message) {
@@ -804,15 +806,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const isExpanded = lensPtzContainer.classList.contains('collapsed');
     
     if (isExpanded) {
-      // Contraer
+      // Mostrar ambas lentes
       lensPtzContainer.classList.remove('collapsed');
       toggleFixedBtn.textContent = '⤢';
       ptzOverlay.style.display = 'flex';
       zoomOverlay.style.display = 'flex';
+      if (lensSelector) lensSelector.value = '2';
     } else {
-      // Expandir
+      // Colapsar PTZ (solo queda Fijo)
       lensPtzContainer.classList.add('collapsed');
       toggleFixedBtn.textContent = '⤡';
+      if (lensSelector) lensSelector.value = 'fixed';
     }
   });
 
@@ -820,15 +824,45 @@ document.addEventListener('DOMContentLoaded', () => {
     const isExpanded = lensFixedContainer.classList.contains('collapsed');
     
     if (isExpanded) {
-      // Contraer
+      // Mostrar ambas lentes
       lensFixedContainer.classList.remove('collapsed');
       togglePtzBtn.textContent = '⤢';
+      if (lensSelector) lensSelector.value = '2';
     } else {
-      // Expandir
+      // Colapsar Fijo (solo queda PTZ)
       lensFixedContainer.classList.add('collapsed');
       togglePtzBtn.textContent = '⤡';
+      if (lensSelector) lensSelector.value = 'ptz';
     }
   });
+
+  // --- 🔒 MOSTRAR/OCULTAR CONTRASEÑA ---
+  if (showPasswordCheckbox) {
+    showPasswordCheckbox.addEventListener('change', function() {
+      loginPassword.type = this.checked ? 'text' : 'password';
+    });
+  }
+
+  // --- 📹 SELECTOR DE DISEÑO DE LENTES ---
+  if (lensSelector) {
+    lensSelector.addEventListener('change', function() {
+      const mode = this.value;
+      if (mode === '2') {
+        lensFixedContainer.classList.remove('collapsed');
+        lensPtzContainer.classList.remove('collapsed');
+        toggleFixedBtn.textContent = '⤢';
+        togglePtzBtn.textContent = '⤢';
+      } else if (mode === 'fixed') {
+        lensFixedContainer.classList.remove('collapsed');
+        lensPtzContainer.classList.add('collapsed');
+        toggleFixedBtn.textContent = '⤡';
+      } else if (mode === 'ptz') {
+        lensFixedContainer.classList.add('collapsed');
+        lensPtzContainer.classList.remove('collapsed');
+        togglePtzBtn.textContent = '⤡';
+      }
+    });
+  }
 
   // --- 🕹️ PTZ JOYSTICK & ZOOM OVERLAYS ---
   ptzDirs.forEach(dirBtn => {
@@ -910,24 +944,26 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // --- 💾 TELEGRAM CONFIG SAVING ---
-  saveTelegramBtn.addEventListener('click', () => {
-    const token = telegramTokenInput.value.trim();
-    const chatId = telegramChatIdInput.value.trim();
+  if (saveTelegramBtn) {
+    saveTelegramBtn.addEventListener('click', () => {
+      const token = telegramTokenInput.value.trim();
+      const chatId = telegramChatIdInput.value.trim();
 
-    localStorage.setItem('telegram_token', token);
-    localStorage.setItem('telegram_chat_id', chatId);
+      localStorage.setItem('telegram_token', token);
+      localStorage.setItem('telegram_chat_id', chatId);
 
-    showToast('💾 Configuración de Telegram guardada localmente.');
-    
-    // Enviar configuración al servidor si está conectado
-    if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({
-        "cmd": "save_telegram_config",
-        "token": token,
-        "chat_id": chatId
-      }));
-    }
-  });
+      showToast('💾 Configuración de Telegram guardada localmente.');
+      
+      // Enviar configuración al servidor si está conectado
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({
+          "cmd": "save_telegram_config",
+          "token": token,
+          "chat_id": chatId
+        }));
+      }
+    });
+  }
 
   // --- HISTORY MANAGEMENT ---
   function loadHistoryEncrypted() {
@@ -1342,8 +1378,8 @@ document.addEventListener('DOMContentLoaded', () => {
       // Sincronizar datos iniciales
       ws.send(JSON.stringify({ "cmd": "get_history", "limite_historial": 15 }));
       
-      const token = telegramTokenInput.value.trim();
-      const chatId = telegramChatIdInput.value.trim();
+      const token = telegramTokenInput ? telegramTokenInput.value.trim() : '';
+      const chatId = telegramChatIdInput ? telegramChatIdInput.value.trim() : '';
       if (token && chatId) {
         ws.send(JSON.stringify({
           "cmd": "save_telegram_config",

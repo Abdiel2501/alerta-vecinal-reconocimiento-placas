@@ -36,12 +36,17 @@
       <div id="authLoginForm">
         <div class="input-group">
           <label for="loginEmail">Usuario / Correo:</label>
-          <input type="text" id="loginEmail" placeholder="correo@ejemplo.com" value="admin@alertavecinal.com">
+          <input type="text" id="loginEmail" placeholder="correo@ejemplo.com">
         </div>
 
         <div class="input-group">
           <label for="loginPassword">Contraseña:</label>
-          <input type="password" id="loginPassword" placeholder="••••••••" value="admin123">
+          <input type="password" id="loginPassword" placeholder="••••••••">
+        </div>
+
+        <div class="show-password-container" style="display: flex; align-items: center; gap: 8px; margin-top: -8px; margin-bottom: 16px;">
+          <input type="checkbox" id="showPasswordCheckbox" style="cursor: pointer; width: 16px; height: 16px;">
+          <label for="showPasswordCheckbox" style="cursor: pointer; font-size: 0.85rem; user-select: none; color: #a0aec0;">Mostrar contraseña</label>
         </div>
 
         <div id="loginLockoutError" style="display: none; color: var(--alert-color); font-size: 0.85rem; font-weight: 700; text-align: center; background: rgba(255, 107, 107, 0.1); padding: 8px; border-radius: 8px; border: 1px solid rgba(255, 107, 107, 0.2);">
@@ -134,6 +139,18 @@
           
           <!-- Dual Lens Panel -->
           <div class="card dual-lens-card">
+            <!-- Selector de cantidad de lentes -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 8px;">
+              <span style="font-weight: 700; font-size: 1rem; color: var(--text-primary);">Visualización de Lentes</span>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <label for="lensSelector" style="font-size: 0.85rem; color: var(--text-secondary);">Diseño:</label>
+                <select id="lensSelector" style="background: rgba(255,255,255,0.05); color: var(--text-primary); border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; padding: 4px 8px; font-size: 0.85rem; cursor: pointer; outline: none;">
+                  <option value="2">2 Lentes (Doble)</option>
+                  <option value="fixed">1 Lente (Solo Fijo)</option>
+                  <option value="ptz">1 Lente (Solo PTZ)</option>
+                </select>
+              </div>
+            </div>
             <div class="dual-lens-layout">
               
               <!-- 📷 Upper Camera: FIXED LENS (Wide Angle Panorama) -->
@@ -300,24 +317,7 @@
           <button id="connectBtn" class="btn">Conectar</button>
         </div>
 
-        <div class="card">
-          <h2>Configuración de Notificaciones (Telegram)</h2>
-          <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 8px;">
-            Introduce los datos de tu bot de Telegram para que el servidor le envíe alertas en tiempo real al detectar placas robadas.
-          </p>
 
-          <div class="input-group">
-            <label for="telegramToken">Token del Bot de Telegram:</label>
-            <input type="password" id="telegramToken" placeholder="123456789:ABCdefGhIJKlmNoPQRsT">
-          </div>
-
-          <div class="input-group">
-            <label for="telegramChatId">ID del Chat o Canal:</label>
-            <input type="text" id="telegramChatId" placeholder="-100123456789">
-          </div>
-
-          <button id="saveTelegramBtn" class="btn btn-secondary">💾 Guardar Configuración Telegram</button>
-        </div>
 
         <div class="card">
           <h2>Módulo de Demostración (Offline)</h2>
