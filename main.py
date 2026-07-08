@@ -16,7 +16,10 @@ import sys
 sys.stdout.reconfigure(line_buffering=True)
 
 # Forzar flush en prints para que Flutter lea los logs al instante
-sys.stdout.reconfigure(line_buffering=True)
+import sys
+import os
+sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'databases'))
+sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'iAs'))
 
 from database import DatabasePlacas
 from alerta_telegram import enviar_alerta_telegram, guardar_capturas
@@ -143,7 +146,7 @@ def abrir_captura(fuente_str: str) -> cv2.VideoCapture:
             sys.exit(1)
 
     elif fuente_str.lower().startswith("rtsp://"):
-        os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "rtsp_transport;udp"
+        os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "rtsp_transport;tcp"
         cap = cv2.VideoCapture(fuente_str, cv2.CAP_FFMPEG)
         print(f"📡 Cámara RTSP: {fuente_str}")
         if not cap.isOpened():
@@ -451,8 +454,22 @@ while True:
     if retraso_restante > 0:
         time.sleep(retraso_restante)
 
+    # ── Mostrar ventana visualmente ───────────────────────────────────────────────
+    # Redimensionar un poco si la imagen es muy grande (1080p -> 720p)
+    h_fot, w_fot = fotograma.shape[:2]
+    if h_fot > 720:
+        escala_visual = 720 / h_fot
+        fot_mostrar = cv2.resize(fotograma, (int(w_fot * escala_visual), 720))
+    else:
+        fot_mostrar = fotograma
+        
+    cv2.imshow("Sistema de Vigilancia Inteligente", fot_mostrar)
+    key = cv2.waitKey(1) & 0xFF
+    if key == ord('q'):
+        break
+
 # ─── Limpieza ─────────────────────────────────────────────────────────────────
 cap.release()
-cv2.destroyAllWindosocket_cliente()
+cv2.destroyAllWindows()
 print(f"\n✅ Monitoreo finalizado. "
       f"Vehículos: {len(cache_placas)} | Alertas: {len(vehiculos_alertados)}")
