@@ -450,20 +450,20 @@ document.addEventListener('DOMContentLoaded', () => {
       const hasLength = val.length >= 8;
       const hasUppercase = /[A-Z]/.test(val);
       const hasNumber = /[0-9]/.test(val);
-      const hasDot = /\./.test(val);
+      const hasSpecial = /[^A-Za-z0-9]/.test(val);
 
       // Actualizar checklist
       updateReqIndicator(reqLength, hasLength, 'Mínimo 8 caracteres');
       updateReqIndicator(reqUppercase, hasUppercase, 'Al menos 1 mayúscula');
       updateReqIndicator(reqNumber, hasNumber, 'Al menos 1 número');
-      updateReqIndicator(reqDot, hasDot, 'Al menos 1 punto (.)');
+      updateReqIndicator(reqDot, hasSpecial, 'Al menos 1 símbolo (ej. !@#.)');
 
       // Calcular fuerza (segmentos)
       let score = 0;
       if (hasLength) score++;
       if (hasUppercase) score++;
       if (hasNumber) score++;
-      if (hasDot) score++;
+      if (hasSpecial) score++;
 
       // Resetear colores
       strengthSegment1.style.backgroundColor = 'transparent';
