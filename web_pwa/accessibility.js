@@ -14,12 +14,12 @@
 
   /* ── SVG Icons ────────────────────────────────────────────────── */
   const ICONS = {
-    // ISA wheelchair classic
-    isa: `<svg viewBox="0 0 64 64" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="38" cy="9" r="7"/>
-      <path d="M36 18c-4 0-7 3-7 7v16h-9a3 3 0 000 6h11a3 3 0 003-3V30h8l5 10a3 3 0 005-3l-6-12a3 3 0 00-2.7-1.7H36V18z"/>
-      <circle cx="21" cy="49" r="10" fill="none" stroke="currentColor" stroke-width="5"/>
-      <circle cx="43" cy="50" r="5"/>
+    // Vitruvian Man accessibility icon
+    isa: `<svg viewBox="0 0 100 100" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="50" cy="50" r="46" fill="none" stroke="currentColor" stroke-width="8"/>
+      <circle cx="50" cy="27" r="7"/>
+      <path d="M50 36c-5.5 0-20.3 3.4-23.7 5.1-1.3.7-1.8 2.3-1.1 3.6.7 1.3 2.3 1.8 3.6 1.1 2.3-1.1 14.2-3.8 21.2-3.8s18.9 2.7 21.2 3.8c1.3.7 2.9.2 3.6-1.1.7-1.3.2-2.9-1.1-3.6C70.3 39.4 55.5 36 50 36z"/>
+      <path d="M46 45v19l-9 16c-.6 1.1-.2 2.6.9 3.2.4.2.8.3 1.2.3.8 0 1.6-.4 2-1.2l9.9-17.6 9.9 17.6c.4.8 1.2 1.2 2 1.2.4 0 .8-.1 1.2-.3 1.1-.6 1.5-2.1.9-3.2l-9-16V45H46z"/>
     </svg>`,
 
     // Profiles
