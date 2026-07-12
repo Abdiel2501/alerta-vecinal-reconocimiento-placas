@@ -440,12 +440,16 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   if (registerPassword && passwordStrengthWrapper) {
-    registerPassword.addEventListener('focus', () => {
-      passwordStrengthWrapper.style.display = 'block';
-    });
-
     registerPassword.addEventListener('input', () => {
       const val = registerPassword.value;
+      
+      if (val.length === 0) {
+        passwordStrengthWrapper.style.display = 'none';
+        isPasswordValid = false;
+        return;
+      }
+
+      passwordStrengthWrapper.style.display = 'block';
       
       const hasLength = val.length >= 8;
       const hasUppercase = /[A-Z]/.test(val);
@@ -470,11 +474,7 @@ document.addEventListener('DOMContentLoaded', () => {
       strengthSegment2.style.backgroundColor = 'transparent';
       strengthSegment3.style.backgroundColor = 'transparent';
 
-      if (val.length === 0) {
-        strengthLabel.textContent = 'Fuerza: Muy débil';
-        strengthLabel.style.color = 'var(--text-secondary)';
-        isPasswordValid = false;
-      } else if (score < 2) {
+      if (score < 2) {
         strengthSegment1.style.backgroundColor = '#ff6b6b';
         strengthLabel.textContent = 'Fuerza: Débil';
         strengthLabel.style.color = '#ff6b6b';
