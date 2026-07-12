@@ -1,4 +1,4 @@
-# Guía de Despliegue en la Nube (Frontend PWA e IA V13 Server GPU T4)
+# Guía de Despliegue en la Nube (Frontend PWA e IA V14 Server GPU T4)
 
 Esta guía explica paso a paso cómo subir todo el ecosistema de **AlertaVecinal** a la nube para garantizar un funcionamiento continuo (24/7), a alta velocidad (60 FPS gracias a aceleración GPU) y sin consumir batería ni procesador del dispositivo del usuario.
 
@@ -29,7 +29,7 @@ Para que tu interfaz móvil (PWA) esté siempre en línea de forma gratuita, sig
 
 ---
 
-## PARTE 2: Desplegar la IA V13 Server (`servidor_ia_v13.py` en GPU T4)
+## PARTE 2: Desplegar la IA V14 Server (`servidor_ia_v14.py` en GPU T4)
 
 Para procesar el flujo de video a 60 FPS y ejecutar YOLOv11 + PaddleOCR con aceleración por hardware, debes desplegar el servidor en una máquina virtual de la nube con soporte GPU (NVIDIA T4 es la opción con mejor relación costo/beneficio).
 
@@ -92,7 +92,7 @@ Para que la IA procese tu cámara local, necesitas enviarle el flujo de video RT
 * **Si tu cámara está en tu red local**: Puedes usar **Ngrok** para abrir un túnel TCP de tu puerto RTSP local (generalmente `554`) hacia el exterior, u ocupar una VPN ligera como **Tailscale** o **WireGuard** para conectar tu router/cámara local con la máquina virtual en la nube.
 * En el servidor, inicia el script pasando la URL RTSP como parámetro:
   ```bash
-  python3 servidor_ia_v13.py --video "rtsp://tu_usuario:tu_password@IP_TUNEL:PUERTO/stream1" --port 8765
+  python3 servidor_ia_v14.py --video "rtsp://tu_usuario:tu_password@IP_TUNEL:PUERTO/stream1" --port 8765
   ```
 
 ---
@@ -111,7 +111,7 @@ sudo apt install -y nodejs npm
 sudo npm install -g pm2
 
 # Iniciar el servidor de la IA con PM2
-pm2 start servidor_ia_v13.py --interpreter python3 -- --video "rtsp://..." --port 8765
+pm2 start servidor_ia_v14.py --interpreter python3 -- --video "rtsp://..." --port 8765
 
 # Guardar configuración para que se ejecute al reiniciar el sistema
 pm2 save

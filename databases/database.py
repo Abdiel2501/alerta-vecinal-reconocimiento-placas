@@ -142,6 +142,30 @@ class DatabasePlacas:
                 mejor_similitud = similitud
                 mejor_coincidencia = fila
 
+        if mejor_similitud >= umbral_similitud and mejor_coincidencia:
+            return True, {**dict(mejor_coincidencia), "similitud": mejor_similitud}
+
+        # 3. Búsqueda externa en la API de REPUVE (si está habilitada)
+        try:
+            import sys
+            import os
+            sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "iAs")))
+            from repuve_api import consultar_repuve
+            
+            res_repuve = consultar_repuve(texto_detectado)
+            if res_repuve and res_repuve.get("es_robado"):
+                return True, {
+                    "placa": res_repuve["placa"],
+                    "modelo": res_repuve["modelo"],
+                    "color": res_repuve["color"],
+                    "propietario": res_repuve["propietario"],
+                    "fecha_reporte": res_repuve["fecha_reporte"],
+                    "descripcion": f"REPUVE: {res_repuve['detalles_repuve']}",
+                    "similitud": 1.0
+                }
+        except Exception as e:
+            print(f"[DB] Error al consultar REPUVE: {e}")
+
         return False, None
 
     def registrar_alerta(self, placa_bd: str, placa_detectada: str, similitud: float,
