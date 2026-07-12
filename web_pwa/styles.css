@@ -1,4 +1,4 @@
-﻿@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
 
 :root {
   /* iCSee Light Mode Palette */
@@ -1538,50 +1538,92 @@ input:checked + .slider:before {
   flex-shrink: 0;
 }
 
-/* â”€â”€ Perfiles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-.av-profiles {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 0 16px 12px;
+/* Perfiles Grid */
+.av-profiles-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  padding: 4px 16px 12px;
   flex-shrink: 0;
 }
-.av-profile-btn {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 10px 14px;
-  background: #f0f4f8;
+.av-profile-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 14px 8px;
+  background: #f8fafc;
   border: 1.5px solid #e2e8f0;
-  border-radius: 10px;
+  border-radius: 12px;
   cursor: pointer;
-  text-align: left;
-  gap: 8px;
-  transition: border-color 0.15s, background 0.15s, transform 0.1s;
+  text-align: center;
+  transition: border-color 0.15s, background 0.15s, transform 0.1s, box-shadow 0.15s;
   font-family: var(--font-main, inherit);
+  min-height: 100px;
 }
-[data-theme="dark"] .av-profile-btn {
+[data-theme="dark"] .av-profile-card {
   background: #1e2a3a;
   border-color: rgba(255,255,255,0.07);
 }
-.av-profile-btn:hover {
-  border-color: #00C2D1;
-  background: #e6f9fb;
-  transform: translateX(3px);
+.av-profile-card:hover {
+  border-color: var(--profile-color, #00C2D1);
+  background: #fff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  transform: translateY(-2px);
 }
-[data-theme="dark"] .av-profile-btn:hover { background: rgba(0,194,209,0.08); }
-.av-profile-btn:active { transform: scale(0.98); }
-.av-profile-btn:focus-visible { outline: 2px solid #00C2D1; outline-offset: 2px; }
+[data-theme="dark"] .av-profile-card:hover {
+  background: #233145;
+}
+.av-profile-card:active {
+  transform: translateY(0) scale(0.97);
+}
+.av-profile-card:focus-visible {
+  outline: 2px solid var(--profile-color, #00C2D1);
+  outline-offset: 2px;
+}
+
+.av-profile-icon {
+  width: 24px;
+  height: 24px;
+  color: var(--profile-color, #00C2D1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.av-profile-icon svg {
+  width: 100%;
+  height: 100%;
+}
 
 .av-profile-name {
-  font-size: 0.82rem; font-weight: 700; color: #1a1a2e;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #1a1a2e;
 }
-[data-theme="dark"] .av-profile-name { color: #e8edf5; }
+[data-theme="dark"] .av-profile-name {
+  color: #e8edf5;
+}
 
 .av-profile-desc {
-  font-size: 0.7rem; color: #64748b;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  max-width: 160px;
+  font-size: 0.65rem;
+  color: #64748b;
+  line-height: 1.2;
 }
-[data-theme="dark"] .av-profile-desc { color: #94a3b8; }
+[data-theme="dark"] .av-profile-desc {
+  color: #94a3b8;
+}
+
+/* Spotlight Focus Overlay */
+#av-spotlight {
+  position: fixed;
+  inset: 0;
+  z-index: 8997;
+  pointer-events: none;
+  background: rgba(0,0,0,0.65);
+  transition: background 0.15s ease-out;
+}
+
 
 /* â”€â”€ Grid de opciones â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .av-grid {
