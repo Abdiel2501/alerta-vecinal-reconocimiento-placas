@@ -217,6 +217,24 @@ document.addEventListener('DOMContentLoaded', () => {
   let userDisconnected = false;
   let demoMode = false;
   let isAiActive = true;
+  let currentUserEmail = '';
+  let currentTheme = 'dark';
+
+  // --- SaaS Data Isolation Helpers ---
+  function getUserKey(baseKey) {
+    if (currentUserEmail) {
+      return `${baseKey}_${currentUserEmail}`;
+    }
+    return baseKey;
+  }
+
+  function getLocalItem(key, defaultValue = '') {
+    return localStorage.getItem(getUserKey(key)) || defaultValue;
+  }
+
+  function setLocalItem(key, value) {
+    localStorage.setItem(getUserKey(key), value);
+  }
   
   // PTZ Simulated coordinates offset
   let ptzOffsetX = 0;
@@ -233,10 +251,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Load cache from localStorage
   let history = [];
-  serverIpInput.value = localStorage.getItem('server_ip') || '127.0.0.1';
-  serverPortInput.value = localStorage.getItem('server_port') || '8765';
-  if (telegramTokenInput) telegramTokenInput.value = localStorage.getItem('telegram_token') || '';
-  if (telegramChatIdInput) telegramChatIdInput.value = localStorage.getItem('telegram_chat_id') || '';
+  serverIpInput.value = getLocalItem('server_ip', '127.0.0.1');
+  serverPortInput.value = getLocalItem('server_port', '8765');
+  if (telegramTokenInput) telegramTokenInput.value = getLocalItem('telegram_token', '');
+  if (telegramChatIdInput) telegramChatIdInput.value = getLocalItem('telegram_chat_id', '');
 
   // --- 💬 FLOATING TOAST NOTIFICATION ---
   function showToast(message) {
@@ -453,11 +471,32 @@ document.addEventListener('DOMContentLoaded', () => {
     alert('Debe aceptar los Términos de Uso y el Aviso de Privacidad para ingresar y utilizar la plataforma AlertaVecinal.');
   });
 
+  function loadUserSettings(session) {
+    currentUserEmail = session.email.toLowerCase().replace(/[^a-z0-9]/g, '_');
+    
+    // Cargar configuraciones aisladas
+    serverIpInput.value = getLocalItem('server_ip', '127.0.0.1');
+    serverPortInput.value = getLocalItem('server_port', '8765');
+    if (telegramTokenInput) telegramTokenInput.value = getLocalItem('telegram_token', '');
+    if (telegramChatIdInput) telegramChatIdInput.value = getLocalItem('telegram_chat_id', '');
+    
+    // Cargar historial
+    history = loadHistoryEncrypted();
+    
+    // Cargar tema del usuario
+    const savedTheme = getLocalItem('theme', '');
+    if (savedTheme) {
+      currentTheme = savedTheme;
+      document.documentElement.setAttribute('data-theme', currentTheme);
+      updateThemeIcon(currentTheme);
+    }
+  }
+
   function logInSuccess(session) {
     localStorage.setItem('user_session', JSON.stringify(session));
     
-    // Cargar historial cifrado localmente
-    history = loadHistoryEncrypted();
+    // Cargar y aislar configuraciones del usuario
+    loadUserSettings(session);
 
     loginScreen.style.display = 'none';
     appLayout.style.display = 'flex';
@@ -491,7 +530,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Mostrar guía automáticamente a usuarios nuevos
-    const guideSeen = localStorage.getItem('user_guide_seen') === 'true';
+    const guideSeen = getLocalItem('user_guide_seen') === 'true';
     if (!guideSeen) {
       setTimeout(() => {
         openUserGuide();
@@ -1166,8 +1205,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const token = telegramTokenInput.value.trim();
       const chatId = telegramChatIdInput.value.trim();
 
-      localStorage.setItem('telegram_token', token);
-      localStorage.setItem('telegram_chat_id', chatId);
+      setLocalItem('telegram_token', token);
+      setLocalItem('telegram_chat_id', chatId);
 
       showToast('💾 Configuración de Telegram guardada localmente.');
       
@@ -1185,7 +1224,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // --- HISTORY MANAGEMENT ---
   function loadHistoryEncrypted() {
     try {
-      const encryptedData = localStorage.getItem('alert_history');
+      const encryptedData = getLocalItem('alert_history');
       if (!encryptedData) return [];
       if (!sessionCryptoKey) {
         console.warn("Intento de leer el historial sin clave de sesión activa.");
@@ -1210,7 +1249,7 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const plainText = JSON.stringify(history);
       const encryptedData = CryptoJS.AES.encrypt(plainText, sessionCryptoKey).toString();
-      localStorage.setItem('alert_history', encryptedData);
+      setLocalItem('alert_history', encryptedData);
     } catch (e) {
       console.error("Error al cifrar el historial:", e);
     }
@@ -1528,8 +1567,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let ip = serverIpInput.value.trim() || '127.0.0.1';
     let port = serverPortInput.value.trim() || '8765';
     
-    localStorage.setItem('server_ip', ip);
-    localStorage.setItem('server_port', port);
+    setLocalItem('server_ip', ip);
+    setLocalItem('server_port', port);
 
     let wsUrl = '';
     
@@ -2090,7 +2129,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (userGuideModal) {
       userGuideModal.classList.remove('active');
     }
-    localStorage.setItem('user_guide_seen', 'true');
+    setLocalItem('user_guide_seen', 'true');
     showToast('📖 Guía finalizada. Puedes volver a abrirla presionando 📖 en la cabecera.');
   }
 
@@ -2110,7 +2149,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (userGuideModal) {
         userGuideModal.classList.remove('active');
       }
-      localStorage.setItem('user_guide_seen', 'true');
+      setLocalItem('user_guide_seen', 'true');
     });
   }
   if (nextGuideBtn) {
@@ -2132,9 +2171,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // --- MANUAL THEME SELECTION LOGIC ---
   const themeToggleBtn = document.getElementById('themeToggleBtn');
-  const savedTheme = localStorage.getItem('theme');
+  const savedTheme = getLocalItem('theme', '');
   const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-  let currentTheme = savedTheme || (systemPrefersDark ? 'dark' : 'light');
+  currentTheme = savedTheme || (systemPrefersDark ? 'dark' : 'light');
   
   document.documentElement.setAttribute('data-theme', currentTheme);
   updateThemeIcon(currentTheme);
@@ -2143,7 +2182,7 @@ document.addEventListener('DOMContentLoaded', () => {
     themeToggleBtn.addEventListener('click', () => {
       currentTheme = (currentTheme === 'dark') ? 'light' : 'dark';
       document.documentElement.setAttribute('data-theme', currentTheme);
-      localStorage.setItem('theme', currentTheme);
+      setLocalItem('theme', currentTheme);
       updateThemeIcon(currentTheme);
       showToast(`🌓 Modo ${currentTheme === 'dark' ? 'oscuro' : 'claro'} activado`);
     });
