@@ -264,22 +264,45 @@ class UserPipeline:
                     time.sleep(0.01)
                     continue
 
-                with self.bloqueo_fotograma:
-                    self.fotograma_crudo = fotograma.copy()
-
                 self.conteo_fotogramas += 1
 
-                # YOLO Tracking de Vehículos
-                results = modelo_vehiculos_global.track(fotograma, persist=True, classes=[2, 3, 5, 7], verbose=False)
+                # YOLO Tracking de Vehículos y Personas (para privacidad)
+                cajas_det, ids_rastreo_det, confianzas_det, clases_det = [], [], [], []
+                try:
+                    results = modelo_vehiculos_global.track(fotograma, persist=True, classes=[0, 2, 3, 5, 7], verbose=False)
+                    if results and results[0].boxes.id is not None:
+                        cajas_det       = results[0].boxes.xyxy.int().cpu().tolist()
+                        ids_rastreo_det = results[0].boxes.id.int().cpu().tolist()
+                        confianzas_det  = results[0].boxes.conf.cpu().tolist()
+                        clases_det      = results[0].boxes.cls.int().cpu().tolist()
+                except Exception:
+                    pass
+
+                # Aplicar desenfoque de privacidad a todas las personas detectadas en caliente
+                for box_p, cls_val in zip(cajas_det, clases_det):
+                    if cls_val == 0:  # Persona
+                        px1, py1, px2, py2 = box_p
+                        h_img, w_img = fotograma.shape[:2]
+                        px1, py1 = max(0, px1), max(0, py1)
+                        px2, py2 = min(w_img, px2), min(h_img, py2)
+                        if px2 > px1 and py2 > py1:
+                            roi_persona = fotograma[py1:py2, px1:px2]
+                            blurred = cv2.GaussianBlur(roi_persona, (99, 99), 30)
+                            fotograma[py1:py2, px1:px2] = blurred
+
+                # Filtrar listas para excluir personas del pipeline de vehículos y OCR
                 ids_vistos = set()
                 ultimas_cajas = []
                 ultimos_ids_rastreo = []
                 ultimas_confianzas = []
+                for box_v, id_rastreo, conf_v, cls_v in zip(cajas_det, ids_rastreo_det, confianzas_det, clases_det):
+                    if cls_v != 0:  # No es persona, es vehículo
+                        ultimas_cajas.append(box_v)
+                        ultimos_ids_rastreo.append(id_rastreo)
+                        ultimas_confianzas.append(conf_v)
 
-                if results and results[0].boxes.id is not None:
-                    ultimas_cajas       = results[0].boxes.xyxy.int().cpu().tolist()
-                    ultimos_ids_rastreo = results[0].boxes.id.int().cpu().tolist()
-                    ultimas_confianzas  = results[0].boxes.conf.cpu().tolist()
+                with self.bloqueo_fotograma:
+                    self.fotograma_crudo = fotograma.copy()
 
                     for box, track_id, conf_v in zip(ultimas_cajas, ultimos_ids_rastreo, ultimas_confianzas):
                         if conf_v < 0.35: continue
