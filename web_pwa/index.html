@@ -1,18 +1,23 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
-  <meta name="description" content="AlertaVecinal — Sistema de monitoreo comunitario inteligente con reconocimiento de placas vehiculares en tiempo real.">
+  <meta name="description"
+    content="AlertaVecinal — Sistema de monitoreo comunitario inteligente con reconocimiento de placas vehiculares en tiempo real.">
   <title>🛡️ AlertaVecinal — Monitoreo Inteligente</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#0E121A">
   <!-- CryptoJS Library CDN for AES-256 local storage encryption -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js" integrity="sha512-E8QSvWZ0GE9L/YJ27zGVmUqHyCXD6DI1HBcPenJRHLhtxg3TXDx6cZTPcMvGdEhG0obmJsKmWPsnBatMYbY8Q==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"
+    integrity="sha512-E8QSvWZ0GE9L/YJ27zGVmUqHyCXD6DI1HBcPenJRHLhtxg3TXDx6cZTPcMvGdEhG0obmJsKmWPsnBatMYbY8Q=="
+    crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <!-- Google Identity Services (GSI) Client Library for standard login -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
+
 <body>
 
   <!-- 🌀 SPLASH SCREEN -->
@@ -45,12 +50,15 @@
           <input type="password" id="loginPassword" placeholder="••••••••">
         </div>
 
-        <div class="show-password-container" style="display: flex; align-items: center; gap: 8px; margin-top: -8px; margin-bottom: 16px;">
+        <div class="show-password-container"
+          style="display: flex; align-items: center; gap: 8px; margin-top: -8px; margin-bottom: 16px;">
           <input type="checkbox" id="showPasswordCheckbox" style="cursor: pointer; width: 16px; height: 16px;">
-          <label for="showPasswordCheckbox" style="cursor: pointer; font-size: 0.85rem; user-select: none; color: #a0aec0;">Mostrar contraseña</label>
+          <label for="showPasswordCheckbox"
+            style="cursor: pointer; font-size: 0.85rem; user-select: none; color: #a0aec0;">Mostrar contraseña</label>
         </div>
 
-        <div id="loginLockoutError" style="display: none; color: var(--alert-color); font-size: 0.85rem; font-weight: 700; text-align: center; background: rgba(255, 107, 107, 0.1); padding: 8px; border-radius: 8px; border: 1px solid rgba(255, 107, 107, 0.2);">
+        <div id="loginLockoutError"
+          style="display: none; color: var(--alert-color); font-size: 0.85rem; font-weight: 700; text-align: center; background: rgba(255, 107, 107, 0.1); padding: 8px; border-radius: 8px; border: 1px solid rgba(255, 107, 107, 0.2);">
           ⚠️ Cuenta bloqueada. Intente de nuevo en <span id="lockoutTimer">300</span>s.
         </div>
 
@@ -60,10 +68,14 @@
 
         <button id="googleLoginBtn" class="btn-google">
           <svg width="20" height="20" viewBox="0 0 24 24" aria-label="Logo de Google" role="img">
-            <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v3.92h6.69c-.29 1.5-.1.85-2.6 1.8l2.9 2.25c2.4-2.2 3.75-5.5 3.75-9.2C23.745 15.3 23.745 14.1 23.745 12.27z"/>
-            <path fill="#34A853" d="M12 24c3.24 0 5.97-1.08 7.96-2.91l-3.86-3c-1.08.72-2.45 1.16-4.1 1.16-3.14 0-5.8-2.11-6.75-4.96l-4 3.1c2 4 6.14 6.7 10.75 6.7z"/>
-            <path fill="#FBBC05" d="M5.25 14.29c-.25-.72-.39-1.5-.39-2.29s.14-1.57.39-2.29l-4-3.1C.46 8.24 0 10.07 0 12s.46 3.76 1.25 5.39l4-3.1z"/>
-            <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.96 1.19 15.24 0 12 0 7.39 0 3.25 2.7 1.25 6.7l4 3.1c.95-2.85 3.61-4.96 6.75-4.96z"/>
+            <path fill="#4285F4"
+              d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v3.92h6.69c-.29 1.5-.1.85-2.6 1.8l2.9 2.25c2.4-2.2 3.75-5.5 3.75-9.2C23.745 15.3 23.745 14.1 23.745 12.27z" />
+            <path fill="#34A853"
+              d="M12 24c3.24 0 5.97-1.08 7.96-2.91l-3.86-3c-1.08.72-2.45 1.16-4.1 1.16-3.14 0-5.8-2.11-6.75-4.96l-4 3.1c2 4 6.14 6.7 10.75 6.7z" />
+            <path fill="#FBBC05"
+              d="M5.25 14.29c-.25-.72-.39-1.5-.39-2.29s.14-1.57.39-2.29l-4-3.1C.46 8.24 0 10.07 0 12s.46 3.76 1.25 5.39l4-3.1z" />
+            <path fill="#EA4335"
+              d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.96 1.19 15.24 0 12 0 7.39 0 3.25 2.7 1.25 6.7l4 3.1c.95-2.85 3.61-4.96 6.75-4.96z" />
           </svg>
           <span>Iniciar Sesión con Google</span>
         </button>
@@ -71,9 +83,11 @@
         <!-- Contenedor para el botón nativo oficial de Google (necesario en Brave/Chrome) -->
         <div id="googleBtnContainer" style="display: none; justify-content: center; width: 100%;"></div>
 
-        <p style="text-align: center; font-size: 0.82rem; margin-top: 20px; color: var(--text-secondary); line-height: 1.4;">
+        <p
+          style="text-align: center; font-size: 0.82rem; margin-top: 20px; color: var(--text-secondary); line-height: 1.4;">
           ¿Primera vez en la plataforma?<br>
-          <a href="#" id="toRegisterBtn" style="color: var(--primary-color); font-weight: 600; text-decoration: none;">Crea tu cuenta de vecino</a>
+          <a href="#" id="toRegisterBtn"
+            style="color: var(--primary-color); font-weight: 600; text-decoration: none;">Crea tu cuenta de vecino</a>
         </p>
       </div>
 
@@ -101,9 +115,11 @@
         <!-- Contenedor para Registrarse con Google (Brave/Chrome) -->
         <div id="googleBtnContainerRegister" style="display: none; justify-content: center; width: 100%;"></div>
 
-        <p style="text-align: center; font-size: 0.82rem; margin-top: 20px; color: var(--text-secondary); line-height: 1.4;">
+        <p
+          style="text-align: center; font-size: 0.82rem; margin-top: 20px; color: var(--text-secondary); line-height: 1.4;">
           ¿Ya tienes una cuenta registrada?<br>
-          <a href="#" id="toLoginBtn" style="color: var(--primary-color); font-weight: 600; text-decoration: none;">Iniciar Sesión</a>
+          <a href="#" id="toLoginBtn"
+            style="color: var(--primary-color); font-weight: 600; text-decoration: none;">Iniciar Sesión</a>
         </p>
       </div>
     </div>
@@ -116,15 +132,19 @@
         <h1 class="brand-title">🛡️ AlertaVecinal</h1>
         <span class="badge-demo" id="demoBadge">MODO DEMO</span>
       </div>
-      
+
       <nav class="nav-tabs" role="navigation" aria-label="Navegación principal">
-        <button class="tab-btn active" data-target="view-monitor" aria-selected="true" role="tab" aria-controls="view-monitor"><span aria-hidden="true">📺</span> Monitor</button>
-        <button class="tab-btn" data-target="view-history" aria-selected="false" role="tab" aria-controls="view-history"><span aria-hidden="true">📋</span> Historial</button>
-        <button class="tab-btn" data-target="view-settings" aria-selected="false" role="tab" aria-controls="view-settings"><span aria-hidden="true">⚙️</span> Ajustes</button>
+        <button class="tab-btn active" data-target="view-monitor" aria-selected="true" role="tab"
+          aria-controls="view-monitor"><span aria-hidden="true">📺</span> Monitor</button>
+        <button class="tab-btn" data-target="view-history" aria-selected="false" role="tab"
+          aria-controls="view-history"><span aria-hidden="true">📋</span> Historial</button>
+        <button class="tab-btn" data-target="view-settings" aria-selected="false" role="tab"
+          aria-controls="view-settings"><span aria-hidden="true">⚙️</span> Ajustes</button>
       </nav>
 
       <div style="display:flex; align-items:center; gap:16px;">
-        <button id="themeToggleBtn" class="theme-toggle-btn" title="Cambiar Tema" aria-label="Cambiar tema claro/oscuro">🌙</button>
+        <button id="themeToggleBtn" class="theme-toggle-btn" title="Cambiar Tema"
+          aria-label="Cambiar tema claro/oscuro">🌙</button>
         <div class="status-indicator" role="status" aria-live="polite" aria-label="Estado de conexión al servidor">
           <span class="dot" id="wsStatusDot" aria-hidden="true"></span>
           <span id="wsStatusText">Desconectado</span>
@@ -133,19 +153,22 @@
     </header>
 
     <main class="main-content" id="main-content" role="main" aria-label="Contenido principal">
-      
+
       <!-- 📺 MONITOR SECTION (DUAL LENS + CONTROLS) -->
       <section id="view-monitor" class="view-section active" role="tabpanel" aria-label="Monitor de cámaras">
         <div class="monitor-grid">
-          
+
           <!-- Dual Lens Panel -->
           <div class="card dual-lens-card">
             <!-- Selector de cantidad de lentes -->
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 8px;">
-              <span style="font-weight: 700; font-size: 1rem; color: var(--text-primary);">Visualización de Lentes</span>
+            <div
+              style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 8px;">
+              <span style="font-weight: 700; font-size: 1rem; color: var(--text-primary);">Visualización de
+                Lentes</span>
               <div style="display: flex; align-items: center; gap: 8px;">
                 <label for="lensSelector" style="font-size: 0.85rem; color: var(--text-secondary);">Diseño:</label>
-                <select id="lensSelector" style="background: rgba(255,255,255,0.05); color: var(--text-primary); border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; padding: 4px 8px; font-size: 0.85rem; cursor: pointer; outline: none;">
+                <select id="lensSelector"
+                  style="background: rgba(255,255,255,0.05); color: var(--text-primary); border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; padding: 4px 8px; font-size: 0.85rem; cursor: pointer; outline: none;">
                   <option value="2">2 Lentes (Doble)</option>
                   <option value="fixed">1 Lente (Solo Fijo)</option>
                   <option value="ptz">1 Lente (Solo PTZ)</option>
@@ -153,13 +176,14 @@
               </div>
             </div>
             <div class="dual-lens-layout">
-              
+
               <!-- 📷 Upper Camera: FIXED LENS (Wide Angle Panorama) -->
               <div class="lens-view" id="lensFixedContainer">
                 <div class="lens-header">
                   <span class="overlay-badge">Lente Gran Angular (Fijo)</span>
                   <div class="lens-actions">
-                    <button class="lens-btn" id="toggleFixedBtn" title="Minimizar/Expandir" aria-label="Minimizar o expandir lente fijo">⤢</button>
+                    <button class="lens-btn" id="toggleFixedBtn" title="Minimizar/Expandir"
+                      aria-label="Minimizar o expandir lente fijo">⤢</button>
                   </div>
                 </div>
                 <canvas class="lens-canvas" id="videoCanvasFixed"></canvas>
@@ -175,7 +199,8 @@
                     <span class="live-dot" id="liveDot"></span> Lente Móvil (PTZ)
                   </span>
                   <div class="lens-actions">
-                    <button class="lens-btn" id="togglePtzBtn" title="Minimizar/Expandir" aria-label="Minimizar o expandir lente PTZ">⤢</button>
+                    <button class="lens-btn" id="togglePtzBtn" title="Minimizar/Expandir"
+                      aria-label="Minimizar o expandir lente PTZ">⤢</button>
                   </div>
                 </div>
                 <canvas class="lens-canvas" id="videoCanvasPtz"></canvas>
@@ -206,19 +231,24 @@
 
             <!-- 🛠️ Quick Tools Bar -->
             <div class="camera-tools-bar">
-              <button class="tool-btn" id="toolTalk" title="Mantener para Hablar" aria-label="Mantener presionado para hablar por el altavoz de la cámara" aria-pressed="false">
+              <button class="tool-btn" id="toolTalk" title="Mantener para Hablar"
+                aria-label="Mantener presionado para hablar por el altavoz de la cámara" aria-pressed="false">
                 <div class="tool-icon" aria-hidden="true">🎤</div>
                 <span>Hablar</span>
               </button>
-              <button class="tool-btn" id="toolListen" title="Activar/Silenciar Audio" aria-label="Activar o silenciar audio de la cámara" aria-pressed="false">
+              <button class="tool-btn" id="toolListen" title="Activar/Silenciar Audio"
+                aria-label="Activar o silenciar audio de la cámara" aria-pressed="false">
                 <div class="tool-icon" aria-hidden="true">🔊</div>
                 <span>Escuchar</span>
               </button>
-              <button class="tool-btn" id="toolCapture" title="Tomar Foto" aria-label="Tomar captura de pantalla del video">
+              <button class="tool-btn" id="toolCapture" title="Tomar Foto"
+                aria-label="Tomar captura de pantalla del video">
                 <div class="tool-icon" aria-hidden="true">📷</div>
                 <span>Captura</span>
               </button>
-              <button class="tool-btn danger active" id="toolAi" title="Activar/Desactivar IA de Placas" aria-label="Activar o desactivar la inteligencia artificial de reconocimiento de placas" aria-pressed="true">
+              <button class="tool-btn danger active" id="toolAi" title="Activar/Desactivar IA de Placas"
+                aria-label="Activar o desactivar la inteligencia artificial de reconocimiento de placas"
+                aria-pressed="true">
                 <div class="tool-icon" aria-hidden="true">🤖</div>
                 <span>IA Placas</span>
               </button>
@@ -228,10 +258,11 @@
           <!-- Camera Settings & Info Card -->
           <div class="card">
             <h2>Configuración de Cámara</h2>
-            
+
             <div class="input-group">
               <label id="label-list-cameras">Seleccionar Cámara USB:</label>
-              <button id="listCamerasBtn" class="btn btn-secondary" aria-labelledby="label-list-cameras" aria-label="Escanear dispositivos de cámara USB conectados al servidor">🔍 Escanear Cámaras USB</button>
+              <button id="listCamerasBtn" class="btn btn-secondary" aria-labelledby="label-list-cameras"
+                aria-label="Escanear dispositivos de cámara USB conectados al servidor">🔍 Escanear Cámaras USB</button>
             </div>
 
             <div class="input-group">
@@ -244,7 +275,8 @@
 
             <div class="input-group">
               <label>Origen de Video Actual:</label>
-              <input type="text" id="activeCameraInfo" readonly value="Ninguna cámara activa" style="opacity: 0.8; font-size: 0.85rem;">
+              <input type="text" id="activeCameraInfo" readonly value="Ninguna cámara activa"
+                style="opacity: 0.8; font-size: 0.85rem;">
             </div>
 
             <div style="font-size: 0.85rem; color: var(--text-secondary); text-align: center;" id="videoMetaText">
@@ -260,21 +292,24 @@
           <div class="history-controls">
             <h2>Historial de Alertas</h2>
             <div class="history-actions">
-              <button id="exportCsvBtn" class="btn btn-secondary" aria-label="Exportar historial de alertas en formato CSV">📥 Exportar CSV</button>
-              <button id="clearHistoryBtn" class="btn btn-secondary btn-alert" aria-label="Borrar todos los registros del historial">🗑️ Vaciar Logs</button>
+              <button id="exportCsvBtn" class="btn btn-secondary"
+                aria-label="Exportar historial de alertas en formato CSV">📥 Exportar CSV</button>
+              <button id="clearHistoryBtn" class="btn btn-secondary btn-alert"
+                aria-label="Borrar todos los registros del historial">🗑️ Vaciar Logs</button>
             </div>
           </div>
-          
+
           <!-- Filtros e Historial -->
           <div class="history-filters" role="search" aria-label="Filtros de búsqueda">
-            <input type="search" id="searchPlate" placeholder="Buscar por placa..." aria-label="Buscar registros por número de placa">
+            <input type="search" id="searchPlate" placeholder="Buscar por placa..."
+              aria-label="Buscar registros por número de placa">
             <select id="filterStatus" aria-label="Filtrar por estado del vehículo">
               <option value="all">Todos los vehículos</option>
               <option value="stolen">Solo robados</option>
               <option value="authorized">Solo autorizados</option>
             </select>
           </div>
-          
+
           <!-- Desktop Table View -->
           <div class="history-table-wrapper">
             <table class="history-table">
@@ -304,7 +339,7 @@
       <section id="view-settings" class="view-section" role="tabpanel" aria-label="Ajustes de la aplicación">
         <div class="card">
           <h2>Conexión Servidor Backend</h2>
-          
+
           <div class="input-group">
             <label for="serverIp">Dirección IP del Servidor:</label>
             <input type="text" id="serverIp" value="127.0.0.1" placeholder="Ej: 192.168.1.72">
@@ -325,21 +360,25 @@
           <div class="toggle-wrapper">
             <div>
               <h3 style="font-size: 1rem; font-weight: 700;">Modo Demo</h3>
-              <p style="font-size: 0.85rem; color: var(--text-secondary);">Simular flujo completo con radar y alertas ficticias</p>
+              <p style="font-size: 0.85rem; color: var(--text-secondary);">Simular flujo completo con radar y alertas
+                ficticias</p>
             </div>
             <label class="switch">
               <input type="checkbox" id="demoModeToggle">
               <span class="slider"></span>
             </label>
           </div>
-          <button id="triggerDemoAlertBtn" class="btn btn-secondary" style="display: none;">🚨 Simular Alerta Crítica</button>
+          <button id="triggerDemoAlertBtn" class="btn btn-secondary" style="display: none;">🚨 Simular Alerta
+            Crítica</button>
         </div>
 
         <!-- Google User profile mock -->
         <div class="card" id="googleProfileCard" style="display: none;">
           <h2>Perfil de Usuario (Google)</h2>
           <div style="display:flex; align-items:center; gap:16px;">
-            <div style="width: 48px; height: 48px; border-radius: 50%; background-color: var(--primary-color); display:flex; align-items:center; justify-content:center; font-size:1.5rem; color:#fff;" id="userInitial">G</div>
+            <div
+              style="width: 48px; height: 48px; border-radius: 50%; background-color: var(--primary-color); display:flex; align-items:center; justify-content:center; font-size:1.5rem; color:#fff;"
+              id="userInitial">G</div>
             <div>
               <h3 id="profileName" style="font-size:1rem; font-weight:700;">Usuario Google</h3>
               <p id="profileEmail" style="font-size:0.85rem; color:var(--text-secondary);">usuario@gmail.com</p>
@@ -352,14 +391,15 @@
   </div>
 
   <!-- 🚨 CRITICAL ALERT MODAL -->
-  <div class="modal-overlay" id="criticalAlertModal" role="alertdialog" aria-modal="true" aria-labelledby="criticalAlertTitle" aria-describedby="criticalAlertDesc">
+  <div class="modal-overlay" id="criticalAlertModal" role="alertdialog" aria-modal="true"
+    aria-labelledby="criticalAlertTitle" aria-describedby="criticalAlertDesc">
     <div class="critical-modal">
       <div class="alert-icon" aria-hidden="true">🚨</div>
       <h2 id="criticalAlertTitle">ALERTA DE ROBO</h2>
       <p id="criticalAlertDesc">Se ha detectado una coincidencia en la Base de Datos</p>
-      
+
       <div class="critical-plate-display" id="criticalPlate">ABC-123</div>
-      
+
       <div class="critical-details-grid">
         <div>
           <label>Modelo</label>
@@ -378,8 +418,9 @@
           <span id="criticalTime">12:30:15</span>
         </div>
       </div>
-      
-      <button class="btn btn-dismiss" id="dismissAlertBtn" aria-label="Entendido, cerrar alerta de robo">Entendido</button>
+
+      <button class="btn btn-dismiss" id="dismissAlertBtn"
+        aria-label="Entendido, cerrar alerta de robo">Entendido</button>
     </div>
   </div>
 
@@ -387,19 +428,23 @@
   <div class="modal-overlay" id="cameraSelectModal" role="dialog" aria-modal="true" aria-labelledby="cameraSelectTitle">
     <div class="camera-select-modal">
       <h2 id="cameraSelectTitle" style="font-size: 1.2rem; margin-bottom: 8px;">Seleccionar Lente Móvil (PTZ)</h2>
-      <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 12px;">Elige uno de los dispositivos detectados en el servidor:</p>
+      <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 12px;">Elige uno de los dispositivos
+        detectados en el servidor:</p>
       <div id="cameraListContainer" style="display:flex; flex-direction:column; gap:8px;">
         <!-- Botones de opciones inyectados -->
       </div>
-      <button class="btn btn-secondary" id="closeCameraModalBtn" style="margin-top:8px;" aria-label="Cerrar selector de cámara">Cerrar</button>
+      <button class="btn btn-secondary" id="closeCameraModalBtn" style="margin-top:8px;"
+        aria-label="Cerrar selector de cámara">Cerrar</button>
     </div>
   </div>
 
   <!-- 📜 PRIVACY POLICY & CONSENT MODAL -->
   <div class="modal-overlay" id="privacyConsentModal">
     <div class="security-consent-modal">
-      <h2 style="font-size: 1.3rem; font-weight: 700; color: var(--text-primary); text-align: center; margin-bottom: 4px;">📋 Términos de Uso y Aviso de Privacidad</h2>
-      
+      <h2
+        style="font-size: 1.3rem; font-weight: 700; color: var(--text-primary); text-align: center; margin-bottom: 4px;">
+        📋 Términos de Uso y Aviso de Privacidad</h2>
+
       <!-- Pestañas de Navegación Legal -->
       <div class="legal-tabs">
         <button id="legalTabTermsBtn" class="legal-tab-btn active">Términos de Uso</button>
@@ -408,19 +453,28 @@
 
       <!-- Contenedor del Texto Legal -->
       <div class="legal-content-container">
-        
+
         <!-- PANE 1: TÉRMINOS Y CONDICIONES -->
         <div id="legalTermsPane" class="legal-text-pane active">
           <div class="legal-disclaimer">
-            ⚠️ <strong>ATENCIÓN:</strong> Este documento es un modelo regulatorio para el uso del sistema de seguridad comunitaria <strong>AlertaVecinal</strong>. Debe adaptarse a la localidad específica.
+            ⚠️ <strong>ATENCIÓN:</strong> Este documento es un modelo regulatorio para el uso del sistema de seguridad
+            comunitaria <strong>AlertaVecinal</strong>. Debe adaptarse a la localidad específica.
           </div>
           <h3>1. Objeto y aceptación</h3>
-          <p>Los presentes Términos y Condiciones regulan el uso del sistema <strong>AlertaVecinal</strong> implementado en la comunidad y operado por el Comité de Seguridad del Residencial ("el Operador"). El uso de la consola, la recepción de alertas en el canal de mensajería designado o la participación como vecino en el esquema de vigilancia comunitaria implica la aceptación plena de estos Términos.</p>
-          
+          <p>Los presentes Términos y Condiciones regulan el uso del sistema <strong>AlertaVecinal</strong> implementado
+            en la comunidad y operado por el Comité de Seguridad del Residencial ("el Operador"). El uso de la consola,
+            la recepción de alertas en el canal de mensajería designado o la participación como vecino en el esquema de
+            vigilancia comunitaria implica la aceptación plena de estos Términos.</p>
+
           <h3>2. Naturaleza del servicio</h3>
-          <p>AlertaVecinal es una herramienta tecnológica de apoyo a la seguridad comunitaria de carácter privado y complementario. <strong>NO sustituye a la policía, al Ministerio Público ni a ninguna autoridad de seguridad pública.</strong> Su única función es apoyar la detección temprana de vehículos previamente reportados.</p>
-          <p>Las detecciones del sistema se generan mediante reconocimiento automático de matrículas (ANPR) y están sujetas a un margen de error técnico (falsos positivos/negativos). Ninguna alerta generada por el sistema constituye prueba de la comisión de un delito ni acusación formal.</p>
-          
+          <p>AlertaVecinal es una herramienta tecnológica de apoyo a la seguridad comunitaria de carácter privado y
+            complementario. <strong>NO sustituye a la policía, al Ministerio Público ni a ninguna autoridad de seguridad
+              pública.</strong> Su única función es apoyar la detección temprana de vehículos previamente reportados.
+          </p>
+          <p>Las detecciones del sistema se generan mediante reconocimiento automático de matrículas (ANPR) y están
+            sujetas a un margen de error técnico (falsos positivos/negativos). Ninguna alerta generada por el sistema
+            constituye prueba de la comisión de un delito ni acusación formal.</p>
+
           <h3>3. Obligaciones del Operador de la consola</h3>
           <ul>
             <li>Mantener actualizada la base de datos de vehículos reportados de forma fidedigna.</li>
@@ -432,36 +486,46 @@
           <h3>4. Obligaciones de los vecinos y receptores de alertas</h3>
           <ul>
             <li>Utilizar la información recibida exclusivamente para fines de seguridad comunitaria.</li>
-            <li><strong>Abstenerse de confrontar, detener o perseguir directamente</strong> a cualquier persona o vehículo señalado por el sistema. Toda acción debe canalizarse a través de la policía.</li>
-            <li>Abstenerse de difundir, publicar o compartir las fotografías y datos recibidos fuera del canal de Telegram designado (prohibido compartir en redes sociales públicas o grupos ajenos).</li>
-            <li>Reconocer que la difusión errónea de una alerta como acusación confirmada puede generar responsabilidad civil o penal personal.</li>
+            <li><strong>Abstenerse de confrontar, detener o perseguir directamente</strong> a cualquier persona o
+              vehículo señalado por el sistema. Toda acción debe canalizarse a través de la policía.</li>
+            <li>Abstenerse de difundir, publicar o compartir las fotografías y datos recibidos fuera del canal de
+              Telegram designado (prohibido compartir en redes sociales públicas o grupos ajenos).</li>
+            <li>Reconocer que la difusión errónea de una alerta como acusación confirmada puede generar responsabilidad
+              civil o penal personal.</li>
           </ul>
 
           <h3>5. Limitación de responsabilidad</h3>
-          <p>El Operador y el equipo técnico no garantizan la exactitud o disponibilidad del servicio. El Operador no será responsable por daños derivados de falsos positivos, uso indebido de los datos por parte de terceros o interrupción de conectividad y electricidad.</p>
-          
+          <p>El Operador y el equipo técnico no garantizan la exactitud o disponibilidad del servicio. El Operador no
+            será responsable por daños derivados de falsos positivos, uso indebido de los datos por parte de terceros o
+            interrupción de conectividad y electricidad.</p>
+
           <h3>6. Menores de edad</h3>
-          <p>La consola de operador solo debe ser utilizada por personas mayores de 18 años designadas formalmente por el comité de seguridad.</p>
+          <p>La consola de operador solo debe ser utilizada por personas mayores de 18 años designadas formalmente por
+            el comité de seguridad.</p>
 
           <h3>7. Legislación aplicable</h3>
-          <p>Estos Términos se rigen por las leyes de los Estados Unidos Mexicanos, incluyendo el Código Penal Federal en materia de protección al honor e imputaciones falsas.</p>
+          <p>Estos Términos se rigen por las leyes de los Estados Unidos Mexicanos, incluyendo el Código Penal Federal
+            en materia de protección al honor e imputaciones falsas.</p>
         </div>
-        
+
         <!-- PANE 2: AVISO DE PRIVACIDAD -->
         <div id="legalPrivacyPane" class="legal-text-pane">
           <h3>1. Identidad y domicilio del responsable</h3>
-          <p>El responsable del tratamiento de sus datos personales es el Comité de Seguridad y Administración Comunitaria de la vecindad ("el Responsable"), con domicilio registrado de la administración de AlertaVecinal.</p>
-          
+          <p>El responsable del tratamiento de sus datos personales es el Comité de Seguridad y Administración
+            Comunitaria de la vecindad ("el Responsable"), con domicilio registrado de la administración de
+            AlertaVecinal.</p>
+
           <h3>2. Datos personales que se recaban</h3>
           <p>El sistema AlertaVecinal recaba los siguientes datos a través de las cámaras de seguridad:</p>
           <ul>
             <li>Imágenes de vehículos, incluyendo la placa de circulación, marca, modelo y color.</li>
             <li>Fecha, hora y ubicación exacta de la captura.</li>
-            <li>De manera incidental, imágenes de las vialidades públicas y personas transitando por el área de visión.</li>
+            <li>De manera incidental, imágenes de las vialidades públicas y personas transitando por el área de visión.
+            </li>
             <li>Audio en tiempo real de dos vías (únicamente para intercomunicación autorizada).</li>
           </ul>
           <p>El sistema no está diseñado para capturar datos sensibles ni biométricos de los conductores.</p>
-          
+
           <h3>3. Finalidades del tratamiento</h3>
           <p><strong>Finalidades Primarias:</strong></p>
           <ul>
@@ -471,22 +535,33 @@
           </ul>
 
           <h3>4. Fundamento legal</h3>
-          <p>El tratamiento se realiza bajo el interés legítimo de seguridad patrimonial y prevención del delito que reconoce la Ley Federal de Protección de Datos Personales en Posesión de los Particulares (LFPDPPP). Para cumplir con las medidas compensatorias, se colocará señalización en los accesos de la comunidad informando de la videovigilancia.</p>
-          
+          <p>El tratamiento se realiza bajo el interés legítimo de seguridad patrimonial y prevención del delito que
+            reconoce la Ley Federal de Protección de Datos Personales en Posesión de los Particulares (LFPDPPP). Para
+            cumplir con las medidas compensatorias, se colocará señalización en los accesos de la comunidad informando
+            de la videovigilancia.</p>
+
           <h3>5. Transferencia de datos</h3>
-          <p>Los datos de detecciones positivas se transferirán únicamente a las autoridades de seguridad pública competentes en caso de flagrancia o mandato legal, y al grupo cerrado de Telegram del vecindario. No se realizan transferencias comerciales de ningún tipo.</p>
+          <p>Los datos de detecciones positivas se transferirán únicamente a las autoridades de seguridad pública
+            competentes en caso de flagrancia o mandato legal, y al grupo cerrado de Telegram del vecindario. No se
+            realizan transferencias comerciales de ningún tipo.</p>
 
           <h3>6. Plazo de conservación</h3>
           <ul>
-            <li>Los registros de vehículos comunes sin reportes se eliminarán automáticamente a los <strong>30 días</strong>.</li>
-            <li>Los registros con reportes de robo confirmados se conservarán por un máximo de 12 meses o hasta que la autoridad competente resuelva el reporte.</li>
+            <li>Los registros de vehículos comunes sin reportes se eliminarán automáticamente a los <strong>30
+                días</strong>.</li>
+            <li>Los registros con reportes de robo confirmados se conservarán por un máximo de 12 meses o hasta que la
+              autoridad competente resuelva el reporte.</li>
           </ul>
 
           <h3>7. Medidas de seguridad</h3>
-          <p>Se cuenta con medidas de seguridad físicas, técnicas y administrativas tales como cifrado AES-256 local en el navegador, canales WSS con TLS/SSL para el video, bloqueos por fuerza bruta y scripts anti-debugging para impedir accesos ilícitos.</p>
+          <p>Se cuenta con medidas de seguridad físicas, técnicas y administrativas tales como cifrado AES-256 local en
+            el navegador, canales WSS con TLS/SSL para el video, bloqueos por fuerza bruta y scripts anti-debugging para
+            impedir accesos ilícitos.</p>
 
           <h3>8. Derechos ARCO</h3>
-          <p>El titular del vehículo tiene derecho al Acceso, Rectificación, Cancelación y Oposición de sus datos. Podrá solicitarlo enviando su requerimiento por escrito a <strong>soporte@alertavecinal.com</strong>, acreditando su identidad e indicando la placa del vehículo y fecha aproximada del registro.</p>
+          <p>El titular del vehículo tiene derecho al Acceso, Rectificación, Cancelación y Oposición de sus datos. Podrá
+            solicitarlo enviando su requerimiento por escrito a <strong>soporte@alertavecinal.com</strong>, acreditando
+            su identidad e indicando la placa del vehículo y fecha aproximada del registro.</p>
         </div>
 
       </div>
@@ -506,20 +581,26 @@
   </div>
 
   <!-- 🔒 SECURITY BLOCK / HARDENING SCREEN -->
-  <div class="security-block-screen" id="securityBlockScreen" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #0b0e14; z-index: 100000; align-items: center; justify-content: center; text-align: center; color: #ff6b6b; padding: 20px; flex-direction: column; gap: 16px;">
+  <div class="security-block-screen" id="securityBlockScreen"
+    style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #0b0e14; z-index: 100000; align-items: center; justify-content: center; text-align: center; color: #ff6b6b; padding: 20px; flex-direction: column; gap: 16px;">
     <div style="font-size: 4rem;">🔒</div>
     <h2 style="font-size: 1.8rem; font-weight: 800; color: #ff6b6b;">BLOQUEO DE SEGURIDAD</h2>
     <p style="color: #94a3b8; max-width: 450px; font-size: 0.95rem; line-height: 1.6;">
-      Se ha detectado una herramienta de desarrollo activa (DevTools/F12) o un intento de inspección de memoria en ejecución. Por seguridad de los datos de privacidad recopilados, el acceso ha sido revocado y la sesión activa destruida.
+      Se ha detectado una herramienta de desarrollo activa (DevTools/F12) o un intento de inspección de memoria en
+      ejecución. Por seguridad de los datos de privacidad recopilados, el acceso ha sido revocado y la sesión activa
+      destruida.
     </p>
-    <button class="btn" onclick="window.location.reload()" style="background: #ff6b6b; color: #0b0e14; font-weight: 700; margin-top: 12px;">Reintentar Conexión</button>
+    <button class="btn" onclick="window.location.reload()"
+      style="background: #ff6b6b; color: #0b0e14; font-weight: 700; margin-top: 12px;">Reintentar Conexión</button>
   </div>
 
   <!-- 💬 FLOATING TOAST NOTIFICATION -->
   <div id="toast-notification" role="status" aria-live="polite" aria-atomic="true">Notificación</div>
 
   <script src="app.js"></script>
-  <!-- ♿ Widget de Accesibilidad -->
+  <!-- ♿ Widget de Accesibilidad (Desactivado temporalmente para integrar UserWay)
   <script src="accessibility.js"></script>
+  -->
 </body>
+
 </html>
