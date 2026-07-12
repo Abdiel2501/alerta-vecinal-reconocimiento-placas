@@ -2,12 +2,11 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
-  <meta name="description" content="AlertaVecinal — Sistema de monitoreo inteligente de placas vehiculares para seguridad comunitaria.">
-  <meta name="theme-color" content="#07090d">
-  <title>AlertaVecinal — Monitoreo Inteligente</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>🛡️ AlertaVecinal Premium PWA</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0E121A">
   <!-- CryptoJS Library CDN for AES-256 local storage encryption -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js" integrity="sha512-E8QSvWZ0GE9L/YJ27zGVmUqHyCXD6DI1HBcPenJRHLhtxg3TXDx6cZTPcMvGdEhG0obmJsKmWPsnBatMYbY8Q==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <!-- Google Identity Services (GSI) Client Library for standard login -->
@@ -110,24 +109,23 @@
   </div>
 
   <!-- 🖥️ MAIN APPLICATION SHELL -->
-  <div id="app-layout" style="display: none;" role="application" aria-label="AlertaVecinal">
-    <header class="header" role="banner">
+  <div id="app-layout" style="display: none;">
+    <header class="header">
       <div class="brand-area">
         <h1 class="brand-title">🛡️ AlertaVecinal</h1>
-        <span class="badge-demo" id="demoBadge" role="status" aria-live="polite">MODO DEMO</span>
+        <span class="badge-demo" id="demoBadge">MODO DEMO</span>
       </div>
       
-      <nav class="nav-tabs" role="navigation" aria-label="Navegación principal">
-        <button class="tab-btn active" data-target="view-monitor" aria-selected="true" role="tab" aria-controls="view-monitor">📺 Monitor</button>
-        <button class="tab-btn" data-target="view-history" aria-selected="false" role="tab" aria-controls="view-history">📋 Historial</button>
-        <button class="tab-btn" data-target="view-settings" aria-selected="false" role="tab" aria-controls="view-settings">⚙️ Ajustes</button>
+      <nav class="nav-tabs">
+        <button class="tab-btn active" data-target="view-monitor">📺 Monitor</button>
+        <button class="tab-btn" data-target="view-history">📋 Historial</button>
+        <button class="tab-btn" data-target="view-settings">⚙️ Ajustes</button>
       </nav>
 
-      <div style="display:flex; align-items:center; gap:8px;">
-        <span id="recIndicator" role="status" aria-label="Grabando"></span>
-        <button id="themeToggleBtn" class="theme-toggle-btn" title="Cambiar tema" aria-label="Cambiar tema oscuro/claro">🌙</button>
-        <div class="status-indicator" role="status" aria-live="polite" aria-label="Estado de conexión">
-          <span class="dot" id="wsStatusDot" aria-hidden="true"></span>
+      <div style="display:flex; align-items:center; gap:16px;">
+        <button id="themeToggleBtn" class="theme-toggle-btn" title="Cambiar Tema">🌙</button>
+        <div class="status-indicator">
+          <span class="dot" id="wsStatusDot"></span>
           <span id="wsStatusText">Desconectado</span>
         </div>
       </div>
@@ -227,28 +225,28 @@
           </div>
 
           <!-- Camera Settings & Info Card -->
-          <div class="card" role="region" aria-label="Configuración de cámara">
+          <div class="card">
             <h2>Configuración de Cámara</h2>
             
             <div class="input-group">
-              <label>Cámara USB:</label>
-              <button id="listCamerasBtn" class="btn btn-secondary" aria-label="Escanear cámaras USB conectadas">🔍 Escanear Cámaras USB</button>
+              <label>Seleccionar Cámara USB:</label>
+              <button id="listCamerasBtn" class="btn btn-secondary">🔍 Escanear Cámaras USB</button>
             </div>
 
             <div class="input-group">
-              <label for="rtspUrl">Dirección RTSP / Cámara WiFi:</label>
+              <label for="rtspUrl">Cambiar dirección RTSP / Cámara WiFi:</label>
               <div class="input-with-action">
-                <input type="text" id="rtspUrl" placeholder="rtsp://usuario:pass@192.168.1.x:554/stream1" autocomplete="off" spellcheck="false">
-                <button id="applyRtspBtn" class="btn" aria-label="Aplicar nueva fuente de video">Aplicar</button>
+                <input type="text" id="rtspUrl" placeholder="rtsp://usuario:password@ip:554/stream1">
+                <button id="applyRtspBtn" class="btn">Aplicar</button>
               </div>
             </div>
 
             <div class="input-group">
-              <label for="activeCameraInfo">Fuente Activa:</label>
-              <input type="text" id="activeCameraInfo" readonly value="Ninguna cámara activa" aria-label="Fuente de video actualmente activa">
+              <label>Origen de Video Actual:</label>
+              <input type="text" id="activeCameraInfo" readonly value="Ninguna cámara activa" style="opacity: 0.8; font-size: 0.85rem;">
             </div>
 
-            <div id="videoMetaText" role="status" aria-live="polite" aria-label="Estadísticas de transmisión">
+            <div style="font-size: 0.85rem; color: var(--text-secondary); text-align: center;" id="videoMetaText">
               FPS de Servidor: 0.0 | Clientes: 0
             </div>
           </div>
@@ -256,19 +254,20 @@
       </section>
 
       <!-- 📋 HISTORY SECTION -->
-      <section id="view-history" class="view-section" role="tabpanel" aria-label="Historial de alertas">
+      <section id="view-history" class="view-section">
         <div class="card">
           <div class="history-controls">
             <h2>Historial de Alertas</h2>
             <div class="history-actions">
-              <button id="exportCsvBtn" class="btn btn-secondary" aria-label="Exportar historial a CSV">📥 Exportar CSV</button>
-              <button id="clearHistoryBtn" class="btn btn-secondary btn-alert" aria-label="Vaciar todos los registros">🗑️ Vaciar Logs</button>
+              <button id="exportCsvBtn" class="btn btn-secondary" title="Exportar historial a CSV">📥 Exportar CSV</button>
+              <button id="clearHistoryBtn" class="btn btn-secondary btn-alert">🗑️ Vaciar Logs</button>
             </div>
           </div>
           
-          <div class="history-filters" role="search" aria-label="Filtrar historial">
-            <input type="search" id="searchPlate" placeholder="Buscar por placa..." aria-label="Buscar placa en el historial">
-            <select id="filterStatus" aria-label="Filtrar por estado del vehículo">
+          <!-- Filtros e Historial -->
+          <div class="history-filters">
+            <input type="text" id="searchPlate" placeholder="🔍 Buscar por placa...">
+            <select id="filterStatus">
               <option value="all">Todos los vehículos</option>
               <option value="stolen">⚠️ Solo robados</option>
               <option value="authorized">✅ Solo autorizados</option>
@@ -276,74 +275,76 @@
           </div>
           
           <!-- Desktop Table View -->
-          <div class="history-table-wrapper" role="region" aria-label="Tabla de historial">
-            <table class="history-table" aria-live="polite">
+          <div class="history-table-wrapper">
+            <table class="history-table">
               <thead>
                 <tr>
-                  <th scope="col">Placa</th>
-                  <th scope="col">Estado</th>
-                  <th scope="col">Modelo y Color</th>
-                  <th scope="col">Propietario</th>
-                  <th scope="col">Fecha y Hora</th>
+                  <th>Placa</th>
+                  <th>Estado</th>
+                  <th>Modelo y Color</th>
+                  <th>Propietario</th>
+                  <th>Fecha y Hora</th>
                 </tr>
               </thead>
-              <tbody id="historyTableBody" aria-live="polite">
+              <tbody id="historyTableBody">
                 <!-- Inyectado dinámicamente -->
               </tbody>
             </table>
           </div>
 
           <!-- Mobile Cards View -->
-          <div class="mobile-history-list" id="mobileHistoryList" aria-live="polite">
+          <div class="mobile-history-list" id="mobileHistoryList">
             <!-- Inyectado dinámicamente -->
           </div>
         </div>
       </section>
 
       <!-- ⚙️ SETTINGS SECTION -->
-      <section id="view-settings" class="view-section" role="tabpanel" aria-label="Configuración">
-        <div class="card" role="region" aria-label="Conexión al servidor">
+      <section id="view-settings" class="view-section">
+        <div class="card">
           <h2>Conexión Servidor Backend</h2>
           
           <div class="input-group">
-            <label for="serverIp">Dirección IP del Servidor</label>
-            <input type="text" id="serverIp" value="127.0.0.1" placeholder="Ej: 192.168.1.72 o 35.252.x.x" autocomplete="off" spellcheck="false">
+            <label for="serverIp">Dirección IP del Servidor:</label>
+            <input type="text" id="serverIp" value="127.0.0.1" placeholder="Ej: 192.168.1.72">
           </div>
 
           <div class="input-group">
-            <label for="serverPort">Puerto WebSocket</label>
-            <input type="number" id="serverPort" value="8765" placeholder="8765" min="1" max="65535">
+            <label for="serverPort">Puerto WebSocket:</label>
+            <input type="number" id="serverPort" value="8765" placeholder="8765">
           </div>
 
-          <button id="connectBtn" class="btn" aria-live="polite">Conectar</button>
+          <button id="connectBtn" class="btn">Conectar</button>
         </div>
 
-        <div class="card" role="region" aria-label="Modo demostración">
-          <h2>Módulo de Demostración</h2>
+
+
+        <div class="card">
+          <h2>Módulo de Demostración (Offline)</h2>
           <div class="toggle-wrapper">
             <div>
-              <p style="font-size: 0.95rem; font-weight: 700; color: var(--text-hi);">Modo Demo (Offline)</p>
-              <p style="font-size: 0.82rem; color: var(--text-md); margin-top: 2px;">Simular flujo completo con radar y alertas ficticias</p>
+              <h3 style="font-size: 1rem; font-weight: 700;">Modo Demo</h3>
+              <p style="font-size: 0.85rem; color: var(--text-secondary);">Simular flujo completo con radar y alertas ficticias</p>
             </div>
-            <label class="switch" aria-label="Activar modo demostración">
+            <label class="switch">
               <input type="checkbox" id="demoModeToggle">
               <span class="slider"></span>
             </label>
           </div>
-          <button id="triggerDemoAlertBtn" class="btn btn-secondary" style="display: none;" aria-label="Simular una alerta crítica de prueba">🚨 Simular Alerta Crítica</button>
+          <button id="triggerDemoAlertBtn" class="btn btn-secondary" style="display: none;">🚨 Simular Alerta Crítica</button>
         </div>
 
-        <!-- Google User profile -->
-        <div class="card" id="googleProfileCard" style="display: none;" role="region" aria-label="Perfil de usuario">
-          <h2>Perfil de Usuario</h2>
+        <!-- Google User profile mock -->
+        <div class="card" id="googleProfileCard" style="display: none;">
+          <h2>Perfil de Usuario (Google)</h2>
           <div style="display:flex; align-items:center; gap:16px;">
-            <div style="width:48px; height:48px; border-radius:50%; background:var(--primary); display:flex; align-items:center; justify-content:center; font-size:1.3rem; color:#fff; font-weight:800; flex-shrink:0;" id="userInitial" aria-hidden="true">G</div>
-            <div style="overflow:hidden;">
-              <p id="profileName" style="font-size:0.95rem; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Usuario</p>
-              <p id="profileEmail" style="font-size:0.8rem; color:var(--text-md); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">usuario@gmail.com</p>
+            <div style="width: 48px; height: 48px; border-radius: 50%; background-color: var(--primary-color); display:flex; align-items:center; justify-content:center; font-size:1.5rem; color:#fff;" id="userInitial">G</div>
+            <div>
+              <h3 id="profileName" style="font-size:1rem; font-weight:700;">Usuario Google</h3>
+              <p id="profileEmail" style="font-size:0.85rem; color:var(--text-secondary);">usuario@gmail.com</p>
             </div>
           </div>
-          <button id="logoutBtn" class="btn btn-alert" aria-label="Cerrar sesión de la cuenta">Cerrar Sesión</button>
+          <button id="logoutBtn" class="btn btn-secondary btn-alert" style="margin-top: 12px;">Cerrar Sesión</button>
         </div>
       </section>
     </main>
