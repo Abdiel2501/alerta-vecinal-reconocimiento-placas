@@ -11,6 +11,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
+  // --- 🔒 HELPER: HASH PASSWORD (SHA256 with fallback if CryptoJS is blocked by Brave Shield) ---
+  function hashPassword(password) {
+    try {
+      if (typeof CryptoJS !== 'undefined' && CryptoJS.SHA256) {
+        return CryptoJS.SHA256(password).toString();
+      }
+    } catch (e) {
+      console.warn("CryptoJS SHA256 no disponible, usando fallback:", e);
+    }
+    return 'fb_' + btoa(unescape(encodeURIComponent(password)));
+  }
+
   // DOM Elements - Navigation & Shells
   const splashScreen = document.getElementById('splash-screen');
   const loginScreen = document.getElementById('login-screen');
@@ -392,13 +404,13 @@ document.addEventListener('DOMContentLoaded', () => {
     toRegisterBtn.addEventListener('click', (e) => {
       e.preventDefault();
       authLoginForm.style.display = 'none';
-      authRegisterForm.style.display = 'block';
+      authRegisterForm.style.display = 'flex';
     });
 
     toLoginBtn.addEventListener('click', (e) => {
       e.preventDefault();
       authRegisterForm.style.display = 'none';
-      authLoginForm.style.display = 'block';
+      authLoginForm.style.display = 'flex';
     });
   }
 
@@ -419,7 +431,14 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      const registeredUsers = JSON.parse(localStorage.getItem('registered_users') || '[]');
+      let registeredUsers = [];
+      try {
+        registeredUsers = JSON.parse(localStorage.getItem('registered_users') || '[]');
+        if (!Array.isArray(registeredUsers)) registeredUsers = [];
+      } catch (err) {
+        registeredUsers = [];
+      }
+
       const userExists = registeredUsers.some(u => u.email.toLowerCase() === email.toLowerCase());
       if (userExists) {
         alert('Este correo ya está registrado.');
@@ -427,7 +446,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       // Hashing de contraseña (SHA256) antes de persistir
-      const hashedPassword = CryptoJS.SHA256(password).toString();
+      const hashedPassword = hashPassword(password);
 
       registeredUsers.push({
         name: name,
@@ -442,7 +461,7 @@ document.addEventListener('DOMContentLoaded', () => {
       registerEmail.value = '';
       registerPassword.value = '';
       authRegisterForm.style.display = 'none';
-      authLoginForm.style.display = 'block';
+      authLoginForm.style.display = 'flex';
 
       loginEmail.value = email;
       loginPassword.value = '';
@@ -465,11 +484,18 @@ document.addEventListener('DOMContentLoaded', () => {
         provider: 'credentials'
       };
     } else {
-      const registeredUsers = JSON.parse(localStorage.getItem('registered_users') || '[]');
+      let registeredUsers = [];
+      try {
+        registeredUsers = JSON.parse(localStorage.getItem('registered_users') || '[]');
+        if (!Array.isArray(registeredUsers)) registeredUsers = [];
+      } catch (err) {
+        registeredUsers = [];
+      }
+
       const user = registeredUsers.find(u => u.email.toLowerCase() === email.toLowerCase());
       
       if (user) {
-        const inputPasswordHash = CryptoJS.SHA256(password).toString();
+        const inputPasswordHash = hashPassword(password);
         if (user.passwordHash === inputPasswordHash) {
           authenticatedUser = {
             name: user.name,
