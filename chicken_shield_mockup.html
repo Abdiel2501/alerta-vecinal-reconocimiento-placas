@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Logo Animado: Pollo Guardián - AlertaVecinal</title>
+  <style>
+    :root {
+      --bg-color: #05070f;
+      --neon-blue: #00f0ff;
+      --neon-glow: rgba(0, 240, 255, 0.4);
+      --gold: #ffb700;
+      --gold-glow: rgba(255, 183, 0, 0.3);
+      --font-main: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: #fff;
+      font-family: var(--font-main);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+      overflow: hidden;
+    }
+
+    /* Grid de fondo */
+    .grid {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: 
+        radial-gradient(circle at 50% 50%, rgba(10, 15, 30, 0.3) 0%, var(--bg-color) 80%),
+        linear-gradient(rgba(0, 240, 255, 0.01) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 240, 255, 0.01) 1px, transparent 1px);
+      background-size: 100% 100%, 30px 30px, 30px 30px;
+      z-index: 1;
+    }
+
+    .container {
+      text-align: center;
+      z-index: 10;
+    }
+
+    /* 🌀 CONTENEDOR PRINCIPAL */
+    .logo-container {
+      position: relative;
+      width: 240px;
+      height: 240px;
+      margin: 0 auto 24px auto;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    /* Anillos HUD circundantes */
+    .hud-ring {
+      position: absolute;
+      border-radius: 50%;
+      border: 1.5px dashed rgba(0, 240, 255, 0.08);
+      pointer-events: none;
+    }
+    .hud-outer {
+      width: 220px;
+      height: 220px;
+      border-top-color: var(--neon-blue);
+      border-bottom-color: var(--neon-blue);
+      animation: rotate-cw 25s linear infinite;
+    }
+    .hud-inner {
+      width: 190px;
+      height: 190px;
+      border: 1px double rgba(255, 183, 0, 0.15);
+      border-left-color: var(--gold);
+      border-right-color: var(--gold);
+      animation: rotate-ccw 15s linear infinite;
+    }
+
+    /* Logo Central SVG */
+    .logo-svg {
+      width: 150px;
+      height: 150px;
+      filter: drop-shadow(0 0 15px rgba(0, 240, 255, 0.25));
+      animation: float-logo 3.5s ease-in-out infinite;
+      z-index: 2;
+    }
+
+    /* ── ANIMACIONES DE SUB-ELEMENTOS ── */
+
+    /* Escaneo de línea láser dorada */
+    .laser-line {
+      position: absolute;
+      width: 160px;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--gold), transparent);
+      box-shadow: 0 0 8px var(--gold);
+      z-index: 3;
+      pointer-events: none;
+      animation: scan-vertical 3s ease-in-out infinite;
+    }
+
+    /* Parpadeo de ojos tecnológicos */
+    .tech-eye {
+      transform-origin: center;
+      animation: blink-eye 4s infinite;
+    }
+
+    /* Respiración de la cresta del pollo */
+    .tech-crest {
+      animation: pulse-crest 1.8s ease-in-out infinite alternate;
+    }
+
+    /* Títulos */
+    .title {
+      font-size: 2.3rem;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      background: linear-gradient(135deg, #ffffff 40%, var(--neon-blue) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin: 0 0 8px 0;
+    }
+
+    .subtitle {
+      font-size: 0.95rem;
+      color: #64748b;
+      max-width: 340px;
+      line-height: 1.5;
+      margin: 0;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+
+    /* ── KEYFRAMES ANIMACIONES ── */
+    @keyframes float-logo {
+      0% { transform: translateY(0px) scale(0.98); }
+      50% { transform: translateY(-10px) scale(1.02); }
+      100% { transform: translateY(0px) scale(0.98); }
+    }
+
+    @keyframes rotate-cw {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    @keyframes rotate-ccw {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(-360deg); }
+    }
+
+    @keyframes scan-vertical {
+      0% { top: 40px; opacity: 0; }
+      10% { opacity: 1; }
+      90% { opacity: 1; }
+      100% { top: 200px; opacity: 0; }
+    }
+
+    @keyframes blink-eye {
+      0%, 90%, 100% { transform: scaleY(1); opacity: 1; }
+      95% { transform: scaleY(0.1); opacity: 0.5; }
+    }
+
+    @keyframes pulse-crest {
+      0% {
+        fill: #1e293b;
+        filter: drop-shadow(0 0 0px transparent);
+      }
+      100% {
+        fill: var(--gold);
+        filter: drop-shadow(0 0 8px var(--gold-glow));
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="grid"></div>
+
+  <div class="container">
+    <div class="logo-container">
+      <div class="hud-ring hud-outer"></div>
+      <div class="hud-ring hud-inner"></div>
+      
+      <!-- Láser de Escaneo -->
+      <div class="laser-line"></div>
+
+      <!-- SVG Logo Minimalista Geométrico -->
+      <svg class="logo-svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <!-- Degradados del Escudo (Neon Blue y Slate) -->
+          <linearGradient id="shieldBorder" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#00f0ff" />
+            <stop offset="100%" stop-color="#0072ff" />
+          </linearGradient>
+          
+          <linearGradient id="shieldBg" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#0e1324" />
+            <stop offset="100%" stop-color="#05070f" />
+          </linearGradient>
+
+          <!-- Degradados Dorados del Pollo -->
+          <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#ffe082" />
+            <stop offset="50%" stop-color="#ffb700" />
+            <stop offset="100%" stop-color="#ff8f00" />
+          </linearGradient>
+        </defs>
+
+        <!-- 🛡️ ESCUDO EXTERIOR GEOMÉTRICO (Silueta del pollo integrada) -->
+        <!-- Path de un escudo afilado con vértices limpios -->
+        <path d="M50 8 L85 20 C85 55, 75 80, 50 94 C25 80, 15 55, 15 20 Z" fill="url(#shieldBg)" stroke="url(#shieldBorder)" stroke-width="3" stroke-linejoin="round" />
+        
+        <!-- Línea interna de relieve -->
+        <path d="M50 14 L79 24 C79 53, 70 75, 50 87 C30 75, 21 53, 21 24 Z" fill="none" stroke="rgba(0, 240, 255, 0.12)" stroke-width="1.5" />
+
+        <!-- 🐔 DISEÑO DEL POLLO INTEGRADO -->
+        <!-- Cresta Superior Geométrica (Tres picos afilados en oro) -->
+        <g class="tech-crest">
+          <polygon points="43,26 50,15 57,26" />
+          <polygon points="34,31 41,20 46,31" />
+          <polygon points="54,31 59,20 66,31" />
+        </g>
+
+        <!-- Cabeza / Máscara del Pollo (Silueta en oro/plata) -->
+        <!-- Ojo izquierdo -->
+        <polygon points="32,46 45,46 41,52 34,52" fill="url(#goldGrad)" opacity="0.9" />
+        <!-- Ojo derecho -->
+        <polygon points="68,46 55,46 59,52 66,52" fill="url(#goldGrad)" opacity="0.9" />
+
+        <!-- Ojos Brillantes (Pupilas rectangulares cian) -->
+        <rect class="tech-eye" x="37" y="48" width="4" height="2" fill="#00f0ff" rx="0.5" />
+        <rect class="tech-eye" x="59" y="48" width="4" height="2" fill="#00f0ff" rx="0.5" />
+
+        <!-- Pico Angular Grande (Estructura de diamante en oro) -->
+        <polygon points="50,48 40,60 50,72" fill="url(#goldGrad)" />
+        <polygon points="50,48 60,60 50,72" fill="url(#goldGrad)" opacity="0.85" />
+        <polygon points="50,56 43,60 50,64" fill="#ffffff" opacity="0.2" />
+
+        <!-- Detalles del plumaje del cuello (Triángulos invertidos) -->
+        <polygon points="50,78 45,84 55,84" fill="url(#shieldBorder)" opacity="0.3" />
+        <polygon points="40,74 36,80 44,80" fill="url(#shieldBorder)" opacity="0.15" />
+        <polygon points="60,74 56,80 64,80" fill="url(#shieldBorder)" opacity="0.15" />
+      </svg>
+    </div>
+
+    <h1 class="title">AlertaVecinal</h1>
+    <p class="subtitle">Módulo de Seguridad Guardián</p>
+  </div>
+
+</body>
+</html>

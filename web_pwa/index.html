@@ -24,27 +24,24 @@
 
   <!-- 🌀 SPLASH SCREEN -->
   <div id="splash-screen">
-    <!-- Contenedor del Logo de Cámara Animado (Reemplaza al escudo emoji) -->
-    <div class="splash-camera-container">
-      <div class="splash-hud-circle splash-hud-outer"></div>
-      <div class="splash-hud-circle splash-hud-mid"></div>
-      <div class="splash-hud-circle splash-hud-inner"></div>
-      <div class="splash-bracket"></div>
-      <div class="splash-scanning-beam">
-        <div class="splash-laser-line"></div>
-      </div>
-      <div class="splash-camera-wrapper">
-        <div class="splash-warning-ring"></div>
-        <div class="splash-camera-body">
-          <div class="splash-lens-aperture">
-            <div class="splash-lens-core">
-              <div class="splash-camera-led"></div>
-            </div>
-          </div>
-        </div>
-      </div>
+
+    <!-- Anillos HUD giratorios de fondo -->
+    <div class="splash-hud-ring splash-ring-outer"></div>
+    <div class="splash-hud-ring splash-ring-mid"></div>
+
+    <!-- Halo de brillo pulsante detrás de la imagen -->
+    <div class="splash-glow-halo"></div>
+
+    <!-- Láser de escaneo que cruza la imagen -->
+    <div class="splash-scanline"></div>
+
+    <!-- Logo principal (imagen generada) -->
+    <div class="splash-logo-wrapper">
+      <img src="img/shield_camera_logo.png" alt="AlertaVecinal Logo" class="splash-logo-img" />
+      <!-- LED rojo pulsante superpuesto sobre el lente de la cámara en la imagen -->
+      <div class="splash-led-dot"></div>
     </div>
-    
+
     <div class="splash-title">AlertaVecinal</div>
     <div class="splash-loader">
       <div class="splash-bar"></div>
