@@ -82,7 +82,7 @@ modelo_placas_global = YOLO(resource_path("runs/detect/license_plate_detector/we
 
 print("⚡ Inicializando PaddleOCR...")
 try:
-    reader_ocr_global = PaddleOCR(use_angle_cls=False, lang='en', use_gpu=usar_gpu, show_log=False)
+    reader_ocr_global = PaddleOCR(use_angle_cls=False, lang='en')
 except Exception as e:
     print(f"❌ Error al inicializar PaddleOCR: {e}")
     sys.exit(1)
@@ -124,6 +124,14 @@ FUENTE_PESO = {
     'Gemini': 3.0,
     'Local' : 1.0,
 }
+
+# Colores globales para OpenCV
+ROJO    = (0, 0, 255)
+VERDE   = (0, 200, 50)
+NARANJA = (0, 130, 255)
+AMARILLO= (0, 220, 255)
+NEGRO   = (0, 0, 0)
+BLANCO  = (255, 255, 255)
 
 # ─── Clase PipelineUsuario (Multi-tenant AI Engine) ───────────────────────────
 
