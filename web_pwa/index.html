@@ -318,6 +318,8 @@
           <button id="connectBtn" class="btn">Conectar</button>
         </div>
 
+
+
         <div class="card">
           <h2>Módulo de Demostración (Offline)</h2>
           <div class="toggle-wrapper">
@@ -331,61 +333,6 @@
             </label>
           </div>
           <button id="triggerDemoAlertBtn" class="btn btn-secondary" style="display: none;">🚨 Simular Alerta Crítica</button>
-        </div>
-
-        <!-- 🔊 CONFIGURACIÓN DE NOTIFICACIONES Y ALERTAS -->
-        <div class="card">
-          <h2>Configuración de Alertas & Notificaciones</h2>
-          
-          <div class="toggle-wrapper" style="margin-bottom: 12px;">
-            <div>
-              <h3 style="font-size: 1rem; font-weight: 700;">Alerta Sonora Crítica</h3>
-              <p style="font-size: 0.85rem; color: var(--text-secondary);">Reproducir sonido estridente continuo al detectar auto robado</p>
-            </div>
-            <label class="switch">
-              <input type="checkbox" id="soundAlertToggle" checked>
-              <span class="slider"></span>
-            </label>
-          </div>
-
-          <div class="toggle-wrapper" style="margin-bottom: 12px;">
-            <div>
-              <h3 style="font-size: 1rem; font-weight: 700;">Notificaciones Push del Navegador</h3>
-              <p style="font-size: 0.85rem; color: var(--text-secondary);">Enviar notificaciones del sistema en segundo plano</p>
-            </div>
-            <label class="switch">
-              <input type="checkbox" id="pushNotificationsToggle">
-              <span class="slider"></span>
-            </label>
-          </div>
-
-          <div class="input-group">
-            <label for="telegramChatId">ID de Chat de Telegram (Alertas):</label>
-            <input type="text" id="telegramChatId" placeholder="Ej: -100123456789" style="margin-bottom: 8px;">
-          </div>
-          
-          <button id="saveNotificationSettingsBtn" class="btn btn-secondary">Guardar Ajustes de Notificación</button>
-        </div>
-
-        <!-- 🩺 DIAGNÓSTICO Y ESTADO DE RED -->
-        <div class="card">
-          <h2>Diagnóstico & Estado del Sistema</h2>
-          
-          <div style="display: flex; flex-direction: column; gap: 8px; font-size: 0.85rem; color: var(--text-secondary);">
-            <div style="display: flex; justify-content: space-between;">
-              <span>Latencia del WebSocket:</span>
-              <span id="diagLatency" style="font-weight: 700; color: var(--text-primary);">-- ms</span>
-            </div>
-            <div style="display: flex; justify-content: space-between;">
-              <span>Uso de memoria local:</span>
-              <span id="diagStorage" style="font-weight: 700; color: var(--text-primary);">-- KB</span>
-            </div>
-            <div style="display: flex; justify-content: space-between;">
-              <span>Estado del Service Worker:</span>
-              <span id="diagSW" style="font-weight: 700; color: var(--success-color);">Buscando...</span>
-            </div>
-          </div>
-          <button id="clearCacheBtn" class="btn btn-secondary" style="margin-top: 10px;">Limpiar Caché PWA</button>
         </div>
 
         <!-- Google User profile mock -->

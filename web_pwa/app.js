@@ -1336,8 +1336,13 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!wsUrl.endsWith('/ws')) {
         wsUrl = wsUrl.replace(/\/?$/, '/ws');
       }
+    } else {
       // Es una IP o un dominio sin protocolo
-      let protocol = isHttpsPage ? 'wss' : 'ws';
+      let protocol = 'ws';
+      const isLocal = ip === 'localhost' || ip === '127.0.0.1' || ip.startsWith('192.168.') || ip.startsWith('10.') || ip.startsWith('172.');
+      if (isHttpsPage || !isLocal) {
+        protocol = 'wss';
+      }
       
       const isDomain = ip.includes('.') && !/^[0-9.]+$/.test(ip) && ip !== 'localhost';
       
@@ -1949,88 +1954,4 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Escuchar redimensiones para detectar si abren la consola
   window.addEventListener('resize', checkWindowDimensions);
-
-  // ─── INTEGRACIÓN DE NUEVOS AJUSTES AVANZADOS ───
-  const soundAlertToggle = document.getElementById('soundAlertToggle');
-  const pushNotificationsToggle = document.getElementById('pushNotificationsToggle');
-  const telegramChatIdInput = document.getElementById('telegramChatId');
-  const saveNotificationSettingsBtn = document.getElementById('saveNotificationSettingsBtn');
-  const clearCacheBtn = document.getElementById('clearCacheBtn');
-  const diagLatency = document.getElementById('diagLatency');
-  const diagStorage = document.getElementById('diagStorage');
-  const diagSW = document.getElementById('diagSW');
-
-  // Cargar estado inicial de los toggles de notificaciones
-  soundAlertToggle.checked = localStorage.getItem('soundAlertEnabled') !== 'false';
-  pushNotificationsToggle.checked = Notification.permission === 'granted';
-
-  // Guardar ID del chat de Telegram y configuración
-  if (saveNotificationSettingsBtn) {
-    saveNotificationSettingsBtn.addEventListener('click', () => {
-      localStorage.setItem('soundAlertEnabled', soundAlertToggle.checked);
-      if (telegramChatIdInput && ws && ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({
-          "cmd": "save_telegram_config",
-          "chat_id": telegramChatIdInput.value.trim()
-        }));
-      }
-      showToast('Configuración de alertas guardada localmente');
-    });
-  }
-
-  // Permisos para notificaciones push
-  if (pushNotificationsToggle) {
-    pushNotificationsToggle.addEventListener('change', () => {
-      if (pushNotificationsToggle.checked) {
-        Notification.requestPermission().then(permission => {
-          pushNotificationsToggle.checked = (permission === 'granted');
-        });
-      }
-    });
-  }
-
-  // Limpiar caché de la PWA
-  if (clearCacheBtn) {
-    clearCacheBtn.addEventListener('click', () => {
-      if ('caches' in window) {
-        caches.keys().then(names => {
-          for (let name of names) caches.delete(name);
-        });
-        showToast('Caché PWA limpiado. Reiniciando...');
-        setTimeout(() => window.location.reload(), 1500);
-      }
-    });
-  }
-
-  // Diagnósticos periódicos de latencia, memoria y service worker
-  setInterval(() => {
-    // Latencia simulada si es offline, real si ws está conectado
-    if (ws && ws.readyState === WebSocket.OPEN) {
-      const start = Date.now();
-      ws.send(JSON.stringify({ "cmd": "ping" }));
-      // Medición aproximada de latencia de red
-      diagLatency.textContent = (Math.floor(Math.random() * 20) + 5) + ' ms';
-    } else {
-      diagLatency.textContent = 'Desconectado';
-    }
-
-    // Calcular tamaño aproximado del LocalStorage
-    let totalBytes = 0;
-    for (let key in localStorage) {
-      if (localStorage.hasOwnProperty(key)) {
-        totalBytes += (localStorage[key].length + key.length) * 2;
-      }
-    }
-    diagStorage.textContent = (totalBytes / 1024).toFixed(2) + ' KB';
-
-    // Estado del service worker
-    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-      diagSW.textContent = 'Activo / Controlado';
-      diagSW.style.color = 'var(--success-color)';
-    } else {
-      diagSW.textContent = 'No registrado';
-      diagSW.style.color = 'var(--alert-color)';
-    }
-  }, 4000);
 });
-
