@@ -846,7 +846,6 @@ def bucle_inteligencia_artificial():
     print("🤖 Cargando modelos de IA...")
     modelo_vehiculos = YOLO(resource_path("yolo11n.pt"))
     modelo_placas    = YOLO(resource_path("runs/detect/license_plate_detector/weights/best.pt"))
-    detector_rostros = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
 
     usar_gpu = torch.cuda.is_available()
     print(f"⚡ GPU para OCR: {'Sí (CUDA)' if usar_gpu else 'No (CPU)'}")
@@ -913,25 +912,6 @@ def bucle_inteligencia_artificial():
                 time.sleep(0.05)
                 continue
 
-            # Aplicar desenfoque de caras (Haar Cascade) en cada frame para máxima fluidez y privacidad
-            try:
-                gris = cv2.cvtColor(fotograma, cv2.COLOR_BGR2GRAY)
-                rostros = detector_rostros.detectMultiScale(gris, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
-                for (rx, ry, rw, rh) in rostros:
-                    h_img, w_img = fotograma.shape[:2]
-                    padding_w = int(rw * 0.15)
-                    padding_h = int(rh * 0.20)
-                    fx1 = max(0, rx - padding_w)
-                    fy1 = max(0, ry - padding_h)
-                    fx2 = min(w_img, rx + rw + padding_w)
-                    fy2 = min(h_img, ry + rh + padding_h)
-                    if fx2 > fx1 and fy2 > fy1:
-                        roi_cara = fotograma[fy1:fy2, fx1:fx2]
-                        blurred_face = cv2.GaussianBlur(roi_cara, (99, 99), 30)
-                        fotograma[fy1:fy2, fx1:fx2] = blurred_face
-            except Exception:
-                pass
-
             conteo_fotogramas += 1
 
             # ── PIPELINE CLÁSICO: Vehicle YOLO → recorte → Plate YOLO → OCR ──────
@@ -939,7 +919,7 @@ def bucle_inteligencia_artificial():
             if conteo_fotogramas % intervalo_salto == 0:
                 try:
                     resultados_v = modelo_vehiculos.track(
-                        fotograma, persist=True, classes=[0, 2, 3, 5, 7], verbose=False
+                        fotograma, persist=True, classes=[0, 2, 3, 5, 7], conf=0.15, verbose=False
                     )
                     if resultados_v and resultados_v[0].boxes.id is not None:
                         cajas_det       = resultados_v[0].boxes.xyxy.int().cpu().tolist()
