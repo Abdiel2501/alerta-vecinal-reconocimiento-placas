@@ -126,6 +126,7 @@ class EstadoServidor:
 
         # Datos compartidos para el hilo de streaming a 60 FPS
         self.ultimas_cajas = []
+        self.ultimas_cajas_personas = []
         self.ultimos_ids_rastreo = []
         self.ultimas_confianzas = []
         self.cache_placas = {}
@@ -945,6 +946,7 @@ def bucle_inteligencia_artificial():
 
                 # Filtrar listas para excluir personas del pipeline de vehículos y OCR
                 ultimas_cajas = []
+                ultimas_cajas_personas = []
                 ultimos_ids_rastreo = []
                 ultimas_confianzas = []
                 for box_v, id_rastreo, conf_v, cls_v in zip(cajas_det, ids_rastreo_det, confianzas_det, clases_det):
@@ -952,10 +954,13 @@ def bucle_inteligencia_artificial():
                         ultimas_cajas.append(box_v)
                         ultimos_ids_rastreo.append(id_rastreo)
                         ultimas_confianzas.append(conf_v)
+                    else:
+                        ultimas_cajas_personas.append(box_v)
 
                 with estado.bloqueo_fotograma:
                     estado.fotograma_crudo = fotograma.copy()
                     estado.ultimas_cajas = ultimas_cajas
+                    estado.ultimas_cajas_personas = ultimas_cajas_personas
                     estado.ultimos_ids_rastreo = ultimos_ids_rastreo
                     estado.ultimas_confianzas = ultimas_confianzas
             else:
@@ -1281,11 +1286,23 @@ def trabajador_transmision():
                     
                     with estado.bloqueo_fotograma:
                         boxes = list(estado.ultimas_cajas)
+                        cajas_personas = list(estado.ultimas_cajas_personas) if hasattr(estado, 'ultimas_cajas_personas') else []
                         ids_rastreo = list(estado.ultimos_ids_rastreo)
                         confianzas = list(estado.ultimas_confianzas)
                         copia_cache = dict(estado.cache_placas)
                         copia_intentos = dict(estado.intentos_ocr)
                         conteo_f = estado.conteo_fotogramas
+
+                    # Aplicar desenfoque de privacidad a todas las personas en el frame antes de enviar
+                    for box_p in cajas_personas:
+                        px1, py1, px2, py2 = box_p
+                        h_img, w_img = fotograma.shape[:2]
+                        px1, py1 = max(0, px1), max(0, py1)
+                        px2, py2 = min(w_img, px2), min(h_img, py2)
+                        if px2 > px1 and py2 > py1:
+                            roi_persona = fotograma[py1:py2, px1:px2]
+                            blurred = cv2.GaussianBlur(roi_persona, (99, 99), 30)
+                            fotograma[py1:py2, px1:px2] = blurred
 
                     # Dibujar IA — anotaciones de vehículos trackeados
                     for box, id_rastreo, conf_vehiculo in zip(boxes, ids_rastreo, confianzas):

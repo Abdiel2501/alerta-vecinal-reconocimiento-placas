@@ -167,6 +167,7 @@ class UserPipeline:
         
         # Detecciones para visualización en tiempo real
         self.ultimas_cajas = []
+        self.ultimas_cajas_personas = []
         self.ultimos_ids_rastreo = []
         self.ultimas_confianzas = []
         self.cache_placas = {}
@@ -293,6 +294,7 @@ class UserPipeline:
                 # Filtrar listas para excluir personas del pipeline de vehículos y OCR
                 ids_vistos = set()
                 ultimas_cajas = []
+                ultimas_cajas_personas = []
                 ultimos_ids_rastreo = []
                 ultimas_confianzas = []
                 for box_v, id_rastreo, conf_v, cls_v in zip(cajas_det, ids_rastreo_det, confianzas_det, clases_det):
@@ -300,9 +302,15 @@ class UserPipeline:
                         ultimas_cajas.append(box_v)
                         ultimos_ids_rastreo.append(id_rastreo)
                         ultimas_confianzas.append(conf_v)
+                    else:
+                        ultimas_cajas_personas.append(box_v)
 
                 with self.bloqueo_fotograma:
                     self.fotograma_crudo = fotograma.copy()
+                    self.ultimas_cajas = ultimas_cajas
+                    self.ultimas_cajas_personas = ultimas_cajas_personas
+                    self.ultimos_ids_rastreo = ultimos_ids_rastreo
+                    self.ultimas_confianzas = ultimas_confianzas
 
                     for box, track_id, conf_v in zip(ultimas_cajas, ultimos_ids_rastreo, ultimas_confianzas):
                         if conf_v < 0.35: continue
@@ -571,10 +579,22 @@ class UserPipeline:
                         fotograma = fotograma_crudo.copy()
                         with self.bloqueo_fotograma:
                             boxes       = list(self.ultimas_cajas)
+                            cajas_personas = list(self.ultimas_cajas_personas) if hasattr(self, 'ultimas_cajas_personas') else []
                             ids_rastreo = list(self.ultimos_ids_rastreo)
                             confianzas  = list(self.ultimas_confianzas)
                             copia_cache = {tid: dict(info) for tid, info in self.cache_placas.items()}
                             conteo_f    = self.conteo_fotogramas
+
+                        # Aplicar desenfoque de privacidad a todas las personas en el frame antes de enviar
+                        for box_p in cajas_personas:
+                            px1, py1, px2, py2 = box_p
+                            h_img, w_img = fotograma.shape[:2]
+                            px1, py1 = max(0, px1), max(0, py1)
+                            px2, py2 = min(w_img, px2), min(h_img, py2)
+                            if px2 > px1 and py2 > py1:
+                                roi_persona = fotograma[py1:py2, px1:px2]
+                                blurred = cv2.GaussianBlur(roi_persona, (99, 99), 30)
+                                fotograma[py1:py2, px1:px2] = blurred
 
                         for box, id_rastreo, conf_v in zip(boxes, ids_rastreo, confianzas):
                             if conf_v < 0.35: continue
