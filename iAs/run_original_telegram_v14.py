@@ -890,23 +890,39 @@ class DeteccionOCRWorker:
 def main():
     import subprocess
     import os
+    import argparse
+
+    parser = argparse.ArgumentParser(description="AlertaVecinal V14 — Local GUI Preview")
+    parser.add_argument('--video', type=str, default=None, help='Forzar origen de video (ej: 0 para webcam integrada, 1 o stream RTSP)')
+    args = parser.parse_args()
+
     ip_cam = "169.254.223.11"
     video_path = 0
-    print("Buscando cámara IP...")
-    try:
-        if os.name == 'nt':
-            res = subprocess.run(["ping", "-n", "1", "-w", "500", ip_cam], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        else:
-            res = subprocess.run(["ping", "-c", "1", "-W", "1", ip_cam], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            
-        if res.returncode == 0:
-            print(f"✅ Cámara IP conectada ({ip_cam}). Usando flujo de red.")
-            video_path = f"rtsp://admin:admin@{ip_cam}:554/live/ch0"
+
+    if args.video is not None:
+        try:
+            video_path = int(args.video)
+        except ValueError:
+            video_path = args.video
+        print(f"🔌 Origen de video forzado por parámetro: {video_path}")
+        if isinstance(video_path, str) and video_path.startswith("rtsp://"):
             os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "rtsp_transport;tcp"
-        else:
-            print("⚠️ Cámara IP no encontrada. Usando Webcam (0)...")
-    except:
-        pass
+    else:
+        print("Buscando cámara IP...")
+        try:
+            if os.name == 'nt':
+                res = subprocess.run(["ping", "-n", "1", "-w", "500", ip_cam], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            else:
+                res = subprocess.run(["ping", "-c", "1", "-W", "1", ip_cam], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                
+            if res.returncode == 0:
+                print(f"✅ Cámara IP conectada ({ip_cam}). Usando flujo de red.")
+                video_path = f"rtsp://admin:admin@{ip_cam}:554/live/ch0"
+                os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "rtsp_transport;tcp"
+            else:
+                print("⚠️ Cámara IP no encontrada. Usando Webcam (0)...")
+        except:
+            pass
 
     model_path    = 'yolo11n.pt'
     lp_model_path = 'runs/detect/license_plate_detector/weights/best.pt'
