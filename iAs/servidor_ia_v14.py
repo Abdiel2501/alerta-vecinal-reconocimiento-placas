@@ -747,7 +747,68 @@ async def get_history(payload: dict = Body(...)):
     hist = db_global.listar_historial(limite=limite, usuario_id=cuenta["id"])
     return {"alerts": hist}
 
-# ─── Endpoint WebSocket Autenticado ───────────────────────────────────────────
+# ─── Endpoint WebSocket Autenticado / Compatibilidad PWA ──────────────────────
+
+@app.websocket("/ws")
+async def websocket_legacy(websocket: WebSocket):
+    await websocket.accept()
+    usuario_id = 1
+    # Asegurar que el usuario administrador por defecto exista en la base de datos
+    cuenta = db_global.obtener_cuenta_por_id(usuario_id)
+    if not cuenta:
+        db_global.crear_cuenta("admin@alertavecinal.com", hash_password("admin123"))
+        cuenta = db_global.obtener_cuenta_por_email("admin@alertavecinal.com")
+        
+    pipeline = estado_servidor_saas.obtener_o_crear_pipeline(usuario_id, cuenta)
+    
+    with pipeline.bloqueo_clientes:
+        pipeline.clientes.add(websocket)
+    print(f"[WS Legacy] Cliente conectado sin token asignado a Admin (ID: {usuario_id}). Total: {len(pipeline.clientes)}")
+
+    # Enviar historial al conectarse
+    hist = db_global.listar_historial(limite=15, usuario_id=usuario_id)
+    await websocket.send_text(json.dumps({"type": "history", "alerts": hist}))
+
+    # Enviar estado actual de su cámara
+    await websocket.send_text(json.dumps({
+        "type": "status",
+        "ai": "running" if pipeline.inteligencia_artificial_ejecutandose else "iniciando",
+        "camera": pipeline.rtsp_url or "Ninguna",
+        "fps": round(pipeline.fps_actual, 1),
+    }))
+
+    try:
+        while True:
+            datos_crudos = await websocket.receive_text()
+            cmd = json.loads(datos_crudos)
+            action = cmd.get("cmd", "")
+
+            if action == "change_camera_url":
+                url = cmd.get("url", "")
+                if url:
+                    db_global.actualizar_config_cuenta(
+                        usuario_id, url, pipeline.telegram_chat_id, pipeline.telegram_token, pipeline.gemini_api_key
+                    )
+                    pipeline.actualizar_credenciales(db_global.obtener_cuenta_por_id(usuario_id))
+            
+            elif action == "ptz":
+                direccion = cmd.get("action", "")
+                if pipeline.rtsp_url and pipeline.rtsp_url.startswith("rtsp://"):
+                    ip, user, passwd = extraer_credenciales_rtsp(pipeline.rtsp_url)
+                    if ip:
+                        threading.Thread(
+                            target=mover_camara_onvif,
+                            args=(ip, user, passwd, direccion),
+                            daemon=True
+                        ).start()
+    except WebSocketDisconnect:
+        pass
+    except Exception as e:
+        print(f"[WS Legacy Error] {e}")
+    finally:
+        with pipeline.bloqueo_clientes:
+            pipeline.clientes.discard(websocket)
+        print(f"[WS Legacy] Cliente desconectado.")
 
 @app.websocket("/ws/{token}")
 async def websocket_saas(websocket: WebSocket, token: str):

@@ -353,6 +353,15 @@ class DatabasePlacas:
         conn.commit()
         conn.close()
 
+    def obtener_cuenta_por_id(self, usuario_id: int):
+        """Retorna los datos de una cuenta por su id."""
+        conn = obtener_conexion()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM cuentas_usuario WHERE id = ?", (usuario_id,))
+        fila = cursor.fetchone()
+        conn.close()
+        return dict(fila) if fila else None
+
     def actualizar_config_cuenta(self, usuario_id: int, rtsp_url: str, telegram_chat_id: str, telegram_token: str, gemini_api_key: str):
         """Actualiza la configuración de cámara e integraciones de una cuenta."""
         conn = obtener_conexion()
