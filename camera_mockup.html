@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Consola de Monitoreo Inteligente - AlertaVecinal</title>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-color: #060814;
+      --surface: #0b0f1d;
+      --border-color: rgba(0, 229, 255, 0.15);
+      --primary: #00e5ff;
+      --primary-glow: rgba(0, 229, 255, 0.3);
+      --red: #ff0055;
+      --red-glow: rgba(255, 0, 85, 0.4);
+      --green: #00e676;
+      --green-glow: rgba(0, 230, 118, 0.3);
+      --font-mono: 'Share Tech Mono', monospace;
+      --font-main: 'Outfit', sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: #e2e8f0;
+      font-family: var(--font-main);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      overflow: hidden;
+    }
+
+    /* Fondo de Red Tecnológica */
+    .grid-bg {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: 
+        radial-gradient(circle at 50% 50%, rgba(11, 15, 30, 0.6) 0%, var(--bg-color) 85%),
+        linear-gradient(rgba(0, 229, 255, 0.015) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 229, 255, 0.015) 1px, transparent 1px);
+      background-size: 100% 100%, 40px 40px, 40px 40px;
+      z-index: 1;
+    }
+
+    .hud-console {
+      position: relative;
+      z-index: 10;
+      width: 450px;
+      max-width: 95vw;
+      background: rgba(11, 15, 29, 0.85);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--border-color);
+      border-radius: 24px;
+      padding: 30px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.8), inset 0 0 20px rgba(0,229,255,0.02);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+    }
+
+    /* Esquinas decorativas del HUD */
+    .hud-console::before, .hud-console::after,
+    .hud-corner-bl, .hud-corner-br {
+      content: '';
+      position: absolute;
+      width: 16px;
+      height: 16px;
+      border-color: var(--primary);
+      border-style: solid;
+      pointer-events: none;
+    }
+    .hud-console::before { top: -1px; left: -1px; border-width: 2px 0 0 2px; border-top-left-radius: 24px; }
+    .hud-console::after { top: -1px; right: -1px; border-width: 2px 2px 0 0; border-top-right-radius: 24px; }
+    .hud-corner-bl { bottom: -1px; left: -1px; border-width: 0 0 2px 2px; border-bottom-left-radius: 24px; }
+    .hud-corner-br { bottom: -1px; right: -1px; border-width: 0 2px 2px 0; border-bottom-right-radius: 24px; }
+
+    /* 🧭 AREA DE ESCANEO DE CÁMARA (3D PERSPECTIVA) */
+    .scanner-viewports {
+      position: relative;
+      width: 220px;
+      height: 220px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    /* Anillos rotatorios con ticks de telemetría */
+    .telemetry-ring {
+      position: absolute;
+      border-radius: 50%;
+      border: 1px solid rgba(0, 229, 255, 0.05);
+      pointer-events: none;
+    }
+    .ring-1 {
+      width: 210px;
+      height: 210px;
+      border: 1.5px dashed var(--primary-glow);
+      border-top-color: var(--primary);
+      animation: rotate-cw 25s linear infinite;
+    }
+    .ring-2 {
+      width: 175px;
+      height: 175px;
+      border: 1px dashed rgba(255,0,85,0.2);
+      border-right-color: var(--red);
+      animation: rotate-ccw 15s linear infinite;
+    }
+
+    /* Retícula de mira */
+    .reticle {
+      position: absolute;
+      width: 140px;
+      height: 140px;
+      border-radius: 50%;
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+    .reticle::before, .reticle::after {
+      content: '';
+      position: absolute;
+      background-color: var(--primary-glow);
+    }
+    .reticle::before { top: 50%; left: -10px; width: 160px; height: 1px; }
+    .reticle::after { left: 50%; top: -10px; height: 160px; width: 1px; }
+
+    /* 🎥 CÁMARA 3D (PERSPECTIVA Y SEGUIMIENTO) */
+    .camera-3d {
+      position: relative;
+      width: 100px;
+      height: 100px;
+      z-index: 5;
+      transform-style: preserve-3d;
+      animation: camera-track 6s ease-in-out infinite alternate;
+    }
+
+    /* Cuerpo principal de la cámara */
+    .cam-body {
+      width: 80px;
+      height: 80px;
+      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+      border: 2px solid rgba(255,255,255,0.1);
+      border-radius: 50%;
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      box-shadow: 
+        0 10px 30px rgba(0,0,0,0.6),
+        inset 0 2px 6px rgba(255,255,255,0.15);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+    }
+    /* Brillo de lente */
+    .cam-body::after {
+      content: '';
+      position: absolute;
+      top: -40%;
+      left: -40%;
+      width: 180%;
+      height: 180%;
+      background: linear-gradient(45deg, transparent 40%, rgba(255,255,255,0.12) 50%, transparent 60%);
+      animation: glare 5s ease-in-out infinite;
+    }
+
+    .cam-lens {
+      width: 46px;
+      height: 46px;
+      background: #030712;
+      border: 3px solid rgba(0, 229, 255, 0.3);
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      box-shadow: inset 0 0 10px rgba(0,0,0,0.9);
+      position: relative;
+    }
+
+    /* Foco LED Central */
+    .cam-led {
+      width: 12px;
+      height: 12px;
+      background-color: var(--red);
+      border-radius: 50%;
+      box-shadow: 0 0 10px var(--red), 0 0 20px var(--red);
+      animation: led-flash 0.8s ease-in-out infinite alternate;
+      position: relative;
+      z-index: 10;
+    }
+
+    /* Haz de luz de la cámara */
+    .cam-light-cone {
+      position: absolute;
+      top: 110px;
+      width: 140px;
+      height: 100px;
+      background: radial-gradient(ellipse at top, rgba(255, 0, 85, 0.18) 0%, rgba(255, 0, 85, 0) 70%);
+      clip-path: polygon(45% 0%, 55% 0%, 100% 100%, 0% 100%);
+      transform-origin: top center;
+      pointer-events: none;
+      animation: cone-sweep 3s ease-in-out infinite alternate;
+      mix-blend-mode: screen;
+    }
+
+    /* 🏷️ PANEL DE ESCANEO DE MATRÍCULAS (OCR DETECTOR) */
+    .scan-panel {
+      width: 100%;
+      border: 1px solid rgba(255,255,255,0.06);
+      background: rgba(255, 255, 255, 0.01);
+      border-radius: 16px;
+      padding: 16px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .scan-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      color: var(--primary);
+      letter-spacing: 1px;
+    }
+
+    /* Placa de Licencia Simulada */
+    .license-plate-hud {
+      position: relative;
+      background: #0f1322;
+      border: 2px solid rgba(255,255,255,0.1);
+      border-radius: 8px;
+      height: 64px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+      box-shadow: inset 0 0 15px rgba(0,0,0,0.8);
+    }
+
+    .plate-text {
+      font-family: var(--font-mono);
+      font-size: 1.8rem;
+      font-weight: bold;
+      letter-spacing: 6px;
+      color: #94a3b8;
+      text-transform: uppercase;
+      z-index: 5;
+    }
+
+    /* Animación de bloqueo del OCR */
+    .plate-text span {
+      animation: character-lock 1s steps(1) forwards;
+      opacity: 0.3;
+    }
+    .plate-text span:nth-child(1) { animation-delay: 0.3s; }
+    .plate-text span:nth-child(2) { animation-delay: 0.6s; }
+    .plate-text span:nth-child(3) { animation-delay: 0.9s; }
+    .plate-text span:nth-child(4) { animation-delay: 1.2s; }
+    .plate-text span:nth-child(5) { animation-delay: 1.5s; }
+    .plate-text span:nth-child(6) { animation-delay: 1.8s; }
+    .plate-text span:nth-child(7) { animation-delay: 2.1s; }
+
+    /* Láser de barrido vertical */
+    .scanner-laser {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 3px;
+      background-color: var(--red);
+      box-shadow: 0 0 10px var(--red), 0 0 15px var(--red);
+      z-index: 10;
+      animation: laser-scan 2.4s ease-in-out infinite;
+      pointer-events: none;
+    }
+
+    /* Estado de la detección */
+    .detection-result {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+    }
+    .status-badge {
+      background: rgba(0, 230, 118, 0.08);
+      border: 1px solid var(--green);
+      color: var(--green);
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-weight: bold;
+      box-shadow: 0 0 10px rgba(0, 230, 118, 0.1);
+      animation: badge-pulse 2s infinite alternate;
+    }
+
+    /* Títulos */
+    .hud-title-area {
+      text-align: center;
+    }
+    .hud-title-area h2 {
+      font-size: 1.5rem;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      background: linear-gradient(135deg, #ffffff 40%, #00e5ff 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 4px;
+    }
+    .hud-title-area p {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    /* ── KEYFRAMES ANIMACIONES ── */
+    @keyframes rotate-cw {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    @keyframes rotate-ccw {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(-360deg); }
+    }
+    @keyframes camera-track {
+      0% { transform: rotateY(-15deg) rotateX(5deg); }
+      100% { transform: rotateY(15deg) rotateX(-5deg); }
+    }
+    @keyframes glare {
+      0% { transform: translate(-30%, -30%) rotate(0deg); }
+      50% { transform: translate(-10%, -10%) rotate(180deg); }
+      100% { transform: translate(-30%, -30%) rotate(360deg); }
+    }
+    @keyframes led-flash {
+      0% {
+        opacity: 0.4;
+        box-shadow: 0 0 6px var(--red), 0 0 10px rgba(255,0,85,0.3);
+      }
+      100% {
+        opacity: 1;
+        box-shadow: 0 0 14px var(--red), 0 0 28px var(--red);
+      }
+    }
+    @keyframes cone-sweep {
+      0% { transform: rotate(-12deg) scaleX(0.85); opacity: 0.7; }
+      100% { transform: rotate(12deg) scaleX(1.15); opacity: 0.7; }
+    }
+    @keyframes laser-scan {
+      0% { top: 0%; opacity: 0.2; }
+      10% { opacity: 1; }
+      90% { opacity: 1; }
+      100% { top: 100%; opacity: 0.2; }
+    }
+    @keyframes character-lock {
+      to {
+        opacity: 1;
+        color: var(--primary);
+        text-shadow: 0 0 8px var(--primary);
+      }
+    }
+    @keyframes badge-pulse {
+      0% { border-color: rgba(0, 230, 118, 0.4); box-shadow: 0 0 5px rgba(0, 230, 118, 0.1); }
+      100% { border-color: var(--green); box-shadow: 0 0 15px rgba(0, 230, 118, 0.3); }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="grid-bg"></div>
+
+  <div class="hud-console">
+    <!-- Esquinas del HUD -->
+    <div class="hud-corner-bl"></div>
+    <div class="hud-corner-br"></div>
+
+    <!-- Título superior -->
+    <div class="hud-title-area">
+      <h2>AlertaVecinal PWA</h2>
+      <p>Módulo de Detección de Placas</p>
+    </div>
+
+    <!-- Visor de Escaneo con Cámara 3D -->
+    <div class="scanner-viewports">
+      <div class="telemetry-ring ring-1"></div>
+      <div class="telemetry-ring ring-2"></div>
+      <div class="reticle"></div>
+      
+      <!-- Haz de luz -->
+      <div class="cam-light-cone"></div>
+      
+      <!-- Cámara -->
+      <div class="camera-3d">
+        <div class="cam-body">
+          <div class="cam-lens">
+            <div class="cam-led"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Panel de Escaneo de Placa (OCR) -->
+    <div class="scan-panel">
+      <div class="scan-header">
+        <span>[SYS_OCR_ACTIVE]</span>
+        <span>SYS_GPS: 19.432,-99.133</span>
+      </div>
+
+      <!-- Placa de licencia interactiva -->
+      <div class="license-plate-hud">
+        <div class="scanner-laser"></div>
+        <div class="plate-text">
+          <span>M</span><span>E</span><span>X</span><span>-</span><span>8</span><span>8</span><span>2</span><span>-</span><span>A</span>
+        </div>
+      </div>
+
+      <!-- Detección de estado -->
+      <div class="detection-result">
+        <span style="color:#64748b;">RESULTADO:</span>
+        <div class="status-badge">AUTORIZADO</div>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

@@ -96,9 +96,227 @@ body {
   visibility: hidden;
 }
 
-.splash-logo {
-  font-size: 5rem;
-  animation: float 2.5s ease-in-out infinite;
+/* 🎥 LOGO DE CÁMARA ANIMADO EN EL SPLASH SCREEN */
+.splash-camera-container {
+  position: relative;
+  width: 180px;
+  height: 180px;
+  margin-bottom: 24px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.splash-hud-circle {
+  position: absolute;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 194, 209, 0.05);
+  pointer-events: none;
+}
+
+.splash-hud-outer {
+  width: 170px;
+  height: 170px;
+  border: 1.5px dashed rgba(0, 194, 209, 0.2);
+  border-top-color: #00C2D1;
+  border-bottom-color: #00C2D1;
+  animation: rotate-cw 20s linear infinite;
+}
+
+.splash-hud-mid {
+  width: 140px;
+  height: 140px;
+  border: 1px double rgba(255, 107, 107, 0.2);
+  border-left-color: #ff0055;
+  border-right-color: #ff0055;
+  animation: rotate-ccw 12s linear infinite;
+}
+
+.splash-hud-inner {
+  width: 110px;
+  height: 110px;
+  border: 2px solid rgba(255, 255, 255, 0.03);
+  background: radial-gradient(circle, rgba(28, 35, 49, 0.6) 0%, rgba(14, 18, 26, 0.9) 100%);
+  box-shadow: inset 0 0 15px rgba(0, 194, 209, 0.05);
+}
+
+.splash-camera-wrapper {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 5;
+  animation: float-camera 4s ease-in-out infinite;
+}
+
+.splash-camera-body {
+  width: 60px;
+  height: 60px;
+  background: linear-gradient(135deg, #1C2331 0%, #0E121A 100%);
+  border: 1.5px solid rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 
+    0 6px 18px rgba(0,0,0,0.5),
+    inset 0 2px 4px rgba(255,255,255,0.15);
+  overflow: hidden;
+}
+
+.splash-camera-body::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(45deg, transparent 45%, rgba(255, 255, 255, 0.08) 50%, transparent 55%);
+  animation: lens-flare 4s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.splash-lens-aperture {
+  width: 34px;
+  height: 34px;
+  background: #0E121A;
+  border: 2px solid rgba(0, 194, 209, 0.2);
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  box-shadow: inset 0 0 10px rgba(0,0,0,0.9);
+}
+
+.splash-lens-core {
+  width: 18px;
+  height: 18px;
+  background: radial-gradient(circle at 35% 35%, #2a395c 0%, #0E121A 80%);
+  border-radius: 50%;
+  position: relative;
+  border: 1px solid rgba(255,255,255,0.05);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.splash-camera-led {
+  width: 6px;
+  height: 6px;
+  background-color: #ff0055;
+  border-radius: 50%;
+  box-shadow: 0 0 6px #ff0055, 0 0 12px #ff0055;
+  animation: led-flash 0.8s ease-in-out infinite alternate;
+}
+
+.splash-warning-ring {
+  position: absolute;
+  width: 52px;
+  height: 52px;
+  border: 1px solid rgba(255, 0, 85, 0.1);
+  border-radius: 50%;
+  pointer-events: none;
+  animation: warning-pulse 2s ease-in-out infinite;
+}
+
+.splash-bracket {
+  position: absolute;
+  top: 30px;
+  width: 10px;
+  height: 18px;
+  background: linear-gradient(90deg, #1C2331, #2d3856);
+  border-radius: 3px;
+  border: 1px solid rgba(255,255,255,0.08);
+  z-index: 3;
+}
+
+.splash-scanning-beam {
+  position: absolute;
+  top: 105px;
+  width: 120px;
+  height: 90px;
+  background: radial-gradient(ellipse at top, rgba(255, 0, 85, 0.18) 0%, rgba(255, 0, 85, 0) 70%);
+  clip-path: polygon(45% 0%, 55% 0%, 100% 100%, 0% 100%);
+  transform-origin: top center;
+  animation: cone-sweep 3s ease-in-out infinite alternate;
+  pointer-events: none;
+  opacity: 0.8;
+  mix-blend-mode: screen;
+}
+
+.splash-laser-line {
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent 10%, #ff0055 50%, transparent 90%);
+  box-shadow: 0 0 6px #ff0055;
+  animation: laser-flicker 0.15s infinite;
+}
+
+/* KEYFRAMES REQUERIDOS */
+@keyframes rotate-cw {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes rotate-ccw {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(-360deg); }
+}
+
+@keyframes float-camera {
+  0% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-6px) rotate(1deg); }
+  100% { transform: translateY(0px) rotate(0deg); }
+}
+
+@keyframes led-flash {
+  0% {
+    opacity: 0.4;
+    box-shadow: 0 0 4px #ff0055, 0 0 8px rgba(255,0,85,0.3);
+  }
+  100% {
+    opacity: 1;
+    box-shadow: 0 0 10px #ff0055, 0 0 20px #ff0055;
+  }
+}
+
+@keyframes warning-pulse {
+  0% {
+    transform: scale(0.95);
+    opacity: 0.1;
+  }
+  50% {
+    opacity: 0.4;
+    border-color: #ff0055;
+    box-shadow: 0 0 8px rgba(255,0,85,0.15);
+  }
+  100% {
+    transform: scale(1.15);
+    opacity: 0;
+  }
+}
+
+@keyframes cone-sweep {
+  0% { transform: rotate(-12deg) scaleX(0.85); opacity: 0.7; }
+  100% { transform: rotate(12deg) scaleX(1.15); opacity: 0.7; }
+}
+
+@keyframes laser-flicker {
+  0% { opacity: 0.9; }
+  50% { opacity: 1; }
+  100% { opacity: 0.9; }
+}
+
+@keyframes lens-flare {
+  0% { transform: translate(-30%, -30%) rotate(0deg); }
+  50% { transform: translate(-10%, -10%) rotate(180deg); }
+  100% { transform: translate(-30%, -30%) rotate(360deg); }
 }
 
 .splash-title {
