@@ -142,6 +142,12 @@ document.addEventListener('DOMContentLoaded', () => {
   
   const lensFixedContainer = document.getElementById('lensFixedContainer');
   const lensPtzContainer = document.getElementById('lensPtzContainer');
+  const lensCam3Container = document.getElementById('lensCam3Container');
+  const lensCam4Container = document.getElementById('lensCam4Container');
+  const badgeFixed = document.getElementById('badgeFixed');
+  const badgePtz = document.getElementById('badgePtz');
+  const dualLensLayout = document.querySelector('.dual-lens-layout');
+
   const toggleFixedBtn = document.getElementById('toggleFixedBtn');
   const togglePtzBtn = document.getElementById('togglePtzBtn');
   const placeholderFixed = document.getElementById('placeholderFixed');
@@ -1060,6 +1066,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // --- ⤢ DUAL-LENS COLLAPSE & EXPAND LOGIC ---
   toggleFixedBtn.addEventListener('click', () => {
     const isExpanded = lensPtzContainer.classList.contains('collapsed');
+    if (dualLensLayout) dualLensLayout.classList.remove('grid-4');
+    if (lensCam3Container) lensCam3Container.classList.add('collapsed');
+    if (lensCam4Container) lensCam4Container.classList.add('collapsed');
     
     if (isExpanded) {
       // Mostrar ambas lentes
@@ -1078,6 +1087,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   togglePtzBtn.addEventListener('click', () => {
     const isExpanded = lensFixedContainer.classList.contains('collapsed');
+    if (dualLensLayout) dualLensLayout.classList.remove('grid-4');
+    if (lensCam3Container) lensCam3Container.classList.add('collapsed');
+    if (lensCam4Container) lensCam4Container.classList.add('collapsed');
     
     if (isExpanded) {
       // Mostrar ambas lentes
@@ -1092,31 +1104,48 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // --- 🔒 MOSTRAR/OCULTAR CONTRASEÑA ---
-  if (showPasswordCheckbox) {
-    showPasswordCheckbox.addEventListener('change', function() {
-      loginPassword.type = this.checked ? 'text' : 'password';
-    });
-  }
-
   // --- 📹 SELECTOR DE DISEÑO DE LENTES ---
   if (lensSelector) {
     lensSelector.addEventListener('change', function() {
       const mode = this.value;
       if (mode === '2') {
+        if (dualLensLayout) dualLensLayout.classList.remove('grid-4');
         lensFixedContainer.classList.remove('collapsed');
         lensPtzContainer.classList.remove('collapsed');
+        if (lensCam3Container) lensCam3Container.classList.add('collapsed');
+        if (lensCam4Container) lensCam4Container.classList.add('collapsed');
         toggleFixedBtn.textContent = '⤢';
         togglePtzBtn.textContent = '⤢';
       } else if (mode === 'fixed') {
+        if (dualLensLayout) dualLensLayout.classList.remove('grid-4');
         lensFixedContainer.classList.remove('collapsed');
         lensPtzContainer.classList.add('collapsed');
+        if (lensCam3Container) lensCam3Container.classList.add('collapsed');
+        if (lensCam4Container) lensCam4Container.classList.add('collapsed');
         toggleFixedBtn.textContent = '⤡';
       } else if (mode === 'ptz') {
+        if (dualLensLayout) dualLensLayout.classList.remove('grid-4');
         lensFixedContainer.classList.add('collapsed');
         lensPtzContainer.classList.remove('collapsed');
+        if (lensCam3Container) lensCam3Container.classList.add('collapsed');
+        if (lensCam4Container) lensCam4Container.classList.add('collapsed');
         togglePtzBtn.textContent = '⤡';
+      } else if (mode === '4') {
+        if (dualLensLayout) dualLensLayout.classList.add('grid-4');
+        lensFixedContainer.classList.remove('collapsed');
+        lensPtzContainer.classList.remove('collapsed');
+        if (lensCam3Container) lensCam3Container.classList.remove('collapsed');
+        if (lensCam4Container) lensCam4Container.classList.remove('collapsed');
+        toggleFixedBtn.textContent = '⤢';
+        togglePtzBtn.textContent = '⤢';
       }
+    });
+  }
+
+  // --- 🔒 MOSTRAR/OCULTAR CONTRASEÑA ---
+  if (showPasswordCheckbox) {
+    showPasswordCheckbox.addEventListener('change', function() {
+      loginPassword.type = this.checked ? 'text' : 'password';
     });
   }
 
@@ -1721,6 +1750,8 @@ document.addEventListener('DOMContentLoaded', () => {
               0, 0, videoCanvasPtz.width, videoCanvasPtz.height
             );
             placeholderFixed.style.display = 'none';
+            if (badgeFixed) badgeFixed.style.display = 'none';
+            if (badgePtz) badgePtz.style.display = 'none';
           } else {
             // Mapear pantalla simple (webcam, laptop camera, etc.)
             if (videoCanvasPtz.width !== w || videoCanvasPtz.height !== h) {
@@ -1742,6 +1773,7 @@ document.addEventListener('DOMContentLoaded', () => {
           }
 
           placeholderPtz.style.display = 'none';
+          if (badgePtz) badgePtz.style.display = 'none';
         } catch (err) {
           console.error(err);
         }
@@ -1761,6 +1793,8 @@ document.addEventListener('DOMContentLoaded', () => {
       // Reiniciar la simulación del lente fijo al desconectarse del backend
       startFixedLensRender();
       placeholderFixed.style.display = 'flex';
+      if (badgeFixed) badgeFixed.style.display = 'block';
+      if (badgePtz) badgePtz.style.display = 'block';
       
       if (!userDisconnected) {
         scheduleReconnect();

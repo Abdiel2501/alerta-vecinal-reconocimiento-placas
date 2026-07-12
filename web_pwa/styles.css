@@ -2620,3 +2620,14 @@ input:checked+.slider:before {
   to { opacity: 1; transform: translateY(0); }
 }
 
+/* 📹 2x2 QUAD GRID LAYOUT FOR MULTIPLE CAMERAS (VMS STYLE) */
+.dual-lens-layout.grid-4 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+@media (max-width: 768px) {
+  .dual-lens-layout.grid-4 {
+    grid-template-columns: 1fr;
+  }
+}
