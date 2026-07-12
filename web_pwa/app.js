@@ -1336,9 +1336,9 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!wsUrl.endsWith('/ws')) {
         wsUrl = wsUrl.replace(/\/?$/, '/ws');
       }
-    } else {
       // Es una IP o un dominio sin protocolo
       let protocol = isHttpsPage ? 'wss' : 'ws';
+      
       const isDomain = ip.includes('.') && !/^[0-9.]+$/.test(ip) && ip !== 'localhost';
       
       if (isDomain && (port === '80' || port === '443' || port === '')) {
