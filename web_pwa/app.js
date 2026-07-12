@@ -11,6 +11,85 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
+  // --- 🔒 HELPER: PURE JS SHA-256 (Identical to CryptoJS, Brave Shield proof, cross-browser compatible) ---
+  function hashPassword(password) {
+    function rotateRight(n, xs) {
+      return (n >>> xs) | (n << (32 - xs));
+    }
+    const maxWord = Math.pow(2, 32);
+    const h = [
+      0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
+      0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19
+    ];
+    const k = [
+      0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
+      0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
+      0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
+      0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
+      0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
+      0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
+      0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
+      0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
+    ];
+
+    let ascii = unescape(encodeURIComponent(password));
+    const words = [];
+    const asciiLength = ascii.length * 8;
+    ascii += '\x80';
+    while (ascii.length % 64 - 56) ascii += '\x00';
+    for (let i = 0; i < ascii.length; i++) {
+      words[i >> 2] |= ascii.charCodeAt(i) << (24 - (i % 4) * 8);
+    }
+    words[words.length] = ((asciiLength / maxWord) | 0);
+    words[words.length] = (asciiLength | 0);
+
+    for (let j = 0; j < words.length; j += 16) {
+      const w = [];
+      let a = h[0], b = h[1], c = h[2], d = h[3], e = h[4], f = h[5], g = h[6], h_val = h[7];
+      for (let i = 0; i < 64; i++) {
+        if (i < 16) {
+          w[i] = words[j + i];
+        } else {
+          const s0 = rotateRight(w[i - 15], 7) ^ rotateRight(w[i - 15], 18) ^ (w[i - 15] >>> 3);
+          const s1 = rotateRight(w[i - 2], 17) ^ rotateRight(w[i - 2], 19) ^ (w[i - 2] >>> 10);
+          w[i] = (w[i - 16] + s0 + w[i - 7] + s1) | 0;
+        }
+
+        const ch = (e & f) ^ (~e & g);
+        const maj = (a & b) ^ (a & c) ^ (b & c);
+        const temp1 = (h_val + (rotateRight(e, 6) ^ rotateRight(e, 11) ^ rotateRight(e, 25)) + ch + k[i] + w[i]) | 0;
+        const temp2 = ((rotateRight(a, 2) ^ rotateRight(a, 13) ^ rotateRight(a, 22)) + maj) | 0;
+
+        h_val = g;
+        g = f;
+        f = e;
+        e = (d + temp1) | 0;
+        d = c;
+        c = b;
+        b = a;
+        a = (temp1 + temp2) | 0;
+      }
+
+      h[0] = (h[0] + a) | 0;
+      h[1] = (h[1] + b) | 0;
+      h[2] = (h[2] + c) | 0;
+      h[3] = (h[3] + d) | 0;
+      h[4] = (h[4] + e) | 0;
+      h[5] = (h[5] + f) | 0;
+      h[6] = (h[6] + g) | 0;
+      h[7] = (h[7] + h_val) | 0;
+    }
+
+    let result = '';
+    for (let i = 0; i < 8; i++) {
+      const value = h[i];
+      for (let j = 3; j >= 0; j--) {
+        result += ((value >> (j * 8)) & 255).toString(16).padStart(2, '0');
+      }
+    }
+    return result;
+  }
+
   // DOM Elements - Navigation & Shells
   const splashScreen = document.getElementById('splash-screen');
   const loginScreen = document.getElementById('login-screen');
@@ -31,6 +110,17 @@ document.addEventListener('DOMContentLoaded', () => {
   const registerEmail = document.getElementById('registerEmail');
   const registerPassword = document.getElementById('registerPassword');
   const submitRegisterBtn = document.getElementById('submitRegisterBtn');
+
+  // Elementos de validación de contraseña
+  const passwordStrengthWrapper = document.getElementById('password-strength-wrapper');
+  const strengthSegment1 = document.getElementById('strength-segment-1');
+  const strengthSegment2 = document.getElementById('strength-segment-2');
+  const strengthSegment3 = document.getElementById('strength-segment-3');
+  const strengthLabel = document.getElementById('strength-label');
+  const reqLength = document.getElementById('req-length');
+  const reqUppercase = document.getElementById('req-uppercase');
+  const reqNumber = document.getElementById('req-number');
+  const reqDot = document.getElementById('req-dot');
 
   const loginEmail = document.getElementById('loginEmail');
   const loginPassword = document.getElementById('loginPassword');
@@ -414,42 +504,131 @@ document.addEventListener('DOMContentLoaded', () => {
     toRegisterBtn.addEventListener('click', (e) => {
       e.preventDefault();
       authLoginForm.style.display = 'none';
-      authRegisterForm.style.display = 'block';
+      authRegisterForm.style.display = 'flex';
     });
 
     toLoginBtn.addEventListener('click', (e) => {
       e.preventDefault();
       authRegisterForm.style.display = 'none';
-      authLoginForm.style.display = 'block';
+      authLoginForm.style.display = 'flex';
+    });
+  }
+
+  // --- 🔒 VALIDACIÓN DE CONTRASEÑA EN TIEMPO REAL ---
+  let isPasswordValid = false;
+
+  function updateReqIndicator(element, met, text) {
+    if (!element) return;
+    if (met) {
+      element.innerHTML = '✔️ ' + text;
+      element.style.color = '#81c784';
+    } else {
+      element.innerHTML = '❌ ' + text;
+      element.style.color = '#ff6b6b';
+    }
+  }
+
+  if (registerPassword && passwordStrengthWrapper) {
+    registerPassword.addEventListener('input', () => {
+      const val = registerPassword.value;
+      
+      if (val.length === 0) {
+        passwordStrengthWrapper.style.display = 'none';
+        isPasswordValid = false;
+        return;
+      }
+
+      passwordStrengthWrapper.style.display = 'block';
+      
+      const hasLength = val.length >= 8;
+      const hasUppercase = /[A-Z]/.test(val);
+      const hasNumber = /[0-9]/.test(val);
+      const hasSpecial = /[^A-Za-z0-9]/.test(val);
+
+      // Actualizar checklist
+      updateReqIndicator(reqLength, hasLength, 'Mínimo 8 caracteres');
+      updateReqIndicator(reqUppercase, hasUppercase, 'Al menos 1 mayúscula');
+      updateReqIndicator(reqNumber, hasNumber, 'Al menos 1 número');
+      updateReqIndicator(reqDot, hasSpecial, 'Al menos 1 símbolo (ej. !@#.)');
+
+      // Calcular fuerza (segmentos)
+      let score = 0;
+      if (hasLength) score++;
+      if (hasUppercase) score++;
+      if (hasNumber) score++;
+      if (hasSpecial) score++;
+
+      // Resetear colores
+      strengthSegment1.style.backgroundColor = 'transparent';
+      strengthSegment2.style.backgroundColor = 'transparent';
+      strengthSegment3.style.backgroundColor = 'transparent';
+
+      if (score < 2) {
+        strengthSegment1.style.backgroundColor = '#ff6b6b';
+        strengthLabel.textContent = 'Fuerza: Débil';
+        strengthLabel.style.color = '#ff6b6b';
+        isPasswordValid = false;
+      } else if (score < 4) {
+        strengthSegment1.style.backgroundColor = '#ffb700';
+        strengthSegment2.style.backgroundColor = '#ffb700';
+        strengthLabel.textContent = 'Fuerza: Media';
+        strengthLabel.style.color = '#ffb700';
+        isPasswordValid = false;
+      } else {
+        strengthSegment1.style.backgroundColor = '#2e7d32';
+        strengthSegment2.style.backgroundColor = '#2e7d32';
+        strengthSegment3.style.backgroundColor = '#2e7d32';
+        strengthLabel.textContent = 'Fuerza: Fuerte (Segura) ✔️';
+        strengthLabel.style.color = '#81c784';
+        isPasswordValid = true;
+      }
     });
   }
 
   // --- 💾 REGISTRO DE NUEVO VECINO ---
   if (submitRegisterBtn) {
     submitRegisterBtn.addEventListener('click', () => {
+      submitRegisterBtn.disabled = true;
+
       const name = registerName.value.trim();
       const email = registerEmail.value.trim();
       const password = registerPassword.value.trim();
 
       if (!name || !email || !password) {
         alert('Por favor complete todos los campos.');
+        submitRegisterBtn.disabled = false;
+        return;
+      }
+
+      if (!isPasswordValid) {
+        alert('La contraseña no cumple con todos los requisitos de seguridad.');
+        submitRegisterBtn.disabled = false;
         return;
       }
 
       if (email.toLowerCase() === 'admin@alertavecinal.com') {
         alert('Este correo ya está registrado como administrador.');
+        submitRegisterBtn.disabled = false;
         return;
       }
 
-      const registeredUsers = JSON.parse(localStorage.getItem('registered_users') || '[]');
+      let registeredUsers = [];
+      try {
+        registeredUsers = JSON.parse(localStorage.getItem('registered_users') || '[]');
+        if (!Array.isArray(registeredUsers)) registeredUsers = [];
+      } catch (err) {
+        registeredUsers = [];
+      }
+
       const userExists = registeredUsers.some(u => u.email.toLowerCase() === email.toLowerCase());
       if (userExists) {
         alert('Este correo ya está registrado.');
+        submitRegisterBtn.disabled = false;
         return;
       }
 
       // Hashing de contraseña (SHA256) antes de persistir
-      const hashedPassword = CryptoJS.SHA256(password).toString();
+      const hashedPassword = hashPassword(password);
 
       registeredUsers.push({
         name: name,
@@ -463,11 +642,17 @@ document.addEventListener('DOMContentLoaded', () => {
       registerName.value = '';
       registerEmail.value = '';
       registerPassword.value = '';
+      
+      isPasswordValid = false;
+      if (passwordStrengthWrapper) passwordStrengthWrapper.style.display = 'none';
+
       authRegisterForm.style.display = 'none';
-      authLoginForm.style.display = 'block';
+      authLoginForm.style.display = 'flex';
 
       loginEmail.value = email;
       loginPassword.value = '';
+      
+      submitRegisterBtn.disabled = false;
     });
   }
 
@@ -487,12 +672,20 @@ document.addEventListener('DOMContentLoaded', () => {
         provider: 'credentials'
       };
     } else {
-      const registeredUsers = JSON.parse(localStorage.getItem('registered_users') || '[]');
+      let registeredUsers = [];
+      try {
+        registeredUsers = JSON.parse(localStorage.getItem('registered_users') || '[]');
+        if (!Array.isArray(registeredUsers)) registeredUsers = [];
+      } catch (err) {
+        registeredUsers = [];
+      }
+
       const user = registeredUsers.find(u => u.email.toLowerCase() === email.toLowerCase());
       
       if (user) {
-        const inputPasswordHash = CryptoJS.SHA256(password).toString();
-        if (user.passwordHash === inputPasswordHash) {
+        const inputPasswordHash = hashPassword(password);
+        const fallbackHash = 'fb_' + btoa(unescape(encodeURIComponent(password)));
+        if (user.passwordHash === inputPasswordHash || user.passwordHash === fallbackHash) {
           authenticatedUser = {
             name: user.name,
             email: user.email,
