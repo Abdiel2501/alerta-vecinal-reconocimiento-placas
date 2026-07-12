@@ -172,6 +172,7 @@ class UserPipeline:
         self.cache_placas = {}
         self.intentos_ocr = {}
         self.fotograma_crudo = None
+        self.detector_rostros = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
 
         # Motores internos de IA V14 para este usuario
         self.reider = ReidentificadorVehiculos(max_frames=90, umbral=0.72)
@@ -263,6 +264,25 @@ class UserPipeline:
                 if not ret or fotograma is None:
                     time.sleep(0.01)
                     continue
+
+                # Aplicar desenfoque de caras (Haar Cascade) en cada frame para máxima fluidez y privacidad
+                try:
+                    gris = cv2.cvtColor(fotograma, cv2.COLOR_BGR2GRAY)
+                    rostros = self.detector_rostros.detectMultiScale(gris, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
+                    for (rx, ry, rw, rh) in rostros:
+                        h_img, w_img = fotograma.shape[:2]
+                        padding_w = int(rw * 0.15)
+                        padding_h = int(rh * 0.20)
+                        fx1 = max(0, rx - padding_w)
+                        fy1 = max(0, ry - padding_h)
+                        fx2 = min(w_img, rx + rw + padding_w)
+                        fy2 = min(h_img, ry + rh + padding_h)
+                        if fx2 > fx1 and fy2 > fy1:
+                            roi_cara = fotograma[fy1:fy2, fx1:fx2]
+                            blurred_face = cv2.GaussianBlur(roi_cara, (99, 99), 30)
+                            fotograma[fy1:fy2, fx1:fx2] = blurred_face
+                except Exception:
+                    pass
 
                 self.conteo_fotogramas += 1
 
