@@ -44,7 +44,6 @@
         </div>
       </div>
     </div>
-    
     <div class="splash-title">AlertaVecinal</div>
     <div class="splash-loader">
       <div class="splash-bar"></div>
@@ -54,8 +53,13 @@
   <!-- 🔐 AUTH / LOGIN SCREEN -->
   <div id="login-screen" style="display: none;">
     <div class="auth-card">
-      <div class="auth-header">
-        <span style="font-size: 3rem;">🛡️</span>
+      <div class="auth-header" style="display: flex; flex-direction: column; align-items: center;">
+        <svg class="app-logo" viewBox="0 0 100 100" width="64" height="64" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-bottom: 8px;">
+          <path d="M50 12 L82 25 V53 C82 72 50 88 50 88 C50 88 18 72 18 53 V25 L50 12 Z" stroke="var(--primary-color)" stroke-width="6" stroke-linejoin="round" fill="none"/>
+          <circle cx="50" cy="48" r="16" stroke="var(--primary-color)" stroke-width="4" fill="none"/>
+          <circle cx="50" cy="48" r="8" stroke="var(--primary-color)" stroke-width="3" fill="none"/>
+          <line class="scan-line" x1="12" y1="48" x2="88" y2="48" stroke="#00E5FF" stroke-width="5" stroke-linecap="round" />
+        </svg>
         <h2>AlertaVecinal</h2>
         <p style="color: var(--text-secondary); font-size: 0.9rem;">Plataforma de Monitoreo Inteligente</p>
       </div>
@@ -151,7 +155,15 @@
   <div id="app-layout" style="display: none;">
     <header class="header">
       <div class="brand-area">
-        <h1 class="brand-title">🛡️ AlertaVecinal</h1>
+        <h1 class="brand-title" style="display: flex; align-items: center; gap: 8px;">
+          <svg class="app-logo" viewBox="0 0 100 100" width="28" height="28" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M50 12 L82 25 V53 C82 72 50 88 50 88 C50 88 18 72 18 53 V25 L50 12 Z" stroke="var(--primary-color)" stroke-width="6" stroke-linejoin="round" fill="none"/>
+            <circle cx="50" cy="48" r="16" stroke="var(--primary-color)" stroke-width="4" fill="none"/>
+            <circle cx="50" cy="48" r="8" stroke="var(--primary-color)" stroke-width="3" fill="none"/>
+            <line class="scan-line" x1="12" y1="48" x2="88" y2="48" stroke="#00E5FF" stroke-width="5" stroke-linecap="round" />
+          </svg>
+          AlertaVecinal
+        </h1>
         <span class="badge-demo" id="demoBadge">MODO DEMO</span>
       </div>
 
@@ -358,55 +370,62 @@
       </section>
 
       <!-- ⚙️ SETTINGS SECTION -->
-      <section id="view-settings" class="view-section" role="tabpanel" aria-label="Ajustes de la aplicación">
-        <div class="card">
-          <h2>Conexión Servidor Backend</h2>
+      <section id="view-settings" class="view-section settings-grid-layout" role="tabpanel" aria-label="Ajustes de la aplicación">
+        <div class="settings-main-column">
+          <!-- Conexión Servidor Backend -->
+          <div class="card settings-card">
+            <h2>Conexión Servidor Backend</h2>
 
-          <div class="input-group">
-            <label for="serverIp">Dirección IP del Servidor:</label>
-            <input type="text" id="serverIp" value="127.0.0.1" placeholder="Ej: 192.168.1.72">
+            <div class="input-group">
+              <label for="serverIp">
+                <span class="input-icon">🌐</span> Dirección IP del Servidor:
+              </label>
+              <input type="text" id="serverIp" value="127.0.0.1" placeholder="Ej: 192.168.1.72">
+            </div>
+
+            <div class="input-group">
+              <label for="serverPort">
+                <span class="input-icon">🔌</span> Puerto WebSocket:
+              </label>
+              <input type="number" id="serverPort" value="8765" placeholder="8765">
+            </div>
+
+            <button id="connectBtn" class="btn btn-primary-gradient">Conectar</button>
           </div>
 
-          <div class="input-group">
-            <label for="serverPort">Puerto WebSocket:</label>
-            <input type="number" id="serverPort" value="8765" placeholder="8765">
+          <!-- Módulo de Demostración (Offline) -->
+          <div class="card settings-card">
+            <h2>Módulo de Demostración (Offline)</h2>
+            <div class="toggle-wrapper">
+              <div>
+                <h3 style="font-size: 1rem; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+                  Modo Demo <span id="demoModeBadge" class="status-badge-inactive">Inactivo</span>
+                </h3>
+                <p style="font-size: 0.85rem; color: var(--text-secondary);">Simular flujo completo con radar y alertas ficticias</p>
+              </div>
+              <label class="switch">
+                <input type="checkbox" id="demoModeToggle">
+                <span class="slider"></span>
+              </label>
+            </div>
+            <button id="triggerDemoAlertBtn" class="btn btn-secondary" style="display: none;">🚨 Simular Alerta Crítica</button>
           </div>
-
-          <button id="connectBtn" class="btn">Conectar</button>
         </div>
 
-
-
-        <div class="card">
-          <h2>Módulo de Demostración (Offline)</h2>
-          <div class="toggle-wrapper">
-            <div>
-              <h3 style="font-size: 1rem; font-weight: 700;">Modo Demo</h3>
-              <p style="font-size: 0.85rem; color: var(--text-secondary);">Simular flujo completo con radar y alertas
-                ficticias</p>
+        <div class="settings-sidebar-column">
+          <!-- Google User profile mock -->
+          <div class="card settings-card user-profile-card" id="googleProfileCard" style="display: none;">
+            <h2>Perfil de Usuario (Google)</h2>
+            <div class="profile-badge-container">
+              <div class="profile-avatar-wrapper" id="userInitial">G</div>
+              <div class="profile-info-wrapper">
+                <h3 id="profileName">Usuario Google</h3>
+                <p id="profileEmail">usuario@gmail.com</p>
+                <span class="badge-role">Operador Vecinal</span>
+              </div>
             </div>
-            <label class="switch">
-              <input type="checkbox" id="demoModeToggle">
-              <span class="slider"></span>
-            </label>
+            <button id="logoutBtn" class="btn btn-logout-outline">Cerrar Sesión</button>
           </div>
-          <button id="triggerDemoAlertBtn" class="btn btn-secondary" style="display: none;">🚨 Simular Alerta
-            Crítica</button>
-        </div>
-
-        <!-- Google User profile mock -->
-        <div class="card" id="googleProfileCard" style="display: none;">
-          <h2>Perfil de Usuario (Google)</h2>
-          <div style="display:flex; align-items:center; gap:16px;">
-            <div
-              style="width: 48px; height: 48px; border-radius: 50%; background-color: var(--primary-color); display:flex; align-items:center; justify-content:center; font-size:1.5rem; color:#fff;"
-              id="userInitial">G</div>
-            <div>
-              <h3 id="profileName" style="font-size:1rem; font-weight:700;">Usuario Google</h3>
-              <p id="profileEmail" style="font-size:0.85rem; color:var(--text-secondary);">usuario@gmail.com</p>
-            </div>
-          </div>
-          <button id="logoutBtn" class="btn btn-secondary btn-alert" style="margin-top: 12px;">Cerrar Sesión</button>
         </div>
       </section>
     </main>

@@ -366,7 +366,11 @@ document.addEventListener('DOMContentLoaded', () => {
       googleProfileCard.style.display = 'block';
       profileName.textContent = session.name;
       profileEmail.textContent = session.email;
-      userInitial.textContent = session.name.charAt(0);
+      if (session.picture) {
+        userInitial.innerHTML = `<img src="${session.picture}" alt="${session.name}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">`;
+      } else {
+        userInitial.textContent = session.name.charAt(0);
+      }
     } else {
       googleProfileCard.style.display = 'none';
     }
@@ -546,6 +550,7 @@ document.addEventListener('DOMContentLoaded', () => {
       logInSuccess({
         name: mockUser.name,
         email: mockUser.email,
+        picture: '',
         provider: 'google'
       });
     }, 1000);
@@ -569,6 +574,7 @@ document.addEventListener('DOMContentLoaded', () => {
       logInSuccess({
         name: payload.name,
         email: payload.email,
+        picture: payload.picture || '',
         provider: 'google'
       });
     } catch (e) {
@@ -1618,6 +1624,12 @@ document.addEventListener('DOMContentLoaded', () => {
     placeholderPtz.style.display = 'none';
     recIndicator.style.display = 'flex';
     
+    const demoModeBadge = document.getElementById('demoModeBadge');
+    if (demoModeBadge) {
+      demoModeBadge.textContent = 'Activo';
+      demoModeBadge.className = 'status-badge-active';
+    }
+
     if (ws) ws.close();
     
     if (history.length === 0) {
@@ -1638,6 +1650,12 @@ document.addEventListener('DOMContentLoaded', () => {
     wsStatusDot.className = 'dot';
     recIndicator.style.display = 'none';
     placeholderPtz.style.display = 'flex';
+
+    const demoModeBadge = document.getElementById('demoModeBadge');
+    if (demoModeBadge) {
+      demoModeBadge.textContent = 'Inactivo';
+      demoModeBadge.className = 'status-badge-inactive';
+    }
 
     if (demoCanvasInterval) clearInterval(demoCanvasInterval);
     if (demoAlertInterval) clearInterval(demoAlertInterval);
