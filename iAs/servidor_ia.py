@@ -65,7 +65,8 @@ except ImportError:
     print("[mDNS] zeroconf no instalado — auto-descubrimiento desactivado. "
           "Instala con: pip install zeroconf")
 
-from database import DatabasePlacas
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+from databases.database import DatabasePlacas
 from alerta_telegram import enviar_alerta_telegram, guardar_capturas
 
 # ─── Argumentos ──────────────────────────────────────────────────────────────
