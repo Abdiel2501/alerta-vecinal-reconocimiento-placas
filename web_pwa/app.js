@@ -44,6 +44,17 @@ document.addEventListener('DOMContentLoaded', () => {
   const registerPassword = document.getElementById('registerPassword');
   const submitRegisterBtn = document.getElementById('submitRegisterBtn');
 
+  // Elementos de validación de contraseña
+  const passwordStrengthWrapper = document.getElementById('password-strength-wrapper');
+  const strengthSegment1 = document.getElementById('strength-segment-1');
+  const strengthSegment2 = document.getElementById('strength-segment-2');
+  const strengthSegment3 = document.getElementById('strength-segment-3');
+  const strengthLabel = document.getElementById('strength-label');
+  const reqLength = document.getElementById('req-length');
+  const reqUppercase = document.getElementById('req-uppercase');
+  const reqNumber = document.getElementById('req-number');
+  const reqDot = document.getElementById('req-dot');
+
   const loginEmail = document.getElementById('loginEmail');
   const loginPassword = document.getElementById('loginPassword');
   const normalLoginBtn = document.getElementById('normalLoginBtn');
@@ -414,20 +425,101 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // --- 🔒 VALIDACIÓN DE CONTRASEÑA EN TIEMPO REAL ---
+  let isPasswordValid = false;
+
+  function updateReqIndicator(element, met, text) {
+    if (!element) return;
+    if (met) {
+      element.innerHTML = '✔️ ' + text;
+      element.style.color = '#81c784';
+    } else {
+      element.innerHTML = '❌ ' + text;
+      element.style.color = '#ff6b6b';
+    }
+  }
+
+  if (registerPassword && passwordStrengthWrapper) {
+    registerPassword.addEventListener('focus', () => {
+      passwordStrengthWrapper.style.display = 'block';
+    });
+
+    registerPassword.addEventListener('input', () => {
+      const val = registerPassword.value;
+      
+      const hasLength = val.length >= 8;
+      const hasUppercase = /[A-Z]/.test(val);
+      const hasNumber = /[0-9]/.test(val);
+      const hasDot = /\./.test(val);
+
+      // Actualizar checklist
+      updateReqIndicator(reqLength, hasLength, 'Mínimo 8 caracteres');
+      updateReqIndicator(reqUppercase, hasUppercase, 'Al menos 1 mayúscula');
+      updateReqIndicator(reqNumber, hasNumber, 'Al menos 1 número');
+      updateReqIndicator(reqDot, hasDot, 'Al menos 1 punto (.)');
+
+      // Calcular fuerza (segmentos)
+      let score = 0;
+      if (hasLength) score++;
+      if (hasUppercase) score++;
+      if (hasNumber) score++;
+      if (hasDot) score++;
+
+      // Resetear colores
+      strengthSegment1.style.backgroundColor = 'transparent';
+      strengthSegment2.style.backgroundColor = 'transparent';
+      strengthSegment3.style.backgroundColor = 'transparent';
+
+      if (val.length === 0) {
+        strengthLabel.textContent = 'Fuerza: Muy débil';
+        strengthLabel.style.color = 'var(--text-secondary)';
+        isPasswordValid = false;
+      } else if (score < 2) {
+        strengthSegment1.style.backgroundColor = '#ff6b6b';
+        strengthLabel.textContent = 'Fuerza: Débil';
+        strengthLabel.style.color = '#ff6b6b';
+        isPasswordValid = false;
+      } else if (score < 4) {
+        strengthSegment1.style.backgroundColor = '#ffb700';
+        strengthSegment2.style.backgroundColor = '#ffb700';
+        strengthLabel.textContent = 'Fuerza: Media';
+        strengthLabel.style.color = '#ffb700';
+        isPasswordValid = false;
+      } else {
+        strengthSegment1.style.backgroundColor = '#2e7d32';
+        strengthSegment2.style.backgroundColor = '#2e7d32';
+        strengthSegment3.style.backgroundColor = '#2e7d32';
+        strengthLabel.textContent = 'Fuerza: Fuerte (Segura) ✔️';
+        strengthLabel.style.color = '#81c784';
+        isPasswordValid = true;
+      }
+    });
+  }
+
   // --- 💾 REGISTRO DE NUEVO VECINO ---
   if (submitRegisterBtn) {
     submitRegisterBtn.addEventListener('click', () => {
+      submitRegisterBtn.disabled = true;
+
       const name = registerName.value.trim();
       const email = registerEmail.value.trim();
       const password = registerPassword.value.trim();
 
       if (!name || !email || !password) {
         alert('Por favor complete todos los campos.');
+        submitRegisterBtn.disabled = false;
+        return;
+      }
+
+      if (!isPasswordValid) {
+        alert('La contraseña no cumple con todos los requisitos de seguridad.');
+        submitRegisterBtn.disabled = false;
         return;
       }
 
       if (email.toLowerCase() === 'admin@alertavecinal.com') {
         alert('Este correo ya está registrado como administrador.');
+        submitRegisterBtn.disabled = false;
         return;
       }
 
@@ -442,6 +534,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const userExists = registeredUsers.some(u => u.email.toLowerCase() === email.toLowerCase());
       if (userExists) {
         alert('Este correo ya está registrado.');
+        submitRegisterBtn.disabled = false;
         return;
       }
 
@@ -460,11 +553,17 @@ document.addEventListener('DOMContentLoaded', () => {
       registerName.value = '';
       registerEmail.value = '';
       registerPassword.value = '';
+      
+      isPasswordValid = false;
+      if (passwordStrengthWrapper) passwordStrengthWrapper.style.display = 'none';
+
       authRegisterForm.style.display = 'none';
       authLoginForm.style.display = 'flex';
 
       loginEmail.value = email;
       loginPassword.value = '';
+      
+      submitRegisterBtn.disabled = false;
     });
   }
 

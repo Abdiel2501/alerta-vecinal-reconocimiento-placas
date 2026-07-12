@@ -108,6 +108,21 @@
         <div class="input-group">
           <label for="registerPassword">Contraseña:</label>
           <input type="password" id="registerPassword" placeholder="Crea tu contraseña">
+          <!-- Barra de fuerza e indicador de requisitos -->
+          <div id="password-strength-wrapper" style="margin-top: 8px; display: none;">
+            <div class="strength-bar-container" style="background: rgba(255,255,255,0.08); height: 6px; border-radius: 3px; overflow: hidden; display: flex; gap: 3px;">
+              <div id="strength-segment-1" style="flex: 1; height: 100%; transition: background-color 0.2s;"></div>
+              <div id="strength-segment-2" style="flex: 1; height: 100%; transition: background-color 0.2s;"></div>
+              <div id="strength-segment-3" style="flex: 1; height: 100%; transition: background-color 0.2s;"></div>
+            </div>
+            <div id="strength-label" style="font-size: 0.75rem; margin-top: 4px; color: var(--text-secondary); font-weight: 600;">Fuerza: Muy débil</div>
+            <ul id="password-requirements" style="list-style: none; margin-top: 8px; font-size: 0.78rem; display: flex; flex-direction: column; gap: 4px; padding-left: 0;">
+              <li id="req-length" style="color: #ff6b6b; display: flex; align-items: center; gap: 4px;">❌ Mínimo 8 caracteres</li>
+              <li id="req-uppercase" style="color: #ff6b6b; display: flex; align-items: center; gap: 4px;">❌ Al menos 1 mayúscula</li>
+              <li id="req-number" style="color: #ff6b6b; display: flex; align-items: center; gap: 4px;">❌ Al menos 1 número</li>
+              <li id="req-dot" style="color: #ff6b6b; display: flex; align-items: center; gap: 4px;">❌ Al menos 1 punto (.)</li>
+            </ul>
+          </div>
         </div>
 
         <button id="submitRegisterBtn" class="btn" style="margin-top: 10px;">Registrarse</button>
