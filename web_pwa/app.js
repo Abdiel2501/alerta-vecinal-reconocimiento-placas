@@ -111,8 +111,18 @@ document.addEventListener('DOMContentLoaded', () => {
   const cameraListContainer = document.getElementById('cameraListContainer');
   const closeCameraModalBtn = document.getElementById('closeCameraModalBtn');
 
+  // DOM Elements - User Guide Modal
+  const userGuideModal = document.getElementById('userGuideModal');
+  const userGuideBtn = document.getElementById('userGuideBtn');
+  const closeGuideBtn = document.getElementById('closeGuideBtn');
+  const prevGuideBtn = document.getElementById('prevGuideBtn');
+  const nextGuideBtn = document.getElementById('nextGuideBtn');
+  const guideSlides = document.querySelectorAll('.guide-slide');
+  const guideDots = document.querySelectorAll('.guide-dot');
+
   // App State Variables
   let ws = null;
+  let currentGuideSlide = 0;
   let reconnectTimeout = null;
   let userDisconnected = false;
   let demoMode = false;
@@ -388,6 +398,14 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
       renderHistory();
       setTimeout(connectWebSocket, 500);
+    }
+
+    // Mostrar guía automáticamente a usuarios nuevos
+    const guideSeen = localStorage.getItem('user_guide_seen') === 'true';
+    if (!guideSeen) {
+      setTimeout(() => {
+        openUserGuide();
+      }, 800);
     }
   }
 
@@ -1829,6 +1847,95 @@ document.addEventListener('DOMContentLoaded', () => {
       showToast('🗑️ Historial vaciado.');
     }
   });
+
+  // --- LÓGICA DE LA GUÍA DE USUARIO (ONBOARDING) ---
+  function showGuideSlide(index) {
+    if (!guideSlides || guideSlides.length === 0) return;
+    
+    guideSlides.forEach((slide, idx) => {
+      slide.classList.toggle('active', idx === index);
+    });
+    
+    guideDots.forEach((dot, idx) => {
+      dot.classList.toggle('active', idx === index);
+    });
+    
+    currentGuideSlide = index;
+
+    // Controlar visibilidad del botón anterior
+    if (index === 0) {
+      if (prevGuideBtn) prevGuideBtn.style.visibility = 'hidden';
+    } else {
+      if (prevGuideBtn) prevGuideBtn.style.visibility = 'visible';
+    }
+
+    // Cambiar texto de botón siguiente en la última slide
+    if (nextGuideBtn) {
+      if (index === guideSlides.length - 1) {
+        nextGuideBtn.textContent = '¡Entendido!';
+      } else {
+        nextGuideBtn.textContent = 'Siguiente';
+      }
+    }
+  }
+
+  function nextGuideSlide() {
+    if (currentGuideSlide < guideSlides.length - 1) {
+      showGuideSlide(currentGuideSlide + 1);
+    } else {
+      closeUserGuide();
+    }
+  }
+
+  function prevGuideSlide() {
+    if (currentGuideSlide > 0) {
+      showGuideSlide(currentGuideSlide - 1);
+    }
+  }
+
+  function closeUserGuide() {
+    if (userGuideModal) {
+      userGuideModal.classList.remove('active');
+    }
+    localStorage.setItem('user_guide_seen', 'true');
+    showToast('📖 Guía finalizada. Puedes volver a abrirla presionando 📖 en la cabecera.');
+  }
+
+  function openUserGuide() {
+    showGuideSlide(0);
+    if (userGuideModal) {
+      userGuideModal.classList.add('active');
+    }
+  }
+
+  // Event Listeners de la Guía
+  if (userGuideBtn) {
+    userGuideBtn.addEventListener('click', openUserGuide);
+  }
+  if (closeGuideBtn) {
+    closeGuideBtn.addEventListener('click', () => {
+      if (userGuideModal) {
+        userGuideModal.classList.remove('active');
+      }
+      localStorage.setItem('user_guide_seen', 'true');
+    });
+  }
+  if (nextGuideBtn) {
+    nextGuideBtn.addEventListener('click', nextGuideSlide);
+  }
+  if (prevGuideBtn) {
+    prevGuideBtn.addEventListener('click', prevGuideSlide);
+  }
+  if (guideDots) {
+    guideDots.forEach(dot => {
+      dot.addEventListener('click', () => {
+        const targetIndex = parseInt(dot.getAttribute('data-goto'));
+        if (!isNaN(targetIndex)) {
+          showGuideSlide(targetIndex);
+        }
+      });
+    });
+  }
 
   // --- MANUAL THEME SELECTION LOGIC ---
   const themeToggleBtn = document.getElementById('themeToggleBtn');

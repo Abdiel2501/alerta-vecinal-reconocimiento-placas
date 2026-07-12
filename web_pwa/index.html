@@ -177,6 +177,8 @@
       </nav>
 
       <div style="display:flex; align-items:center; gap:16px;">
+        <button id="userGuideBtn" class="guide-toggle-btn" title="Guía de Usuario"
+          aria-label="Mostrar guía de usuario">📖</button>
         <button id="themeToggleBtn" class="theme-toggle-btn" title="Cambiar Tema"
           aria-label="Cambiar tema claro/oscuro">🌙</button>
         <div class="status-indicator" role="status" aria-live="polite" aria-label="Estado de conexión al servidor">
@@ -617,6 +619,90 @@
       <div style="display: flex; gap: 12px; margin-top: 4px;">
         <button class="btn btn-secondary" id="declineConsentBtn" style="flex: 1;">Rechazar</button>
         <button class="btn" id="acceptConsentBtn" style="flex: 1;" disabled>Aceptar y Continuar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 📖 USER GUIDE / ONBOARDING MODAL -->
+  <div class="modal-overlay" id="userGuideModal" role="dialog" aria-modal="true" aria-labelledby="guideTitle">
+    <div class="guide-modal">
+      <button class="close-guide-btn" id="closeGuideBtn" aria-label="Cerrar guía">×</button>
+      
+      <!-- Slide Container -->
+      <div class="guide-slides-container">
+        <!-- Slide 1: Welcome -->
+        <div class="guide-slide active" data-slide="0">
+          <div class="guide-icon">🛡️</div>
+          <h2 id="guideTitle">¡Bienvenido a AlertaVecinal!</h2>
+          <p class="guide-description">Este sistema inteligente de monitoreo comunitario te permite vigilar la seguridad del vecindario mediante el reconocimiento de placas en tiempo real.</p>
+          <div class="guide-feature-box">
+            <span class="feature-tag">Objetivo principal</span>
+            <p>Detectar vehículos reportados o sospechosos y coordinar acciones comunitarias preventivas de manera rápida y segura.</p>
+          </div>
+        </div>
+
+        <!-- Slide 2: Dual Lens & Camera Connection -->
+        <div class="guide-slide" data-slide="1">
+          <div class="guide-icon">📷</div>
+          <h2>Conexión de Cámaras</h2>
+          <p class="guide-description">Puedes vincular y visualizar diferentes fuentes de video en el sistema:</p>
+          <ul class="guide-list">
+            <li><strong>Lente Fijo vs Lente PTZ:</strong> Visualiza una cámara panorámica fija y una cámara móvil controlable al mismo tiempo.</li>
+            <li><strong>Cámaras USB Locales:</strong> En la sección <i>Monitor</i>, presiona <strong>🔍 Escanear Cámaras USB</strong> para seleccionar cualquier webcam o lente USB conectado.</li>
+            <li><strong>Cámaras WiFi / IP (RTSP):</strong> Ingresa la dirección de transmisión de tu cámara de red (ej. <code>rtsp://usuario:password@ip:554/stream1</code>) y presiona <strong>Aplicar</strong>.</li>
+          </ul>
+        </div>
+
+        <!-- Slide 3: Joystick & AI Controls -->
+        <div class="guide-slide" data-slide="2">
+          <div class="guide-icon">🕹️</div>
+          <h2>Controles y Herramientas</h2>
+          <p class="guide-description">Interactúa con la cámara y activa las funciones inteligentes:</p>
+          <ul class="guide-list">
+            <li><strong>Joystick Virtual:</strong> Mueve el lente PTZ (arriba, abajo, izquierda, derecha) y haz Zoom (+/-) en tiempo real.</li>
+            <li><strong>🎤 Hablar:</strong> Mantén presionado para hablar por el altavoz de la cámara.</li>
+            <li><strong>🔊 Escuchar / 📷 Captura:</strong> Escucha el sonido ambiental o toma una captura instantánea de la cámara.</li>
+            <li><strong>🤖 IA Placas:</strong> Activa o desactiva el reconocimiento de placas en cualquier momento.</li>
+          </ul>
+        </div>
+
+        <!-- Slide 4: Alerts & Telegram -->
+        <div class="guide-slide" data-slide="3">
+          <div class="guide-icon">🚨</div>
+          <h2>Recepción de Alertas</h2>
+          <p class="guide-description">El sistema te notifica al instante sobre cualquier vehículo sospechoso:</p>
+          <ul class="guide-list">
+            <li><strong>Sirena y Modal Crítico:</strong> Si se detecta un auto robado, la app reproduce una sirena sonora y muestra una pantalla roja con los datos del vehículo y propietario.</li>
+            <li><strong>Alertas en tu Celular (Telegram):</strong> Recibe avisos al instante con la foto y placa del vehículo sospechoso en tu teléfono. El administrador de la comunidad puede vincular un chat de Telegram para que a todos los vecinos les lleguen los reportes de inmediato.</li>
+            <li><strong>Historial:</strong> Todos los registros se guardan cifrados. Búscalos, fítralos o expórtalos en formato **CSV**.</li>
+          </ul>
+        </div>
+
+        <!-- Slide 5: Setup & Demo Mode -->
+        <div class="guide-slide" data-slide="4">
+          <div class="guide-icon">⚙️</div>
+          <h2>Modo Demo y Conexión</h2>
+          <p class="guide-description">Ajusta la aplicación a tus necesidades:</p>
+          <ul class="guide-list">
+            <li><strong>Modo Demo (Offline):</strong> Actívalo en <i>Ajustes</i> para probar el sistema con flujos de video y alertas ficticias (útil para demostraciones).</li>
+            <li><strong>Conexión Backend:</strong> Ingresa la dirección IP y puerto de tu servidor de video e IA para conectarte al hardware físico real.</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Navigation Footer -->
+      <div class="guide-footer">
+        <button class="btn btn-secondary" id="prevGuideBtn" style="visibility: hidden;">Anterior</button>
+        
+        <div class="guide-dots">
+          <span class="guide-dot active" data-goto="0"></span>
+          <span class="guide-dot" data-goto="1"></span>
+          <span class="guide-dot" data-goto="2"></span>
+          <span class="guide-dot" data-goto="3"></span>
+          <span class="guide-dot" data-goto="4"></span>
+        </div>
+
+        <button class="btn" id="nextGuideBtn">Siguiente</button>
       </div>
     </div>
   </div>
