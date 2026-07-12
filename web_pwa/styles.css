@@ -1358,3 +1358,477 @@ input:checked + .slider:before {
   from { opacity: 0; transform: translateY(6px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   ♿ WIDGET DE ACCESIBILIDAD
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── Botón flotante ─────────────────────────────────────────────── */
+#av-a11y-trigger {
+  position: fixed;
+  bottom: 24px;
+  left: 24px;
+  z-index: 9000;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: #1a1a2e;
+  color: #ffffff;
+  border: 2.5px solid #00C2D1;
+  box-shadow: 0 4px 20px rgba(0, 194, 209, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+  outline: none;
+}
+
+#av-a11y-trigger:hover {
+  transform: scale(1.1);
+  background: #00C2D1;
+  box-shadow: 0 6px 28px rgba(0, 194, 209, 0.5);
+}
+
+#av-a11y-trigger:focus-visible {
+  outline: 3px solid #00C2D1;
+  outline-offset: 3px;
+}
+
+/* ── Overlay de fondo ───────────────────────────────────────────── */
+#av-a11y-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 9001;
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  transition: opacity 0.25s ease;
+  opacity: 0;
+}
+
+#av-a11y-overlay.av-open {
+  display: block;
+  opacity: 1;
+}
+
+/* ── Panel lateral ──────────────────────────────────────────────── */
+#av-a11y-panel {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 320px;
+  max-width: 90vw;
+  background: #ffffff;
+  z-index: 9002;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  transform: translateX(-100%);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 4px 0 40px rgba(0, 0, 0, 0.25);
+  outline: none;
+}
+
+#av-a11y-panel.av-open {
+  transform: translateX(0);
+}
+
+/* Panel en modo dark */
+[data-theme="dark"] #av-a11y-panel,
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) #av-a11y-panel {
+    background: #1c2331;
+    color: #f0f0f0;
+  }
+}
+
+[data-theme="dark"] #av-a11y-panel {
+  background: #1c2331;
+  color: #f0f0f0;
+}
+
+/* ── Encabezado ─────────────────────────────────────────────────── */
+.av-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  background: #1a1a2e;
+  color: #ffffff;
+  flex-shrink: 0;
+}
+
+.av-panel-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.av-panel-title kbd {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 0.7rem;
+  font-family: monospace;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+#av-a11y-close {
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: #ffffff;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  font-size: 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+
+#av-a11y-close:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+#av-a11y-close:focus-visible {
+  outline: 2px solid #00C2D1;
+  outline-offset: 2px;
+}
+
+/* ── Subtítulo ──────────────────────────────────────────────────── */
+.av-panel-subtitle {
+  padding: 10px 16px;
+  font-size: 0.78rem;
+  color: #6b7280;
+  background: #f9f9f9;
+  border-bottom: 1px solid #e5e7eb;
+  flex-shrink: 0;
+}
+
+[data-theme="dark"] .av-panel-subtitle {
+  background: #161c28;
+  color: #94a3b8;
+  border-bottom-color: rgba(255,255,255,0.07);
+}
+
+/* ── Fila toggle (widget grande) ────────────────────────────────── */
+.av-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid #e5e7eb;
+  flex-shrink: 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+[data-theme="dark"] .av-toggle-row {
+  color: #cbd5e0;
+  border-bottom-color: rgba(255,255,255,0.07);
+}
+
+/* Switch pequeño */
+.av-sw {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.av-sw input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+}
+
+.av-sw-track {
+  position: absolute;
+  inset: 0;
+  background: #d1d5db;
+  border-radius: 999px;
+  transition: background 0.25s;
+}
+
+.av-sw-track::before {
+  content: '';
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  background: #fff;
+  border-radius: 50%;
+  top: 3px;
+  left: 3px;
+  transition: transform 0.25s cubic-bezier(0.4,0,0.2,1);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+}
+
+.av-sw input:checked + .av-sw-track {
+  background: #00C2D1;
+}
+
+.av-sw input:checked + .av-sw-track::before {
+  transform: translateX(20px);
+}
+
+.av-sw input:focus-visible + .av-sw-track {
+  outline: 2px solid #00C2D1;
+  outline-offset: 2px;
+}
+
+/* ── Grid de opciones ───────────────────────────────────────────── */
+.av-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  padding: 16px;
+  flex: 1;
+}
+
+.av-opt-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 18px 8px 14px;
+  background: #ffffff;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 12px;
+  cursor: pointer;
+  color: #374151;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s, transform 0.1s;
+  min-height: 96px;
+  font-family: var(--font-main, inherit);
+}
+
+[data-theme="dark"] .av-opt-btn {
+  background: #232d42;
+  border-color: rgba(255,255,255,0.08);
+  color: #e2e8f0;
+}
+
+.av-opt-btn:hover {
+  border-color: #00C2D1;
+  box-shadow: 0 2px 12px rgba(0, 194, 209, 0.15);
+  transform: translateY(-1px);
+}
+
+.av-opt-btn:active {
+  transform: translateY(0) scale(0.97);
+}
+
+.av-opt-btn:focus-visible {
+  outline: 2px solid #00C2D1;
+  outline-offset: 2px;
+}
+
+.av-opt-btn.av-active {
+  background: #f0fdff;
+  border-color: #00C2D1;
+  box-shadow: 0 0 0 3px rgba(0, 194, 209, 0.15);
+  color: #00A8B5;
+}
+
+[data-theme="dark"] .av-opt-btn.av-active {
+  background: rgba(0, 194, 209, 0.1);
+  color: #00C2D1;
+}
+
+.av-opt-icon {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.av-opt-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.av-opt-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-align: center;
+  line-height: 1.2;
+}
+
+/* ── Footer ─────────────────────────────────────────────────────── */
+.av-panel-footer {
+  padding: 12px 16px 20px;
+  border-top: 1px solid #e5e7eb;
+  flex-shrink: 0;
+  display: flex;
+  justify-content: center;
+}
+
+[data-theme="dark"] .av-panel-footer {
+  border-top-color: rgba(255,255,255,0.07);
+}
+
+#av-reset-btn {
+  background: none;
+  border: 1.5px solid #d1d5db;
+  color: #6b7280;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 8px 20px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+  font-family: var(--font-main, inherit);
+}
+
+#av-reset-btn:hover {
+  border-color: #ef4444;
+  color: #ef4444;
+  background: rgba(239,68,68,0.06);
+}
+
+#av-reset-btn:focus-visible {
+  outline: 2px solid #ef4444;
+  outline-offset: 2px;
+}
+
+/* ── Widget grande ──────────────────────────────────────────────── */
+.av-large-widget #av-a11y-panel {
+  width: 400px;
+}
+
+.av-large-widget .av-opt-btn {
+  min-height: 116px;
+  gap: 12px;
+}
+
+.av-large-widget .av-opt-icon {
+  width: 44px;
+  height: 44px;
+}
+
+.av-large-widget .av-opt-label {
+  font-size: 0.85rem;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   ♿ MODOS DE ACCESIBILIDAD (clases en <html>)
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── Contraste alto ─────────────────────────────────────────────── */
+.av-high-contrast {
+  filter: contrast(1.6) brightness(1.05);
+}
+
+.av-high-contrast body {
+  background: #000000 !important;
+  color: #ffffff !important;
+}
+
+.av-high-contrast .card,
+.av-high-contrast .auth-card {
+  background: #111111 !important;
+  border: 2px solid #ffffff !important;
+}
+
+.av-high-contrast .btn {
+  background: #ffff00 !important;
+  color: #000000 !important;
+  border: 2px solid #000 !important;
+}
+
+.av-high-contrast a {
+  color: #ffff00 !important;
+  text-decoration: underline !important;
+}
+
+/* ── Resaltar enlaces ───────────────────────────────────────────── */
+.av-highlight-links a,
+.av-highlight-links .tab-btn,
+.av-highlight-links button {
+  text-decoration: underline !important;
+  outline: 2px dashed #00C2D1 !important;
+  outline-offset: 2px !important;
+}
+
+/* ── Texto grande ───────────────────────────────────────────────── */
+.av-large-text {
+  font-size: 120% !important;
+}
+
+.av-large-text body,
+.av-large-text p,
+.av-large-text span,
+.av-large-text label,
+.av-large-text button,
+.av-large-text input,
+.av-large-text td,
+.av-large-text th,
+.av-large-text li {
+  font-size: 1.2em !important;
+}
+
+/* ── Espaciado de texto ─────────────────────────────────────────── */
+.av-text-spacing body,
+.av-text-spacing p,
+.av-text-spacing span,
+.av-text-spacing label,
+.av-text-spacing td,
+.av-text-spacing th,
+.av-text-spacing li,
+.av-text-spacing button {
+  letter-spacing: 0.12em !important;
+  word-spacing: 0.2em !important;
+  line-height: 1.8 !important;
+}
+
+/* ── Detener animaciones ────────────────────────────────────────── */
+.av-reduce-motion *,
+.av-reduce-motion *::before,
+.av-reduce-motion *::after {
+  animation: none !important;
+  transition: none !important;
+}
+
+/* ── Ocultar imágenes ───────────────────────────────────────────── */
+.av-hide-images img,
+.av-hide-images canvas,
+.av-hide-images video,
+.av-hide-images svg:not(#av-a11y-wrapper svg) {
+  opacity: 0.07 !important;
+  filter: grayscale(1) !important;
+}
+
+/* ── Fuente para dislexia ───────────────────────────────────────── */
+.av-dyslexia-font,
+.av-dyslexia-font body,
+.av-dyslexia-font p,
+.av-dyslexia-font span,
+.av-dyslexia-font label,
+.av-dyslexia-font button,
+.av-dyslexia-font input,
+.av-dyslexia-font td,
+.av-dyslexia-font th,
+.av-dyslexia-font li {
+  font-family: 'Comic Sans MS', 'Comic Sans', 'Chalkboard SE', 'Bradley Hand', cursive !important;
+  letter-spacing: 0.05em !important;
+  word-spacing: 0.15em !important;
+}
+
+/* ── Cursor grande ──────────────────────────────────────────────── */
+.av-big-cursor,
+.av-big-cursor * {
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' stroke='%23fff' stroke-width='1.5' d='M5 3l14 9-7 1-4 7z'/%3E%3C/svg%3E") 0 0, auto !important;
+}

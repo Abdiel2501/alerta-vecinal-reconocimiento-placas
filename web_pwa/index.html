@@ -2,8 +2,9 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>🛡️ AlertaVecinal Premium PWA</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+  <meta name="description" content="AlertaVecinal — Sistema de monitoreo comunitario inteligente con reconocimiento de placas vehiculares en tiempo real.">
+  <title>🛡️ AlertaVecinal — Monitoreo Inteligente</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#0E121A">
@@ -58,7 +59,7 @@
         <div class="divider">o</div>
 
         <button id="googleLoginBtn" class="btn-google">
-          <svg width="20" height="20" viewBox="0 0 24 24">
+          <svg width="20" height="20" viewBox="0 0 24 24" aria-label="Logo de Google" role="img">
             <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v3.92h6.69c-.29 1.5-.1.85-2.6 1.8l2.9 2.25c2.4-2.2 3.75-5.5 3.75-9.2C23.745 15.3 23.745 14.1 23.745 12.27z"/>
             <path fill="#34A853" d="M12 24c3.24 0 5.97-1.08 7.96-2.91l-3.86-3c-1.08.72-2.45 1.16-4.1 1.16-3.14 0-5.8-2.11-6.75-4.96l-4 3.1c2 4 6.14 6.7 10.75 6.7z"/>
             <path fill="#FBBC05" d="M5.25 14.29c-.25-.72-.39-1.5-.39-2.29s.14-1.57.39-2.29l-4-3.1C.46 8.24 0 10.07 0 12s.46 3.76 1.25 5.39l4-3.1z"/>
@@ -116,25 +117,25 @@
         <span class="badge-demo" id="demoBadge">MODO DEMO</span>
       </div>
       
-      <nav class="nav-tabs">
-        <button class="tab-btn active" data-target="view-monitor">📺 Monitor</button>
-        <button class="tab-btn" data-target="view-history">📋 Historial</button>
-        <button class="tab-btn" data-target="view-settings">⚙️ Ajustes</button>
+      <nav class="nav-tabs" role="navigation" aria-label="Navegación principal">
+        <button class="tab-btn active" data-target="view-monitor" aria-selected="true" role="tab" aria-controls="view-monitor"><span aria-hidden="true">📺</span> Monitor</button>
+        <button class="tab-btn" data-target="view-history" aria-selected="false" role="tab" aria-controls="view-history"><span aria-hidden="true">📋</span> Historial</button>
+        <button class="tab-btn" data-target="view-settings" aria-selected="false" role="tab" aria-controls="view-settings"><span aria-hidden="true">⚙️</span> Ajustes</button>
       </nav>
 
       <div style="display:flex; align-items:center; gap:16px;">
-        <button id="themeToggleBtn" class="theme-toggle-btn" title="Cambiar Tema">🌙</button>
-        <div class="status-indicator">
-          <span class="dot" id="wsStatusDot"></span>
+        <button id="themeToggleBtn" class="theme-toggle-btn" title="Cambiar Tema" aria-label="Cambiar tema claro/oscuro">🌙</button>
+        <div class="status-indicator" role="status" aria-live="polite" aria-label="Estado de conexión al servidor">
+          <span class="dot" id="wsStatusDot" aria-hidden="true"></span>
           <span id="wsStatusText">Desconectado</span>
         </div>
       </div>
     </header>
 
-    <main class="main-content">
+    <main class="main-content" id="main-content" role="main" aria-label="Contenido principal">
       
       <!-- 📺 MONITOR SECTION (DUAL LENS + CONTROLS) -->
-      <section id="view-monitor" class="view-section active">
+      <section id="view-monitor" class="view-section active" role="tabpanel" aria-label="Monitor de cámaras">
         <div class="monitor-grid">
           
           <!-- Dual Lens Panel -->
@@ -158,7 +159,7 @@
                 <div class="lens-header">
                   <span class="overlay-badge">Lente Gran Angular (Fijo)</span>
                   <div class="lens-actions">
-                    <button class="lens-btn" id="toggleFixedBtn" title="Minimizar/Expandir">⤢</button>
+                    <button class="lens-btn" id="toggleFixedBtn" title="Minimizar/Expandir" aria-label="Minimizar o expandir lente fijo">⤢</button>
                   </div>
                 </div>
                 <canvas class="lens-canvas" id="videoCanvasFixed"></canvas>
@@ -174,7 +175,7 @@
                     <span class="live-dot" id="liveDot"></span> Lente Móvil (PTZ)
                   </span>
                   <div class="lens-actions">
-                    <button class="lens-btn" id="togglePtzBtn" title="Minimizar/Expandir">⤢</button>
+                    <button class="lens-btn" id="togglePtzBtn" title="Minimizar/Expandir" aria-label="Minimizar o expandir lente PTZ">⤢</button>
                   </div>
                 </div>
                 <canvas class="lens-canvas" id="videoCanvasPtz"></canvas>
@@ -186,18 +187,18 @@
                 <!-- 🕹️ Virtual Joystick Overlay -->
                 <div class="ptz-overlay" id="ptzOverlay">
                   <div class="ptz-pad">
-                    <button class="ptz-dir ptz-up" data-dir="up">▲</button>
-                    <button class="ptz-dir ptz-left" data-dir="left">◀</button>
-                    <button class="ptz-dir ptz-center" id="ptzCenterBtn">PTZ</button>
-                    <button class="ptz-dir ptz-right" data-dir="right">▶</button>
-                    <button class="ptz-dir ptz-down" data-dir="down">▼</button>
+                    <button class="ptz-dir ptz-up" data-dir="up" aria-label="Mover cámara hacia arriba">▲</button>
+                    <button class="ptz-dir ptz-left" data-dir="left" aria-label="Mover cámara a la izquierda">◀</button>
+                    <button class="ptz-dir ptz-center" id="ptzCenterBtn" aria-label="Centro PTZ">PTZ</button>
+                    <button class="ptz-dir ptz-right" data-dir="right" aria-label="Mover cámara a la derecha">▶</button>
+                    <button class="ptz-dir ptz-down" data-dir="down" aria-label="Mover cámara hacia abajo">▼</button>
                   </div>
                 </div>
 
                 <!-- 🔍 Zoom Buttons Overlay -->
                 <div class="ptz-zoom-overlay" id="zoomOverlay">
-                  <button class="zoom-btn" data-zoom="in" title="Zoom In">+</button>
-                  <button class="zoom-btn" data-zoom="out" title="Zoom Out">-</button>
+                  <button class="zoom-btn" data-zoom="in" title="Zoom In" aria-label="Acercar zoom">+</button>
+                  <button class="zoom-btn" data-zoom="out" title="Zoom Out" aria-label="Alejar zoom">-</button>
                 </div>
               </div>
 
@@ -205,20 +206,20 @@
 
             <!-- 🛠️ Quick Tools Bar -->
             <div class="camera-tools-bar">
-              <button class="tool-btn" id="toolTalk" title="Mantener para Hablar">
-                <div class="tool-icon">🎤</div>
+              <button class="tool-btn" id="toolTalk" title="Mantener para Hablar" aria-label="Mantener presionado para hablar por el altavoz de la cámara" aria-pressed="false">
+                <div class="tool-icon" aria-hidden="true">🎤</div>
                 <span>Hablar</span>
               </button>
-              <button class="tool-btn" id="toolListen" title="Activar/Silenciar Audio">
-                <div class="tool-icon">🔊</div>
+              <button class="tool-btn" id="toolListen" title="Activar/Silenciar Audio" aria-label="Activar o silenciar audio de la cámara" aria-pressed="false">
+                <div class="tool-icon" aria-hidden="true">🔊</div>
                 <span>Escuchar</span>
               </button>
-              <button class="tool-btn" id="toolCapture" title="Tomar Foto">
-                <div class="tool-icon">📷</div>
+              <button class="tool-btn" id="toolCapture" title="Tomar Foto" aria-label="Tomar captura de pantalla del video">
+                <div class="tool-icon" aria-hidden="true">📷</div>
                 <span>Captura</span>
               </button>
-              <button class="tool-btn danger active" id="toolAi" title="Activar/Desactivar IA de Placas">
-                <div class="tool-icon">🤖</div>
+              <button class="tool-btn danger active" id="toolAi" title="Activar/Desactivar IA de Placas" aria-label="Activar o desactivar la inteligencia artificial de reconocimiento de placas" aria-pressed="true">
+                <div class="tool-icon" aria-hidden="true">🤖</div>
                 <span>IA Placas</span>
               </button>
             </div>
@@ -229,8 +230,8 @@
             <h2>Configuración de Cámara</h2>
             
             <div class="input-group">
-              <label>Seleccionar Cámara USB:</label>
-              <button id="listCamerasBtn" class="btn btn-secondary">🔍 Escanear Cámaras USB</button>
+              <label id="label-list-cameras">Seleccionar Cámara USB:</label>
+              <button id="listCamerasBtn" class="btn btn-secondary" aria-labelledby="label-list-cameras" aria-label="Escanear dispositivos de cámara USB conectados al servidor">🔍 Escanear Cámaras USB</button>
             </div>
 
             <div class="input-group">
@@ -254,23 +255,23 @@
       </section>
 
       <!-- 📋 HISTORY SECTION -->
-      <section id="view-history" class="view-section">
+      <section id="view-history" class="view-section" role="tabpanel" aria-label="Historial de alertas detectadas">
         <div class="card">
           <div class="history-controls">
             <h2>Historial de Alertas</h2>
             <div class="history-actions">
-              <button id="exportCsvBtn" class="btn btn-secondary" title="Exportar historial a CSV">📥 Exportar CSV</button>
-              <button id="clearHistoryBtn" class="btn btn-secondary btn-alert">🗑️ Vaciar Logs</button>
+              <button id="exportCsvBtn" class="btn btn-secondary" aria-label="Exportar historial de alertas en formato CSV">📥 Exportar CSV</button>
+              <button id="clearHistoryBtn" class="btn btn-secondary btn-alert" aria-label="Borrar todos los registros del historial">🗑️ Vaciar Logs</button>
             </div>
           </div>
           
           <!-- Filtros e Historial -->
-          <div class="history-filters">
-            <input type="text" id="searchPlate" placeholder="🔍 Buscar por placa...">
-            <select id="filterStatus">
+          <div class="history-filters" role="search" aria-label="Filtros de búsqueda">
+            <input type="search" id="searchPlate" placeholder="Buscar por placa..." aria-label="Buscar registros por número de placa">
+            <select id="filterStatus" aria-label="Filtrar por estado del vehículo">
               <option value="all">Todos los vehículos</option>
-              <option value="stolen">⚠️ Solo robados</option>
-              <option value="authorized">✅ Solo autorizados</option>
+              <option value="stolen">Solo robados</option>
+              <option value="authorized">Solo autorizados</option>
             </select>
           </div>
           
@@ -279,14 +280,14 @@
             <table class="history-table">
               <thead>
                 <tr>
-                  <th>Placa</th>
-                  <th>Estado</th>
-                  <th>Modelo y Color</th>
-                  <th>Propietario</th>
-                  <th>Fecha y Hora</th>
+                  <th scope="col">Placa</th>
+                  <th scope="col">Estado</th>
+                  <th scope="col">Modelo y Color</th>
+                  <th scope="col">Propietario</th>
+                  <th scope="col">Fecha y Hora</th>
                 </tr>
               </thead>
-              <tbody id="historyTableBody">
+              <tbody id="historyTableBody" aria-live="polite" aria-label="Listado de alertas registradas">
                 <!-- Inyectado dinámicamente -->
               </tbody>
             </table>
@@ -300,7 +301,7 @@
       </section>
 
       <!-- ⚙️ SETTINGS SECTION -->
-      <section id="view-settings" class="view-section">
+      <section id="view-settings" class="view-section" role="tabpanel" aria-label="Ajustes de la aplicación">
         <div class="card">
           <h2>Conexión Servidor Backend</h2>
           
@@ -351,11 +352,11 @@
   </div>
 
   <!-- 🚨 CRITICAL ALERT MODAL -->
-  <div class="modal-overlay" id="criticalAlertModal">
+  <div class="modal-overlay" id="criticalAlertModal" role="alertdialog" aria-modal="true" aria-labelledby="criticalAlertTitle" aria-describedby="criticalAlertDesc">
     <div class="critical-modal">
-      <div class="alert-icon">🚨</div>
-      <h2>ALERTA DE ROBO</h2>
-      <p>Se ha detectado una coincidencia en la Base de Datos</p>
+      <div class="alert-icon" aria-hidden="true">🚨</div>
+      <h2 id="criticalAlertTitle">ALERTA DE ROBO</h2>
+      <p id="criticalAlertDesc">Se ha detectado una coincidencia en la Base de Datos</p>
       
       <div class="critical-plate-display" id="criticalPlate">ABC-123</div>
       
@@ -378,19 +379,19 @@
         </div>
       </div>
       
-      <button class="btn btn-dismiss" id="dismissAlertBtn">Entendido</button>
+      <button class="btn btn-dismiss" id="dismissAlertBtn" aria-label="Entendido, cerrar alerta de robo">Entendido</button>
     </div>
   </div>
 
   <!-- 📹 SYSTEM CAMERAS SELECT MODAL -->
-  <div class="modal-overlay" id="cameraSelectModal">
+  <div class="modal-overlay" id="cameraSelectModal" role="dialog" aria-modal="true" aria-labelledby="cameraSelectTitle">
     <div class="camera-select-modal">
-      <h2 style="font-size: 1.2rem; margin-bottom: 8px;">Seleccionar Lente Móvil (PTZ)</h2>
+      <h2 id="cameraSelectTitle" style="font-size: 1.2rem; margin-bottom: 8px;">Seleccionar Lente Móvil (PTZ)</h2>
       <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 12px;">Elige uno de los dispositivos detectados en el servidor:</p>
       <div id="cameraListContainer" style="display:flex; flex-direction:column; gap:8px;">
         <!-- Botones de opciones inyectados -->
       </div>
-      <button class="btn btn-secondary" id="closeCameraModalBtn" style="margin-top:8px;">Cerrar</button>
+      <button class="btn btn-secondary" id="closeCameraModalBtn" style="margin-top:8px;" aria-label="Cerrar selector de cámara">Cerrar</button>
     </div>
   </div>
 
@@ -515,8 +516,10 @@
   </div>
 
   <!-- 💬 FLOATING TOAST NOTIFICATION -->
-  <div id="toast-notification">Notificación</div>
+  <div id="toast-notification" role="status" aria-live="polite" aria-atomic="true">Notificación</div>
 
   <script src="app.js"></script>
+  <!-- ♿ Widget de Accesibilidad -->
+  <script src="accessibility.js"></script>
 </body>
 </html>
