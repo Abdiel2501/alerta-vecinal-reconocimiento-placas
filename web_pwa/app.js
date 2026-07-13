@@ -158,6 +158,11 @@ document.addEventListener('DOMContentLoaded', () => {
       const placeholderId = i === 1 ? 'placeholderFixed' : (i === 2 ? 'placeholderPtz' : `placeholder-${i}`);
       const spinnerId = i === 2 ? 'videoSpinner' : `spinner-${i}`;
       const msgId = i === 1 ? 'fixedMsg' : (i === 2 ? 'ptzMsg' : `msg-${i}`);
+      const btnId = i === 1 ? 'toggleFixedBtn' : (i === 2 ? 'togglePtzBtn' : `toggleBtn-${i}`);
+      const ptzId = i === 2 ? 'ptzOverlay' : `ptzOverlay-${i}`;
+      const zoomId = i === 2 ? 'zoomOverlay' : `zoomOverlay-${i}`;
+      const centerBtnId = i === 2 ? 'ptzCenterBtn' : `ptzCenterBtn-${i}`;
+      
       const defaultBadgeText = i === 1 ? 'Lente Gran Angular (Fijo)' : (i === 2 ? 'Lente Móvil (PTZ)' : `Cámara Auxiliar ${i}`);
       const defaultMsgText = i === 1 ? 'Lente Fijo - Vista General' : (i === 2 ? 'Esperando transmisión del Lente PTZ...' : `Canal Auxiliar ${i} — Sin Señal`);
       
@@ -171,7 +176,7 @@ document.addEventListener('DOMContentLoaded', () => {
               <option value="fixed" ${i !== 2 ? 'selected' : ''}>Fijo</option>
               <option value="ptz" ${i === 2 ? 'selected' : ''}>PTZ</option>
             </select>
-            <button class="lens-btn" id="toggleBtn-${i}" data-cam-id="${i}" title="Minimizar/Expandir" style="background:none; border:none; color:white; cursor:pointer; font-size:0.9rem;">⤢</button>
+            <button class="lens-btn" id="${btnId}" data-cam-id="${i}" title="Minimizar/Expandir" style="background:none; border:none; color:white; cursor:pointer; font-size:0.9rem;">⤢</button>
           </div>
         </div>
         <div style="position: relative; width: 100%; height: 100%; aspect-ratio: 16/9; overflow: hidden; background: #000; border-radius: 0 0 6px 6px;">
@@ -182,16 +187,16 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
           
           <!-- PTZ joystick overlay for this specific container -->
-          <div class="ptz-overlay" id="ptzOverlay-${i}" style="${i !== 2 ? 'display:none;' : 'display:flex;'} position: absolute; bottom: 8px; right: 8px; z-index: 10;">
+          <div class="ptz-overlay" id="${ptzId}" style="${i !== 2 ? 'display:none;' : 'display:flex;'} position: absolute; bottom: 8px; right: 8px; z-index: 10;">
             <div class="ptz-pad" style="scale: 0.7; transform-origin: bottom right;">
               <button class="ptz-dir ptz-up" data-dir="up" data-cam-id="${i}">▲</button>
               <button class="ptz-dir ptz-left" data-dir="left" data-cam-id="${i}">◀</button>
-              <button class="ptz-dir ptz-center" id="ptzCenterBtn-${i}" data-cam-id="${i}">PTZ</button>
+              <button class="ptz-dir ptz-center" id="${centerBtnId}" data-cam-id="${i}">PTZ</button>
               <button class="ptz-dir ptz-right" data-dir="right" data-cam-id="${i}">▶</button>
               <button class="ptz-dir ptz-down" data-dir="down" data-cam-id="${i}">▼</button>
             </div>
           </div>
-          <div class="ptz-zoom-overlay" id="zoomOverlay-${i}" style="${i !== 2 ? 'display:none;' : 'display:block;'} position: absolute; bottom: 8px; left: 8px; z-index: 10; scale: 0.7; transform-origin: bottom left;">
+          <div class="ptz-zoom-overlay" id="${zoomId}" style="${i !== 2 ? 'display:none;' : 'display:block;'} position: absolute; bottom: 8px; left: 8px; z-index: 10; scale: 0.7; transform-origin: bottom left;">
             <button class="zoom-btn" data-zoom="in" data-cam-id="${i}">+</button>
             <button class="zoom-btn" data-zoom="out" data-cam-id="${i}">-</button>
           </div>
