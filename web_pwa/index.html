@@ -227,88 +227,15 @@
                 <select id="lensSelector"
                   style="background: rgba(255,255,255,0.05); color: var(--text-primary); border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; padding: 4px 8px; font-size: 0.85rem; cursor: pointer; outline: none;">
                   <option value="2">2 Cámaras (Diseño Split)</option>
-                  <option value="fixed">1 Cámara (Solo Fijo)</option>
-                  <option value="ptz">1 Cámara (Solo PTZ)</option>
+                  <option value="1">1 Cámara (Diseño Único)</option>
                   <option value="4">4 Cámaras (Rejilla 2x2)</option>
+                  <option value="8">8 Cámaras (Rejilla 2x4)</option>
+                  <option value="16">16 Cámaras (Rejilla 4x4)</option>
                 </select>
               </div>
             </div>
             <div class="dual-lens-layout">
-
-              <!-- 📷 Upper Camera: FIXED LENS (Wide Angle Panorama) -->
-              <div class="lens-view" id="lensFixedContainer">
-                <div class="lens-header">
-                  <span class="overlay-badge" id="badgeFixed">Lente Gran Angular (Fijo)</span>
-                  <div class="lens-actions">
-                    <button class="lens-btn" id="toggleFixedBtn" title="Minimizar/Expandir"
-                      aria-label="Minimizar o expandir lente fijo">⤢</button>
-                  </div>
-                </div>
-                <canvas class="lens-canvas" id="videoCanvasFixed"></canvas>
-                <div class="placeholder-text" id="placeholderFixed">
-                  <span id="fixedMsg">Lente Fijo - Vista General</span>
-                </div>
-              </div>
-
-              <!-- 📷 Lower Camera: PTZ LENS (Movable zoom lens) -->
-              <div class="lens-view" id="lensPtzContainer">
-                <div class="lens-header">
-                  <span class="overlay-badge" id="badgePtz">
-                    <span class="live-dot" id="liveDot"></span> Lente Móvil (PTZ)
-                  </span>
-                  <div class="lens-actions">
-                    <button class="lens-btn" id="togglePtzBtn" title="Minimizar/Expandir"
-                       aria-label="Minimizar o expandir lente PTZ">⤢</button>
-                  </div>
-                </div>
-                <canvas class="lens-canvas" id="videoCanvasPtz"></canvas>
-                <div class="placeholder-text" id="placeholderPtz">
-                  <span class="spinner" id="videoSpinner"></span>
-                  <span id="ptzMsg">Esperando transmisión del Lente PTZ...</span>
-                </div>
-
-                <!-- 🕹️ Virtual Joystick Overlay -->
-                <div class="ptz-overlay" id="ptzOverlay">
-                  <div class="ptz-pad">
-                    <button class="ptz-dir ptz-up" data-dir="up" aria-label="Mover cámara hacia arriba">▲</button>
-                    <button class="ptz-dir ptz-left" data-dir="left" aria-label="Mover cámara a la izquierda">◀</button>
-                    <button class="ptz-dir ptz-center" id="ptzCenterBtn" aria-label="Centro PTZ">PTZ</button>
-                    <button class="ptz-dir ptz-right" data-dir="right" aria-label="Mover cámara a la derecha">▶</button>
-                    <button class="ptz-dir ptz-down" data-dir="down" aria-label="Mover cámara hacia abajo">▼</button>
-                  </div>
-                </div>
-
-                <!-- 🔍 Zoom Buttons Overlay -->
-                <div class="ptz-zoom-overlay" id="zoomOverlay">
-                  <button class="zoom-btn" data-zoom="in" title="Zoom In" aria-label="Acercar zoom">+</button>
-                  <button class="zoom-btn" data-zoom="out" title="Zoom Out" aria-label="Alejar zoom">-</button>
-                </div>
-              </div>
-
-              <!-- 📷 Camera 3: Auxiliary Camera -->
-              <div class="lens-view collapsed" id="lensCam3Container">
-                <div class="lens-header">
-                  <span class="overlay-badge" id="badgeCam3">Cámara Auxiliar 3</span>
-                </div>
-                <canvas class="lens-canvas" id="videoCanvasCam3" style="display: none;"></canvas>
-                <div class="placeholder-text" id="placeholderCam3">
-                  <span style="font-size: 1.5rem; margin-bottom: 8px;">📡</span>
-                  <span id="cam3Msg">Sin Señal (Canal Auxiliar)</span>
-                </div>
-              </div>
-
-              <!-- 📷 Camera 4: Auxiliary Camera -->
-              <div class="lens-view collapsed" id="lensCam4Container">
-                <div class="lens-header">
-                  <span class="overlay-badge" id="badgeCam4">Cámara Auxiliar 4</span>
-                </div>
-                <canvas class="lens-canvas" id="videoCanvasCam4" style="display: none;"></canvas>
-                <div class="placeholder-text" id="placeholderCam4">
-                  <span style="font-size: 1.5rem; margin-bottom: 8px;">📡</span>
-                  <span id="cam4Msg">Sin Señal (Canal Auxiliar)</span>
-                </div>
-              </div>
-
+              <!-- Se generará dinámicamente desde app.js -->
             </div>
 
             <!-- 🛠️ Quick Tools Bar -->
