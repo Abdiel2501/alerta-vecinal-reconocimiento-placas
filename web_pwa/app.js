@@ -172,10 +172,9 @@ document.addEventListener('DOMContentLoaded', () => {
             ${i === 2 ? '<span class="live-dot" id="liveDot"></span>' : ''} ${defaultBadgeText}
           </span>
           <div style="display:flex; align-items:center; gap:8px;">
-            <select class="cam-lens-type" id="lensType-${i}" data-cam-id="${i}" style="background: rgba(255,255,255,0.08); color: white; border: 1px solid rgba(255,255,255,0.15); border-radius: 4px; padding: 2px 6px; font-size: 0.75rem; cursor: pointer; outline: none;">
-              <option value="fixed" ${i !== 2 ? 'selected' : ''}>Fijo</option>
-              <option value="ptz" ${i === 2 ? 'selected' : ''}>PTZ</option>
-            </select>
+            <button class="cam-lens-toggle" id="lensTypeBtn-${i}" data-cam-id="${i}" data-value="${i === 2 ? 'ptz' : 'fixed'}" style="background: ${i === 2 ? 'rgba(255, 107, 107, 0.2)' : 'rgba(0, 194, 209, 0.2)'}; border: 1px solid ${i === 2 ? '#ff6b6b' : 'var(--primary-color)'}; color: ${i === 2 ? '#ff6b6b' : 'var(--primary-color)'}; border-radius: 4px; padding: 2px 6px; font-size: 0.7rem; font-weight: bold; cursor: pointer; outline: none; transition: all 0.2s;">
+              ${i === 2 ? 'PTZ' : 'Fijo'}
+            </button>
             <button class="lens-btn" id="${btnId}" data-cam-id="${i}" title="Minimizar/Expandir" style="background:none; border:none; color:white; cursor:pointer; font-size:0.9rem;">⤢</button>
           </div>
         </div>
@@ -1236,26 +1235,38 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // --- 🕹️ DELEGACIÓN DE EVENTOS PARA SELECTORES FIJO/PTZ Y CONTROLES VIRTUALES ---
-  document.addEventListener('change', (e) => {
-    if (e.target.classList.contains('cam-lens-type')) {
-      const camId = e.target.getAttribute('data-cam-id');
-      const val = e.target.value;
-      const ptzOver = document.getElementById(`ptzOverlay-${camId}`);
-      const zoomOver = document.getElementById(`zoomOverlay-${camId}`);
+  document.addEventListener('click', (e) => {
+    // 0. Manejo de cambio de tipo de lente (Fijo/PTZ pill toggle button)
+    const toggleBtn = e.target.closest('.cam-lens-toggle');
+    if (toggleBtn) {
+      const camId = toggleBtn.getAttribute('data-cam-id');
+      const currentVal = toggleBtn.getAttribute('data-value');
+      const newVal = currentVal === 'fixed' ? 'ptz' : 'fixed';
       
-      if (val === 'ptz') {
+      toggleBtn.setAttribute('data-value', newVal);
+      toggleBtn.textContent = newVal === 'ptz' ? 'PTZ' : 'Fijo';
+      
+      const ptzOver = document.getElementById(camId === '2' ? 'ptzOverlay' : `ptzOverlay-${camId}`);
+      const zoomOver = document.getElementById(camId === '2' ? 'zoomOverlay' : `zoomOverlay-${camId}`);
+      
+      if (newVal === 'ptz') {
+        toggleBtn.style.background = 'rgba(255, 107, 107, 0.2)';
+        toggleBtn.style.borderColor = '#ff6b6b';
+        toggleBtn.style.color = '#ff6b6b';
         if (ptzOver) ptzOver.style.display = 'flex';
         if (zoomOver) zoomOver.style.display = 'block';
         showToast(`🎥 Cámara ${camId} configurada como lente móvil (PTZ)`);
       } else {
+        toggleBtn.style.background = 'rgba(0, 194, 209, 0.2)';
+        toggleBtn.style.borderColor = 'var(--primary-color)';
+        toggleBtn.style.color = 'var(--primary-color)';
         if (ptzOver) ptzOver.style.display = 'none';
         if (zoomOver) zoomOver.style.display = 'none';
         showToast(`🎥 Cámara ${camId} configurada como lente fija`);
       }
+      return;
     }
-  });
 
-  document.addEventListener('click', (e) => {
     // 1. Manejo de botones de dirección PTZ
     const dirBtn = e.target.closest('.ptz-dir');
     if (dirBtn && !dirBtn.id || (dirBtn && !dirBtn.id.startsWith('ptzCenterBtn'))) {
@@ -1651,8 +1662,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const placeholder = i === 1 ? placeholderFixed : (i === 2 ? placeholderPtz : document.getElementById(`placeholder-${i}`));
         if (placeholder) placeholder.style.display = 'none';
         
-        const select = document.getElementById(`lensType-${i}`);
-        const type = select ? select.value : (i === 2 ? 'ptz' : 'fixed');
+        const typeBtn = document.getElementById(`lensTypeBtn-${i}`);
+        const type = typeBtn ? typeBtn.getAttribute('data-value') : (i === 2 ? 'ptz' : 'fixed');
         
         // 1. Dibujar fondo de calles/esquema
         ctx.fillStyle = '#0F1626';
@@ -1855,8 +1866,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!canvas) continue;
             
             const ctx = canvas.getContext('2d');
-            const select = document.getElementById(`lensType-${i}`);
-            const type = select ? select.value : (i === 2 ? 'ptz' : 'fixed');
+            const typeBtn = document.getElementById(`lensTypeBtn-${i}`);
+            const type = typeBtn ? typeBtn.getAttribute('data-value') : (i === 2 ? 'ptz' : 'fixed');
             
             if (canvas.width !== w || canvas.height !== halfHeight) {
               canvas.width = w;

@@ -457,7 +457,7 @@ body {
   right: 12px;
   display: flex;
   justify-content: space-between;
-  pointer-events: none;
+  pointer-events: auto;
   z-index: 10;
 }
 
