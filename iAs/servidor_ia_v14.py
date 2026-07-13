@@ -848,6 +848,7 @@ async def websocket_legacy(websocket: WebSocket):
                 pipeline.actualizar_credenciales(db_global.obtener_cuenta_por_id(usuario_id))
 
             elif action == "list_cameras":
+                loop = asyncio.get_running_loop()
                 def realizar_escaneo_legacy():
                     cams = []
                     for i in range(5):
@@ -862,7 +863,7 @@ async def websocket_legacy(websocket: WebSocket):
                             pass
                     asyncio.run_coroutine_threadsafe(
                         websocket.send_text(json.dumps({"type": "cameras", "list": cams})),
-                        asyncio.get_event_loop()
+                        loop
                     )
                 threading.Thread(target=realizar_escaneo_legacy, daemon=True).start()
 
@@ -940,6 +941,7 @@ async def websocket_saas(websocket: WebSocket, token: str):
                 pipeline.actualizar_credenciales(db_global.obtener_cuenta_por_token(token))
 
             elif action == "list_cameras":
+                loop = asyncio.get_running_loop()
                 # Escanear cámaras USB en un hilo para no bloquear el bucle de eventos
                 def realizar_escaneo():
                     cams = []
@@ -957,7 +959,7 @@ async def websocket_saas(websocket: WebSocket, token: str):
                     # Enviar de regreso al cliente
                     asyncio.run_coroutine_threadsafe(
                         websocket.send_text(json.dumps({"type": "cameras", "list": cams})),
-                        asyncio.get_event_loop()
+                        loop
                     )
                 threading.Thread(target=realizar_escaneo, daemon=True).start()
 
