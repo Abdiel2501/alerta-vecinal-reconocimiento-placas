@@ -227,7 +227,12 @@ class UserPipeline:
 
         if nueva_rtsp != self.rtsp_url:
             print(f"[User {self.usuario_id}] Cambiando cámara de {self.rtsp_url} a {nueva_rtsp}")
-            self.cambio_camara_solicitado = nueva_rtsp
+            self.rtsp_url = nueva_rtsp
+            if self.hilo_ia is None or not self.hilo_ia.is_alive():
+                # El hilo no estaba iniciado porque no había cámara al arrancar. Iniciar ahora.
+                self.iniciar()
+            else:
+                self.cambio_camara_solicitado = nueva_rtsp
 
     def _bucle_ia(self):
         self.inteligencia_artificial_ejecutandose = True
