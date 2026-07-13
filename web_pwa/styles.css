@@ -564,6 +564,7 @@ body {
   transition: border-color 0.25s ease, box-shadow 0.25s ease;
 }
 
+
 .cam-cell:hover {
   border-color: rgba(0, 194, 209, 0.25);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(0, 194, 209, 0.12), inset 0 0 20px rgba(0, 0, 0, 0.6);
@@ -743,7 +744,65 @@ body {
   transform: scale(0.9);
 }
 
-/* ðŸ•¹ï¸ PTZ JOYSTICK OVERLAY (Floating on movable lens) */
+
+/* ── Camera Inactive Overlay (yellow text, always readable on dark bg) ── */
+.cam-inactive-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #FFD600;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-align: center;
+  z-index: 5;
+  pointer-events: none;
+  padding: 8px;
+  line-height: 1.4;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.9);
+}
+
+.placeholder-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #FFD600;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-align: center;
+  pointer-events: none;
+  padding: 8px;
+  line-height: 1.4;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.9);
+}
+
+.cam-inactive-icon {
+  font-size: 1.6rem;
+  opacity: 0.7;
+}
+
+/* Dense grids: smaller icon and text */
+.cam-grid-container[data-grid="9"] .cam-inactive-overlay,
+.cam-grid-container[data-grid="16"] .cam-inactive-overlay,
+.cam-grid-container[data-grid="9"] .placeholder-text,
+.cam-grid-container[data-grid="16"] .placeholder-text {
+  font-size: 0.6rem;
+  gap: 4px;
+}
+
+.cam-grid-container[data-grid="9"] .cam-inactive-icon,
+.cam-grid-container[data-grid="16"] .cam-inactive-icon {
+  font-size: 1rem;
+}
+
+/* 🕹️ PTZ JOYSTICK OVERLAY (Floating on movable lens) */
 .ptz-overlay {
   position: absolute;
   bottom: 12px;
