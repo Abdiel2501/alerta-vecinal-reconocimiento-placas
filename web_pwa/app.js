@@ -1057,66 +1057,95 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // --- ⤢ DUAL-LENS COLLAPSE & EXPAND LOGIC ---
-  toggleFixedBtn.addEventListener('click', () => {
-    const isExpanded = lensPtzContainer.classList.contains('collapsed');
-    
-    if (isExpanded) {
-      // Mostrar ambas lentes
-      lensPtzContainer.classList.remove('collapsed');
-      toggleFixedBtn.textContent = '⤢';
-      ptzOverlay.style.display = 'flex';
-      zoomOverlay.style.display = 'flex';
-      if (lensSelector) lensSelector.value = '2';
-    } else {
-      // Colapsar PTZ (solo queda Fijo)
-      lensPtzContainer.classList.add('collapsed');
-      toggleFixedBtn.textContent = '⤡';
-      if (lensSelector) lensSelector.value = 'fixed';
+  // --- 📷 CAMERA VIEW TABS (Grid / Gran Angular / PTZ) ---
+  const camTabs = document.querySelectorAll('.cam-tab');
+  const camViewPanes = document.querySelectorAll('.cam-view-pane');
+  const gridSizeSelector = document.getElementById('gridSizeSelector');
+  const camGridContainer = document.getElementById('camGridContainer');
+  const auxCells = document.querySelectorAll('.aux-cell');
+
+  function switchCameraTab(view) {
+    camTabs.forEach(t => { t.classList.remove('active'); t.setAttribute('aria-selected', 'false'); });
+    camViewPanes.forEach(p => p.classList.remove('active'));
+
+    const activeTab = document.querySelector(`.cam-tab[data-view="${view}"]`);
+    if (activeTab) { activeTab.classList.add('active'); activeTab.setAttribute('aria-selected', 'true'); }
+
+    const paneId = 'view' + view.charAt(0).toUpperCase() + view.slice(1);
+    const targetPane = document.getElementById(paneId);
+    if (targetPane) targetPane.classList.add('active');
+
+    if (gridSizeSelector) {
+      gridSizeSelector.style.display = (view === 'grid') ? 'flex' : 'none';
     }
+  }
+
+  camTabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      const view = tab.getAttribute('data-view');
+      switchCameraTab(view);
+      if (lensSelector) {
+        if (view === 'fixed') lensSelector.value = 'fixed';
+        else if (view === 'ptz') lensSelector.value = 'ptz';
+      }
+    });
   });
 
-  togglePtzBtn.addEventListener('click', () => {
-    const isExpanded = lensFixedContainer.classList.contains('collapsed');
-    
-    if (isExpanded) {
-      // Mostrar ambas lentes
-      lensFixedContainer.classList.remove('collapsed');
-      togglePtzBtn.textContent = '⤢';
-      if (lensSelector) lensSelector.value = '2';
-    } else {
-      // Colapsar Fijo (solo queda PTZ)
-      lensFixedContainer.classList.add('collapsed');
-      togglePtzBtn.textContent = '⤡';
-      if (lensSelector) lensSelector.value = 'ptz';
+  // --- 📐 DYNAMIC GRID SIZE ---
+  function applyGridLayout(mode) {
+    if (!camGridContainer) return;
+    auxCells.forEach(c => c.classList.add('hidden-cam'));
+    const fixedEl = document.getElementById('lensFixedContainer');
+    const ptzEl   = document.getElementById('lensPtzContainer');
+    if (fixedEl) fixedEl.classList.remove('hidden-cam');
+    if (ptzEl)   ptzEl.classList.remove('hidden-cam');
+
+    if (mode === 'fixed' || mode === '1') {
+      camGridContainer.setAttribute('data-grid', '1');
+      if (ptzEl) ptzEl.classList.add('hidden-cam');
+    } else if (mode === 'ptz') {
+      camGridContainer.setAttribute('data-grid', '1');
+      if (fixedEl) fixedEl.classList.add('hidden-cam');
+    } else if (mode === '2') {
+      camGridContainer.setAttribute('data-grid', '2');
+    } else if (mode === '4') {
+      camGridContainer.setAttribute('data-grid', '4');
+      for (let i = 0; i < 2; i++) { if (auxCells[i]) auxCells[i].classList.remove('hidden-cam'); }
+    } else if (mode === '9') {
+      camGridContainer.setAttribute('data-grid', '9');
+      for (let i = 0; i < 7; i++) { if (auxCells[i]) auxCells[i].classList.remove('hidden-cam'); }
+    } else if (mode === '16') {
+      camGridContainer.setAttribute('data-grid', '16');
+      for (let i = 0; i < 14; i++) { if (auxCells[i]) auxCells[i].classList.remove('hidden-cam'); }
     }
-  });
+  }
+
+  // Init default: 2-camera grid
+  applyGridLayout('2');
+
+  // Wire selector
+  if (lensSelector) {
+    lensSelector.addEventListener('change', function() {
+      const mode = this.value;
+      if (mode === 'fixed') {
+        switchCameraTab('fixed');
+      } else if (mode === 'ptz') {
+        switchCameraTab('ptz');
+      } else {
+        applyGridLayout(mode);
+        switchCameraTab('grid');
+      }
+    });
+  }
+
+  // Legacy expand buttons → switch to single-view tabs
+  if (toggleFixedBtn) { toggleFixedBtn.addEventListener('click', () => switchCameraTab('fixed')); }
+  if (togglePtzBtn)   { togglePtzBtn.addEventListener('click',   () => switchCameraTab('ptz'));   }
 
   // --- 🔒 MOSTRAR/OCULTAR CONTRASEÑA ---
   if (showPasswordCheckbox) {
     showPasswordCheckbox.addEventListener('change', function() {
       loginPassword.type = this.checked ? 'text' : 'password';
-    });
-  }
-
-  // --- 📹 SELECTOR DE DISEÑO DE LENTES ---
-  if (lensSelector) {
-    lensSelector.addEventListener('change', function() {
-      const mode = this.value;
-      if (mode === '2') {
-        lensFixedContainer.classList.remove('collapsed');
-        lensPtzContainer.classList.remove('collapsed');
-        toggleFixedBtn.textContent = '⤢';
-        togglePtzBtn.textContent = '⤢';
-      } else if (mode === 'fixed') {
-        lensFixedContainer.classList.remove('collapsed');
-        lensPtzContainer.classList.add('collapsed');
-        toggleFixedBtn.textContent = '⤡';
-      } else if (mode === 'ptz') {
-        lensFixedContainer.classList.add('collapsed');
-        lensPtzContainer.classList.remove('collapsed');
-        togglePtzBtn.textContent = '⤡';
-      }
     });
   }
 
@@ -1151,22 +1180,15 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  ptzCenterBtn.addEventListener('click', () => {
-    showToast('🕹️ Cámara centrada.');
-    
-    if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({
-        "cmd": "ptz",
-        "action": "center"
-      }));
-    }
-
-    if (demoMode) {
-      ptzOffsetX = 0;
-      ptzOffsetY = 0;
-      demoZoomScale = 1.0;
-    }
-  });
+  if (ptzCenterBtn) {
+    ptzCenterBtn.addEventListener('click', () => {
+      showToast('🕹️ Cámara centrada.');
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ "cmd": "ptz", "action": "center" }));
+      }
+      if (demoMode) { ptzOffsetX = 0; ptzOffsetY = 0; demoZoomScale = 1.0; }
+    });
+  }
 
   zoomBtns.forEach(zBtn => {
     zBtn.addEventListener('click', () => {

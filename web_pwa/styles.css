@@ -403,21 +403,264 @@ body {
   }
 }
 
-/* ðŸ“¹ DUAL LENS CAMERA CONTAINER */
+/* 📹 CAMERA PANEL CARD */
 .dual-lens-card {
   padding: 12px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
 }
 
-.dual-lens-layout {
+/* ════════════════════════════════════════════════════
+   📷 CAM PANEL HEADER (Title + Tabs + Grid Selector)
+   ════════════════════════════════════════════════════ */
+.cam-panel-header {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+
+.cam-panel-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+/* Camera View Tabs */
+.cam-view-tabs {
+  display: flex;
+  background-color: var(--bg-color);
+  border-radius: 20px;
+  padding: 3px;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.cam-tab {
+  flex: 1;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  padding: 6px 10px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  border-radius: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  font-family: var(--font-main);
+}
+
+.cam-tab.active {
+  background-color: var(--surface-color);
+  color: var(--primary-color);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+}
+
+.cam-tab:hover:not(.active) {
+  color: var(--text-primary);
+  background-color: rgba(255,255,255,0.04);
+}
+
+/* Grid size selector */
+.grid-size-selector {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.cam-grid-select {
+  background: rgba(255,255,255,0.05);
+  color: var(--text-primary);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 8px;
+  padding: 5px 8px;
+  font-size: 0.78rem;
+  cursor: pointer;
+  outline: none;
+  font-family: var(--font-main);
+  transition: border-color 0.2s;
+}
+.cam-grid-select:focus {
+  border-color: var(--primary-color);
+}
+
+/* ════════════════════════════════════════════════════
+   📹 CAMERA VIEWS WRAPPER + PANES
+   ════════════════════════════════════════════════════ */
+.cam-views-wrapper {
+  position: relative;
+  min-height: 200px;
+}
+
+.cam-view-pane {
+  display: none;
+}
+
+.cam-view-pane.active {
+  display: block;
+  animation: camFadeIn 0.25s ease forwards;
+}
+
+@keyframes camFadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Single-view pane (Fixed/PTZ fullscreen tabs) */
+.cam-single-view {
   width: 100%;
 }
 
+.fullscreen-cell {
+  width: 100% !important;
+  aspect-ratio: 16/9 !important;
+}
+
+/* ════════════════════════════════════════════════════
+   📐 CAMERA GRID CONTAINER (CSS Grid)
+   ════════════════════════════════════════════════════ */
+.cam-grid-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;   /* default: 2 cameras */
+  gap: 6px;
+  width: 100%;
+}
+
+.cam-grid-container[data-grid="1"] { grid-template-columns: 1fr; }
+.cam-grid-container[data-grid="2"] { grid-template-columns: 1fr 1fr; }
+.cam-grid-container[data-grid="4"] { grid-template-columns: 1fr 1fr; }
+.cam-grid-container[data-grid="9"] { grid-template-columns: 1fr 1fr 1fr; }
+.cam-grid-container[data-grid="16"] { grid-template-columns: 1fr 1fr 1fr 1fr; }
+
+.hidden-cam {
+  display: none !important;
+}
+
+/* ════════════════════════════════════════════════════
+   📷 CAMERA CELL
+   ════════════════════════════════════════════════════ */
+.cam-cell {
+  position: relative;
+  background-color: #0A0D14;
+  border-radius: 12px;
+  overflow: hidden;
+  aspect-ratio: 16/9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5), inset 0 0 20px rgba(0, 0, 0, 0.6);
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.cam-cell:hover {
+  border-color: rgba(0, 194, 209, 0.25);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(0, 194, 209, 0.12), inset 0 0 20px rgba(0, 0, 0, 0.6);
+}
+
+/* ── Camera Cell Label (top-left overlay) ── */
+.cam-cell-label {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding: 8px 8px 24px 8px;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.75) 0%, transparent 100%);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.cam-cell-name {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: rgba(255,255,255,0.85);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: 0.2px;
+}
+
+.cam-grid-container[data-grid="9"] .cam-cell-name,
+.cam-grid-container[data-grid="16"] .cam-cell-name {
+  font-size: 0.58rem;
+}
+
+.cam-grid-container[data-grid="9"] .cam-cell-label,
+.cam-grid-container[data-grid="16"] .cam-cell-label {
+  padding: 5px 5px 14px 5px;
+  gap: 3px;
+}
+
+/* ── Camera Type Badges ── */
+.cam-type-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 7px;
+  border-radius: 20px;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.cam-type-badge.fixed {
+  background-color: rgba(100, 116, 139, 0.3);
+  color: #94A3B8;
+  border: 1px solid rgba(100, 116, 139, 0.25);
+}
+
+.cam-type-badge.ptz {
+  background-color: rgba(0, 194, 209, 0.15);
+  color: #00C2D1;
+  border: 1px solid rgba(0, 194, 209, 0.3);
+  animation: ptzGlow 2.5s ease-in-out infinite;
+}
+
+@keyframes ptzGlow {
+  0%, 100% { box-shadow: 0 0 4px rgba(0, 194, 209, 0.2); }
+  50%       { box-shadow: 0 0 10px rgba(0, 194, 209, 0.55); }
+}
+
+.cam-grid-container[data-grid="9"] .cam-type-badge,
+.cam-grid-container[data-grid="16"] .cam-type-badge {
+  padding: 1px 4px;
+  font-size: 0.52rem;
+}
+
+/* ── Camera Cell Action Buttons (top-right) ── */
+.cam-cell-actions {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 11;
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.cam-cell:hover .cam-cell-actions {
+  opacity: 1;
+}
+
+/* Legacy lens-view for any remaining references */
 .lens-view {
   background-color: #000000;
   border-radius: 12px;

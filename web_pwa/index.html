@@ -211,80 +211,234 @@
 
     <main class="main-content" id="main-content" role="main" aria-label="Contenido principal">
 
-      <!-- 📺 MONITOR SECTION (DUAL LENS + CONTROLS) -->
+      <!-- 📺 MONITOR SECTION (MULTI-CAMERA + CONTROLS) -->
       <section id="view-monitor" class="view-section active" role="tabpanel" aria-label="Monitor de cámaras">
         <div class="monitor-grid">
 
-          <!-- Dual Lens Panel -->
+          <!-- Camera Visualization Panel (Multi-View) -->
           <div class="card dual-lens-card">
-            <!-- Selector de cantidad de lentes -->
-            <div
-              style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 8px;">
-              <span style="font-weight: 700; font-size: 1rem; color: var(--text-primary);">Visualización de
-                Lentes</span>
-              <div style="display: flex; align-items: center; gap: 8px;">
-                <label for="lensSelector" style="font-size: 0.85rem; color: var(--text-secondary);">Diseño:</label>
-                <select id="lensSelector"
-                  style="background: rgba(255,255,255,0.05); color: var(--text-primary); border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; padding: 4px 8px; font-size: 0.85rem; cursor: pointer; outline: none;">
-                  <option value="2">2 Lentes (Doble)</option>
+
+            <!-- === PANEL HEADER: Title + View Tabs + Grid Selector === -->
+            <div class="cam-panel-header">
+              <span class="cam-panel-title">Visualización de Cámaras</span>
+
+              <!-- Camera View Tabs -->
+              <div class="cam-view-tabs" role="tablist" aria-label="Modos de visualización de cámara">
+                <button class="cam-tab active" id="camTabGrid" data-view="grid" role="tab" aria-selected="true">
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><rect x="0" y="0" width="7" height="7" rx="1.5"/><rect x="9" y="0" width="7" height="7" rx="1.5"/><rect x="0" y="9" width="7" height="7" rx="1.5"/><rect x="9" y="9" width="7" height="7" rx="1.5"/></svg>
+                  Vista Rejilla
+                </button>
+                <button class="cam-tab" id="camTabFixed" data-view="fixed" role="tab" aria-selected="false">
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><rect x="0" y="0" width="16" height="16" rx="2"/><circle cx="8" cy="8" r="3.5"/></svg>
+                  Gran Angular
+                </button>
+                <button class="cam-tab" id="camTabPtz" data-view="ptz" role="tab" aria-selected="false">
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 2a6 6 0 100 12A6 6 0 008 2zm0 1.5a4.5 4.5 0 110 9 4.5 4.5 0 010-9z"/><circle cx="8" cy="8" r="2"/></svg>
+                  Lente PTZ
+                </button>
+              </div>
+
+              <!-- Grid Size Selector (only visible in grid view) -->
+              <div class="grid-size-selector" id="gridSizeSelector">
+                <label for="lensSelector" style="font-size: 0.8rem; color: var(--text-secondary); white-space: nowrap;">Diseño:</label>
+                <select id="lensSelector" class="cam-grid-select">
+                  <option value="2">2 Cámaras (1+1)</option>
                   <option value="fixed">1 Lente (Solo Fijo)</option>
                   <option value="ptz">1 Lente (Solo PTZ)</option>
+                  <option value="4">4 Cámaras (2x2)</option>
+                  <option value="9">9 Cámaras (3x3)</option>
+                  <option value="16">16 Cámaras (4x4)</option>
                 </select>
               </div>
             </div>
-            <div class="dual-lens-layout">
 
-              <!-- 📷 Upper Camera: FIXED LENS (Wide Angle Panorama) -->
-              <div class="lens-view" id="lensFixedContainer">
-                <div class="lens-header">
-                  <span class="overlay-badge">Lente Gran Angular (Fijo)</span>
-                  <div class="lens-actions">
-                    <button class="lens-btn" id="toggleFixedBtn" title="Minimizar/Expandir"
-                      aria-label="Minimizar o expandir lente fijo">⤢</button>
+            <!-- === CAMERA VIEWS CONTAINER === -->
+            <div class="cam-views-wrapper">
+
+              <!-- ── VIEW: GRID (default) ── -->
+              <div class="cam-view-pane active" id="viewGrid" role="tabpanel">
+                <div class="cam-grid-container" id="camGridContainer">
+
+                  <!-- SLOT 0: Fixed Lens -->
+                  <div class="cam-cell" id="lensFixedContainer" data-type="fixed">
+                    <div class="cam-cell-label">
+                      <span class="cam-type-badge fixed">FIJO</span>
+                      <span class="cam-cell-name">Lente Gran Angular</span>
+                    </div>
+                    <div class="cam-cell-actions">
+                      <button class="lens-btn" id="toggleFixedBtn" title="Pantalla completa" aria-label="Expandir lente fijo">⤢</button>
+                    </div>
+                    <canvas class="lens-canvas" id="videoCanvasFixed"></canvas>
+                    <div class="placeholder-text cam-inactive-overlay" id="placeholderFixed">
+                      <div class="cam-inactive-icon">📷</div>
+                      <span id="fixedMsg">Cámara inactiva — Esperando señal</span>
+                    </div>
                   </div>
-                </div>
-                <canvas class="lens-canvas" id="videoCanvasFixed"></canvas>
-                <div class="placeholder-text" id="placeholderFixed">
-                  <span id="fixedMsg">Lente Fijo - Vista General</span>
+
+                  <!-- SLOT 1: PTZ Lens -->
+                  <div class="cam-cell ptz-cell" id="lensPtzContainer" data-type="ptz">
+                    <div class="cam-cell-label">
+                      <span class="cam-type-badge ptz">
+                        <span class="live-dot" id="liveDot"></span>
+                        PTZ
+                      </span>
+                      <span class="cam-cell-name">Lente Móvil</span>
+                    </div>
+                    <div class="cam-cell-actions">
+                      <button class="lens-btn" id="togglePtzBtn" title="Pantalla completa" aria-label="Expandir lente PTZ">⤢</button>
+                    </div>
+                    <canvas class="lens-canvas" id="videoCanvasPtz"></canvas>
+                    <div class="placeholder-text cam-inactive-overlay" id="placeholderPtz">
+                      <div class="cam-inactive-icon">
+                        <span class="spinner" id="videoSpinner"></span>
+                      </div>
+                      <span id="ptzMsg">Cámara inactiva — Esperando señal</span>
+                    </div>
+
+                    <!-- 🕹️ PTZ Joystick (inline, appears on hover) -->
+                    <div class="ptz-overlay" id="ptzOverlay">
+                      <div class="ptz-pad">
+                        <button class="ptz-dir ptz-up" data-dir="up" aria-label="Arriba">▲</button>
+                        <button class="ptz-dir ptz-left" data-dir="left" aria-label="Izquierda">◀</button>
+                        <button class="ptz-dir ptz-center" id="ptzCenterBtn" aria-label="Centrar">PTZ</button>
+                        <button class="ptz-dir ptz-right" data-dir="right" aria-label="Derecha">▶</button>
+                        <button class="ptz-dir ptz-down" data-dir="down" aria-label="Abajo">▼</button>
+                      </div>
+                    </div>
+                    <!-- 🔍 Zoom -->
+                    <div class="ptz-zoom-overlay" id="zoomOverlay">
+                      <button class="zoom-btn" data-zoom="in" title="Zoom In" aria-label="Acercar">+</button>
+                      <button class="zoom-btn" data-zoom="out" title="Zoom Out" aria-label="Alejar">−</button>
+                    </div>
+                  </div>
+
+                  <!-- SLOTS 2-15: Auxiliary cameras (dynamically shown/hidden based on grid size) -->
+                  <div class="cam-cell aux-cell hidden-cam" id="auxCam2" data-type="fixed">
+                    <div class="cam-cell-label"><span class="cam-type-badge fixed">FIJO</span><span class="cam-cell-name">Cámara Auxiliar 3</span></div>
+                    <canvas class="lens-canvas aux-canvas" id="auxCanvas2"></canvas>
+                    <div class="cam-inactive-overlay"><div class="cam-inactive-icon">📷</div><span>Cámara inactiva<br>Esperando señal</span></div>
+                  </div>
+                  <div class="cam-cell aux-cell hidden-cam" id="auxCam3" data-type="fixed">
+                    <div class="cam-cell-label"><span class="cam-type-badge fixed">FIJO</span><span class="cam-cell-name">Cámara Auxiliar 4</span></div>
+                    <canvas class="lens-canvas aux-canvas" id="auxCanvas3"></canvas>
+                    <div class="cam-inactive-overlay"><div class="cam-inactive-icon">📷</div><span>Cámara inactiva<br>Esperando señal</span></div>
+                  </div>
+                  <div class="cam-cell aux-cell hidden-cam" id="auxCam4" data-type="fixed">
+                    <div class="cam-cell-label"><span class="cam-type-badge fixed">FIJO</span><span class="cam-cell-name">Cámara Auxiliar 5</span></div>
+                    <canvas class="lens-canvas aux-canvas" id="auxCanvas4"></canvas>
+                    <div class="cam-inactive-overlay"><div class="cam-inactive-icon">📷</div><span>Cámara inactiva<br>Esperando señal</span></div>
+                  </div>
+                  <div class="cam-cell aux-cell hidden-cam" id="auxCam5" data-type="fixed">
+                    <div class="cam-cell-label"><span class="cam-type-badge fixed">FIJO</span><span class="cam-cell-name">Cámara Auxiliar 6</span></div>
+                    <canvas class="lens-canvas aux-canvas" id="auxCanvas5"></canvas>
+                    <div class="cam-inactive-overlay"><div class="cam-inactive-icon">📷</div><span>Cámara inactiva<br>Esperando señal</span></div>
+                  </div>
+                  <div class="cam-cell aux-cell hidden-cam" id="auxCam6" data-type="fixed">
+                    <div class="cam-cell-label"><span class="cam-type-badge fixed">FIJO</span><span class="cam-cell-name">Cámara Auxiliar 7</span></div>
+                    <canvas class="lens-canvas aux-canvas" id="auxCanvas6"></canvas>
+                    <div class="cam-inactive-overlay"><div class="cam-inactive-icon">📷</div><span>Cámara inactiva<br>Esperando señal</span></div>
+                  </div>
+                  <div class="cam-cell aux-cell hidden-cam" id="auxCam7" data-type="fixed">
+                    <div class="cam-cell-label"><span class="cam-type-badge fixed">FIJO</span><span class="cam-cell-name">Cámara Auxiliar 8</span></div>
+                    <canvas class="lens-canvas aux-canvas" id="auxCanvas7"></canvas>
+                    <div class="cam-inactive-overlay"><div class="cam-inactive-icon">📷</div><span>Cámara inactiva<br>Esperando señal</span></div>
+                  </div>
+                  <div class="cam-cell aux-cell hidden-cam" id="auxCam8" data-type="fixed">
+                    <div class="cam-cell-label"><span class="cam-type-badge fixed">FIJO</span><span class="cam-cell-name">Cámara Auxiliar 9</span></div>
+                    <canvas class="lens-canvas aux-canvas" id="auxCanvas8"></canvas>
+                    <div class="cam-inactive-overlay"><div class="cam-inactive-icon">📷</div><span>Cámara inactiva<br>Esperando señal</span></div>
+                  </div>
+                  <div class="cam-cell aux-cell hidden-cam" id="auxCam9" data-type="fixed">
+                    <div class="cam-cell-label"><span class="cam-type-badge fixed">FIJO</span><span class="cam-cell-name">Cámara Auxiliar 10</span></div>
+                    <canvas class="lens-canvas aux-canvas" id="auxCanvas9"></canvas>
+                    <div class="cam-inactive-overlay"><div class="cam-inactive-icon">📷</div><span>Cámara inactiva<br>Esperando señal</span></div>
+                  </div>
+                  <div class="cam-cell aux-cell hidden-cam" id="auxCam10" data-type="fixed">
+                    <div class="cam-cell-label"><span class="cam-type-badge fixed">FIJO</span><span class="cam-cell-name">Cámara Auxiliar 11</span></div>
+                    <canvas class="lens-canvas aux-canvas" id="auxCanvas10"></canvas>
+                    <div class="cam-inactive-overlay"><div class="cam-inactive-icon">📷</div><span>Cámara inactiva<br>Esperando señal</span></div>
+                  </div>
+                  <div class="cam-cell aux-cell hidden-cam" id="auxCam11" data-type="fixed">
+                    <div class="cam-cell-label"><span class="cam-type-badge fixed">FIJO</span><span class="cam-cell-name">Cámara Auxiliar 12</span></div>
+                    <canvas class="lens-canvas aux-canvas" id="auxCanvas11"></canvas>
+                    <div class="cam-inactive-overlay"><div class="cam-inactive-icon">📷</div><span>Cámara inactiva<br>Esperando señal</span></div>
+                  </div>
+                  <div class="cam-cell aux-cell hidden-cam" id="auxCam12" data-type="fixed">
+                    <div class="cam-cell-label"><span class="cam-type-badge fixed">FIJO</span><span class="cam-cell-name">Cámara Auxiliar 13</span></div>
+                    <canvas class="lens-canvas aux-canvas" id="auxCanvas12"></canvas>
+                    <div class="cam-inactive-overlay"><div class="cam-inactive-icon">📷</div><span>Cámara inactiva<br>Esperando señal</span></div>
+                  </div>
+                  <div class="cam-cell aux-cell hidden-cam" id="auxCam13" data-type="fixed">
+                    <div class="cam-cell-label"><span class="cam-type-badge fixed">FIJO</span><span class="cam-cell-name">Cámara Auxiliar 14</span></div>
+                    <canvas class="lens-canvas aux-canvas" id="auxCanvas13"></canvas>
+                    <div class="cam-inactive-overlay"><div class="cam-inactive-icon">📷</div><span>Cámara inactiva<br>Esperando señal</span></div>
+                  </div>
+                  <div class="cam-cell aux-cell hidden-cam" id="auxCam14" data-type="fixed">
+                    <div class="cam-cell-label"><span class="cam-type-badge fixed">FIJO</span><span class="cam-cell-name">Cámara Auxiliar 15</span></div>
+                    <canvas class="lens-canvas aux-canvas" id="auxCanvas14"></canvas>
+                    <div class="cam-inactive-overlay"><div class="cam-inactive-icon">📷</div><span>Cámara inactiva<br>Esperando señal</span></div>
+                  </div>
+                  <div class="cam-cell aux-cell hidden-cam" id="auxCam15" data-type="fixed">
+                    <div class="cam-cell-label"><span class="cam-type-badge fixed">FIJO</span><span class="cam-cell-name">Cámara Auxiliar 16</span></div>
+                    <canvas class="lens-canvas aux-canvas" id="auxCanvas15"></canvas>
+                    <div class="cam-inactive-overlay"><div class="cam-inactive-icon">📷</div><span>Cámara inactiva<br>Esperando señal</span></div>
+                  </div>
+
+                </div><!-- /camGridContainer -->
+              </div><!-- /viewGrid -->
+
+              <!-- ── VIEW: FIXED LENS FULLSCREEN ── -->
+              <div class="cam-view-pane" id="viewFixed" role="tabpanel">
+                <div class="cam-single-view">
+                  <div class="cam-cell fullscreen-cell" data-type="fixed">
+                    <div class="cam-cell-label">
+                      <span class="cam-type-badge fixed">FIJO</span>
+                      <span class="cam-cell-name">Lente Gran Angular (Fijo) — Vista Completa</span>
+                    </div>
+                    <canvas class="lens-canvas" id="videoCanvasFixedFull"></canvas>
+                    <div class="cam-inactive-overlay">
+                      <div class="cam-inactive-icon">📷</div>
+                      <span>Cámara inactiva — Esperando señal</span>
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              <!-- 📷 Lower Camera: PTZ LENS (Movable zoom lens) -->
-              <div class="lens-view" id="lensPtzContainer">
-                <div class="lens-header">
-                  <span class="overlay-badge">
-                    <span class="live-dot" id="liveDot"></span> Lente Móvil (PTZ)
-                  </span>
-                  <div class="lens-actions">
-                    <button class="lens-btn" id="togglePtzBtn" title="Minimizar/Expandir"
-                      aria-label="Minimizar o expandir lente PTZ">⤢</button>
+              <!-- ── VIEW: PTZ LENS FULLSCREEN ── -->
+              <div class="cam-view-pane" id="viewPtz" role="tabpanel">
+                <div class="cam-single-view">
+                  <div class="cam-cell fullscreen-cell ptz-cell" data-type="ptz">
+                    <div class="cam-cell-label">
+                      <span class="cam-type-badge ptz">
+                        <span class="live-dot-fs"></span>
+                        PTZ
+                      </span>
+                      <span class="cam-cell-name">Lente Móvil PTZ — Vista Completa</span>
+                    </div>
+                    <canvas class="lens-canvas" id="videoCanvasPtzFull"></canvas>
+                    <div class="cam-inactive-overlay">
+                      <div class="cam-inactive-icon">🎯</div>
+                      <span>Cámara PTZ inactiva — Esperando señal</span>
+                    </div>
+                    <!-- PTZ controls always visible in fullscreen PTZ tab -->
+                    <div class="ptz-overlay ptz-always-visible" id="ptzOverlayFull">
+                      <div class="ptz-pad">
+                        <button class="ptz-dir ptz-up" data-dir="up" aria-label="Arriba">▲</button>
+                        <button class="ptz-dir ptz-left" data-dir="left" aria-label="Izquierda">◀</button>
+                        <button class="ptz-dir ptz-center" data-dir="center" aria-label="Centrar">PTZ</button>
+                        <button class="ptz-dir ptz-right" data-dir="right" aria-label="Derecha">▶</button>
+                        <button class="ptz-dir ptz-down" data-dir="down" aria-label="Abajo">▼</button>
+                      </div>
+                    </div>
+                    <div class="ptz-zoom-overlay ptz-zoom-always" id="zoomOverlayFull">
+                      <button class="zoom-btn" data-zoom="in" title="Zoom In">+</button>
+                      <button class="zoom-btn" data-zoom="out" title="Zoom Out">−</button>
+                    </div>
                   </div>
-                </div>
-                <canvas class="lens-canvas" id="videoCanvasPtz"></canvas>
-                <div class="placeholder-text" id="placeholderPtz">
-                  <span class="spinner" id="videoSpinner"></span>
-                  <span id="ptzMsg">Esperando transmisión del Lente PTZ...</span>
-                </div>
-
-                <!-- 🕹️ Virtual Joystick Overlay -->
-                <div class="ptz-overlay" id="ptzOverlay">
-                  <div class="ptz-pad">
-                    <button class="ptz-dir ptz-up" data-dir="up" aria-label="Mover cámara hacia arriba">▲</button>
-                    <button class="ptz-dir ptz-left" data-dir="left" aria-label="Mover cámara a la izquierda">◀</button>
-                    <button class="ptz-dir ptz-center" id="ptzCenterBtn" aria-label="Centro PTZ">PTZ</button>
-                    <button class="ptz-dir ptz-right" data-dir="right" aria-label="Mover cámara a la derecha">▶</button>
-                    <button class="ptz-dir ptz-down" data-dir="down" aria-label="Mover cámara hacia abajo">▼</button>
-                  </div>
-                </div>
-
-                <!-- 🔍 Zoom Buttons Overlay -->
-                <div class="ptz-zoom-overlay" id="zoomOverlay">
-                  <button class="zoom-btn" data-zoom="in" title="Zoom In" aria-label="Acercar zoom">+</button>
-                  <button class="zoom-btn" data-zoom="out" title="Zoom Out" aria-label="Alejar zoom">-</button>
                 </div>
               </div>
 
-            </div>
+            </div><!-- /cam-views-wrapper -->
 
             <!-- 🛠️ Quick Tools Bar -->
             <div class="camera-tools-bar">
