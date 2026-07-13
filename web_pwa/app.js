@@ -1778,7 +1778,18 @@ document.addEventListener('DOMContentLoaded', () => {
       recIndicator.style.display = 'none';
       placeholderPtz.style.display = 'flex';
       videoSpinner.style.display = 'none';
-      ptzMsg.textContent = 'Servidor desconectado.';
+
+      // Detect Mixed Content Block (HTTPS website connecting to HTTP/WS local backend)
+      const isHttps = window.location.protocol === 'https:';
+      const isLocalIp = ip === 'localhost' || ip === '127.0.0.1' || ip.startsWith('192.168.') || ip.startsWith('10.') || ip.startsWith('172.');
+
+      if (isHttps && isLocalIp) {
+        ptzMsg.innerHTML = '<span style="color:#FFD600; font-weight:bold; font-size:0.85rem;">⚠️ Error de Conexión (Bloqueo HTTPS)</span><br>' +
+                           '<span style="font-size:0.75rem; color:#fff; display:block; margin-top:5px; max-width:90%;">No se puede conectar a un servidor local ("localhost" o IP privada) desde una web segura (Vercel).</span><br>' +
+                           '<span style="font-size:0.72rem; color:#aaa; display:block;"><b>Solución rápida:</b> Corre la web en tu laptop ejecutando: <br><code style="color:#FFD600; background:rgba(0,0,0,0.5); padding:2px 4px; border-radius:3px;">python -m http.server 8000</code> y entra a: <br><a href="http://localhost:8000/web_pwa/" target="_blank" style="color:#00C2D1; text-decoration:underline;">http://localhost:8000/web_pwa/</a></span>';
+      } else {
+        ptzMsg.textContent = 'Servidor desconectado.';
+      }
       
       // Reiniciar la simulación del lente fijo al desconectarse del backend
       startFixedLensRender();
@@ -1834,7 +1845,8 @@ document.addEventListener('DOMContentLoaded', () => {
       }));
       showToast('📡 Enviando cambio de cámara RTSP...');
     } else {
-      alert('Conéctate al servidor para cambiar la cámara.');
+      showToast('⚠️ Servidor desconectado. Revisa la configuración de IP/Puerto.', 'warning');
+      console.warn('Para conectar un backend local (ws://) desde HTTPS (Vercel), debes usar un túnel seguro (localtunnel) o correr la app en local (http://localhost:8000).');
     }
   });
 
@@ -1847,7 +1859,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (ws && ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify({ "cmd": "list_cameras" }));
     } else {
-      alert('Conéctate al servidor para escanear cámaras.');
+      showToast('⚠️ Conéctate al servidor primero.', 'warning');
     }
   });
 
