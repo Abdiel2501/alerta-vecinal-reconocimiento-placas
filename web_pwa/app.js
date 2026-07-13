@@ -1137,44 +1137,77 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // --- ⤢ DUAL-LENS COLLAPSE & EXPAND LOGIC ---
-  toggleFixedBtn.addEventListener('click', () => {
-    const isExpanded = lensPtzContainer.classList.contains('collapsed');
-    if (dualLensLayout) dualLensLayout.classList.remove('grid-4');
-    if (lensCam3Container) lensCam3Container.classList.add('collapsed');
-    if (lensCam4Container) lensCam4Container.classList.add('collapsed');
-    
-    if (isExpanded) {
-      // Mostrar ambas lentes
-      lensPtzContainer.classList.remove('collapsed');
-      toggleFixedBtn.textContent = '⤢';
-      ptzOverlay.style.display = 'flex';
-      zoomOverlay.style.display = 'flex';
-      if (lensSelector) lensSelector.value = '2';
-    } else {
-      // Colapsar PTZ (solo queda Fijo)
-      lensPtzContainer.classList.add('collapsed');
-      toggleFixedBtn.textContent = '⤡';
-      if (lensSelector) lensSelector.value = 'fixed';
-    }
-  });
-
-  togglePtzBtn.addEventListener('click', () => {
-    const isExpanded = lensFixedContainer.classList.contains('collapsed');
-    if (dualLensLayout) dualLensLayout.classList.remove('grid-4');
-    if (lensCam3Container) lensCam3Container.classList.add('collapsed');
-    if (lensCam4Container) lensCam4Container.classList.add('collapsed');
-    
-    if (isExpanded) {
-      // Mostrar ambas lentes
-      lensFixedContainer.classList.remove('collapsed');
-      togglePtzBtn.textContent = '⤢';
-      if (lensSelector) lensSelector.value = '2';
-    } else {
-      // Colapsar Fijo (solo queda PTZ)
-      lensFixedContainer.classList.add('collapsed');
-      togglePtzBtn.textContent = '⤡';
-      if (lensSelector) lensSelector.value = 'ptz';
+  // --- ⤢ DUAL-LENS MAXIMIZE & RESTORE (FULLSCREEN) LOGIC ---
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('.lens-btn');
+    if (btn) {
+      const camId = btn.getAttribute('data-cam-id');
+      if (!camId) return;
+      
+      const containerId = camId === '1' ? 'lensFixedContainer' : (camId === '2' ? 'lensPtzContainer' : `lensContainer-${camId}`);
+      const container = document.getElementById(containerId);
+      if (!container) return;
+      
+      const isMaximized = container.classList.contains('maximized');
+      
+      if (isMaximized) {
+        // RESTORE: Minimizar al diseño seleccionado
+        container.classList.remove('maximized');
+        btn.textContent = '⤢';
+        btn.title = 'Maximizar';
+        
+        // Restaurar clase de rejilla
+        const mode = lensSelector ? lensSelector.value : '2';
+        if (dualLensLayout) {
+          dualLensLayout.classList.remove('grid-2', 'grid-4', 'grid-8', 'grid-16');
+          if (mode === '2') dualLensLayout.classList.add('grid-2');
+          else if (mode === '4') dualLensLayout.classList.add('grid-4');
+          else if (mode === '8') dualLensLayout.classList.add('grid-8');
+          else if (mode === '16') dualLensLayout.classList.add('grid-16');
+        }
+        
+        // Mostrar número activo de cámaras
+        let count = 2;
+        if (mode === '1') count = 1;
+        else if (mode === '2') count = 2;
+        else if (mode === '4') count = 4;
+        else if (mode === '8') count = 8;
+        else if (mode === '16') count = 16;
+        
+        for (let i = 1; i <= 16; i++) {
+          const c = i === 1 ? lensFixedContainer : (i === 2 ? lensPtzContainer : document.getElementById(`lensContainer-${i}`));
+          if (!c) continue;
+          if (i <= count) {
+            c.classList.remove('collapsed');
+          } else {
+            c.classList.add('collapsed');
+          }
+        }
+        showToast(`🎥 Rejilla restaurada`);
+      } else {
+        // MAXIMIZE: Hacer fullscreen para esta ranura
+        // Quitar maximización de cualquier otra cámara previa por seguridad
+        document.querySelectorAll('.lens-view').forEach(c => c.classList.remove('maximized'));
+        document.querySelectorAll('.lens-btn').forEach(b => { b.textContent = '⤢'; b.title = 'Maximizar'; });
+        
+        container.classList.remove('collapsed');
+        container.classList.add('maximized');
+        btn.textContent = '⤡';
+        btn.title = 'Restaurar';
+        
+        // Remover clases de rejilla para que ocupe todo el espacio
+        if (dualLensLayout) {
+          dualLensLayout.classList.remove('grid-2', 'grid-4', 'grid-8', 'grid-16');
+        }
+        
+        // Colapsar todas las demás cámaras
+        for (let i = 1; i <= 16; i++) {
+          if (i.toString() === camId) continue;
+          const c = i === 1 ? lensFixedContainer : (i === 2 ? lensPtzContainer : document.getElementById(`lensContainer-${i}`));
+          if (c) c.classList.add('collapsed');
+        }
+        showToast(`🎥 Cámara ${camId} maximizada`);
+      }
     }
   });
 

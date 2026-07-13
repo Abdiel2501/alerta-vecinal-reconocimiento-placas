@@ -443,6 +443,16 @@ body {
   padding: 0;
 }
 
+/* Ocultar mandos PTZ en rejillas densas (4, 8, 16) si no está maximizada la cámara */
+.grid-4 .lens-view:not(.maximized) .ptz-overlay,
+.grid-4 .lens-view:not(.maximized) .ptz-zoom-overlay,
+.grid-8 .lens-view:not(.maximized) .ptz-overlay,
+.grid-8 .lens-view:not(.maximized) .ptz-zoom-overlay,
+.grid-16 .lens-view:not(.maximized) .ptz-overlay,
+.grid-16 .lens-view:not(.maximized) .ptz-zoom-overlay {
+  display: none !important;
+}
+
 .lens-canvas {
   width: 100%;
   height: 100%;
