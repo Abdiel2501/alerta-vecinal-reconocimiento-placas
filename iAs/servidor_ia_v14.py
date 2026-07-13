@@ -839,6 +839,33 @@ async def websocket_legacy(websocket: WebSocket):
                     )
                     pipeline.actualizar_credenciales(db_global.obtener_cuenta_por_id(usuario_id))
             
+            elif action == "change_camera":
+                idx = cmd.get("index", 0)
+                url = str(idx)
+                db_global.actualizar_config_cuenta(
+                    usuario_id, url, pipeline.telegram_chat_id, pipeline.telegram_token, pipeline.gemini_api_key
+                )
+                pipeline.actualizar_credenciales(db_global.obtener_cuenta_por_id(usuario_id))
+
+            elif action == "list_cameras":
+                def realizar_escaneo_legacy():
+                    cams = []
+                    for i in range(5):
+                        try:
+                            cap = cv2.VideoCapture(i, cv2.CAP_DSHOW) if sys.platform.startswith('win') else cv2.VideoCapture(i)
+                            if cap.isOpened():
+                                ret, _ = cap.read()
+                                if ret:
+                                    cams.append(f"📹 Cámara USB {i}")
+                                cap.release()
+                        except:
+                            pass
+                    asyncio.run_coroutine_threadsafe(
+                        websocket.send_text(json.dumps({"type": "cameras", "list": cams})),
+                        asyncio.get_event_loop()
+                    )
+                threading.Thread(target=realizar_escaneo_legacy, daemon=True).start()
+
             elif action == "ptz":
                 direccion = cmd.get("action", "")
                 if pipeline.rtsp_url and pipeline.rtsp_url.startswith("rtsp://"):
@@ -904,6 +931,36 @@ async def websocket_saas(websocket: WebSocket, token: str):
                     )
                     pipeline.actualizar_credenciales(db_global.obtener_cuenta_por_token(token))
             
+            elif action == "change_camera":
+                idx = cmd.get("index", 0)
+                url = str(idx)
+                db_global.actualizar_config_cuenta(
+                    usuario_id, url, pipeline.telegram_chat_id, pipeline.telegram_token, pipeline.gemini_api_key
+                )
+                pipeline.actualizar_credenciales(db_global.obtener_cuenta_por_token(token))
+
+            elif action == "list_cameras":
+                # Escanear cámaras USB en un hilo para no bloquear el bucle de eventos
+                def realizar_escaneo():
+                    cams = []
+                    for i in range(5):
+                        try:
+                            # Probar con backend DSHOW primero en Windows, luego normal
+                            cap = cv2.VideoCapture(i, cv2.CAP_DSHOW) if sys.platform.startswith('win') else cv2.VideoCapture(i)
+                            if cap.isOpened():
+                                ret, _ = cap.read()
+                                if ret:
+                                    cams.append(f"📹 Cámara USB {i}")
+                                cap.release()
+                        except:
+                            pass
+                    # Enviar de regreso al cliente
+                    asyncio.run_coroutine_threadsafe(
+                        websocket.send_text(json.dumps({"type": "cameras", "list": cams})),
+                        asyncio.get_event_loop()
+                    )
+                threading.Thread(target=realizar_escaneo, daemon=True).start()
+
             elif action == "ptz":
                 direccion = cmd.get("action", "")
                 if pipeline.rtsp_url and pipeline.rtsp_url.startswith("rtsp://"):
