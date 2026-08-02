@@ -1258,7 +1258,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (zoomAction === 'out') demoZoomScale = Math.max(demoZoomScale - 0.2, 0.6);
       }
     });
-  }
+  });
 
   // --- 📷 LOCAL WEBCAM (1-CLICK GETUSERMEDIA) ---
   let localWebcamStream = null;
@@ -1347,7 +1347,7 @@ document.addEventListener('DOMContentLoaded', () => {
         showToast('❌ Permiso de cámara denegado o no disponible.');
       }
     });
-  });
+  }
 
   // --- 📢 TEXT-TO-SPEECH (TTS) ALERTS ---
   function speakAlert(plate) {
