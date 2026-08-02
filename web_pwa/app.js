@@ -219,6 +219,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let isAiActive = true;
   let currentUserEmail = '';
   let currentTheme = 'dark';
+  let isAdmin = false;
 
   // --- SaaS Data Isolation Helpers ---
   function getUserKey(baseKey) {
@@ -496,6 +497,23 @@ document.addEventListener('DOMContentLoaded', () => {
   function logInSuccess(session) {
     localStorage.setItem('user_session', JSON.stringify(session));
     
+    // Determinar si el usuario que inicia sesion es administrador
+    isAdmin = session.email && session.email.toLowerCase() === 'admin@alertavecinal.com';
+
+    // Mostrar/ocultar el panel de administracion segun el rol
+    const adminPanel = document.getElementById('adminPanel');
+    if (adminPanel) {
+      adminPanel.style.display = isAdmin ? 'block' : 'none';
+    }
+
+    // Actualizar badge de rol en la tarjeta de perfil
+    const userRoleBadge = document.getElementById('userRoleBadge');
+    if (userRoleBadge) {
+      userRoleBadge.textContent = isAdmin ? 'Administrador 🔐' : 'Operador Vecinal';
+      userRoleBadge.style.background = isAdmin ? 'linear-gradient(135deg, #ff6b35, #f7c59f)' : '';
+      userRoleBadge.style.color = isAdmin ? '#1a1a1a' : '';
+    }
+
     // Cargar y aislar configuraciones del usuario
     loadUserSettings(session);
 
@@ -520,7 +538,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Iniciar renderizado estático del lente fijo
     startFixedLensRender();
 
-    // Iniciar conexión automática
+    // Iniciar conexión automática (para todos los usuarios, en segundo plano)
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('demo') === 'true' || demoModeToggle.checked) {
       demoModeToggle.checked = true;
@@ -838,7 +856,12 @@ document.addEventListener('DOMContentLoaded', () => {
     localStorage.removeItem('user_session');
     sessionStorage.removeItem('session_crypto_key');
     sessionCryptoKey = null;
+    isAdmin = false;
     
+    // Ocultar panel de admin al cerrar sesion
+    const adminPanel = document.getElementById('adminPanel');
+    if (adminPanel) adminPanel.style.display = 'none';
+
     if (ws) ws.close();
     if (demoCanvasInterval) clearInterval(demoCanvasInterval);
     if (demoAlertInterval) clearInterval(demoAlertInterval);

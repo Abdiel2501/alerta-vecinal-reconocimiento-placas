@@ -549,44 +549,52 @@
       <!-- ⚙️ SETTINGS SECTION -->
       <section id="view-settings" class="view-section settings-grid-layout" role="tabpanel" aria-label="Ajustes de la aplicación">
         <div class="settings-main-column">
-          <!-- Conexión Servidor Backend -->
-          <div class="card settings-card">
-            <h2>Conexión Servidor Backend</h2>
+          <!-- 🔒 ADMIN-ONLY PANEL: Visible solo para admin@alertavecinal.com -->
+          <div id="adminPanel" style="display: none;">
 
-            <div class="input-group">
-              <label for="serverIp">
-                <span class="input-icon">🌐</span> Dirección IP del Servidor:
-              </label>
-              <input type="text" id="serverIp" value="127.0.0.1" placeholder="Ej: 192.168.1.72">
-            </div>
-
-            <div class="input-group">
-              <label for="serverPort">
-                <span class="input-icon">🔌</span> Puerto WebSocket:
-              </label>
-              <input type="number" id="serverPort" value="8765" placeholder="8765">
-            </div>
-
-            <button id="connectBtn" class="btn btn-primary-gradient">Conectar</button>
-          </div>
-
-          <!-- Módulo de Demostración (Offline) -->
-          <div class="card settings-card">
-            <h2>Módulo de Demostración (Offline)</h2>
-            <div class="toggle-wrapper">
-              <div>
-                <h3 style="font-size: 1rem; font-weight: 700; display: flex; align-items: center; gap: 8px;">
-                  Modo Demo <span id="demoModeBadge" class="status-badge-inactive">Inactivo</span>
-                </h3>
-                <p style="font-size: 0.85rem; color: var(--text-secondary);">Simular flujo completo con radar y alertas ficticias</p>
+            <!-- Conexión Servidor Backend -->
+            <div class="card settings-card">
+              <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
+                <span style="font-size:0.7rem; font-weight:700; background:linear-gradient(135deg,#ff6b35,#f7c59f); color:#1a1a1a; padding:2px 8px; border-radius:20px; letter-spacing:0.5px;">🔐 ADMIN</span>
               </div>
-              <label class="switch">
-                <input type="checkbox" id="demoModeToggle">
-                <span class="slider"></span>
-              </label>
+              <h2>Conexión Servidor Backend</h2>
+
+              <div class="input-group">
+                <label for="serverIp">
+                  <span class="input-icon">🌐</span> Dirección IP del Servidor:
+                </label>
+                <input type="text" id="serverIp" value="127.0.0.1" placeholder="Ej: 192.168.1.72">
+              </div>
+
+              <div class="input-group">
+                <label for="serverPort">
+                  <span class="input-icon">🔌</span> Puerto WebSocket:
+                </label>
+                <input type="number" id="serverPort" value="8765" placeholder="8765">
+              </div>
+
+              <button id="connectBtn" class="btn btn-primary-gradient">Conectar</button>
             </div>
-            <button id="triggerDemoAlertBtn" class="btn btn-secondary" style="display: none;">🚨 Simular Alerta Crítica</button>
-          </div>
+
+            <!-- Módulo de Demostración (Offline) -->
+            <div class="card settings-card">
+              <h2>Módulo de Demostración (Offline)</h2>
+              <div class="toggle-wrapper">
+                <div>
+                  <h3 style="font-size: 1rem; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+                    Modo Demo <span id="demoModeBadge" class="status-badge-inactive">Inactivo</span>
+                  </h3>
+                  <p style="font-size: 0.85rem; color: var(--text-secondary);">Simular flujo completo con radar y alertas ficticias</p>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" id="demoModeToggle">
+                  <span class="slider"></span>
+                </label>
+              </div>
+              <button id="triggerDemoAlertBtn" class="btn btn-secondary" style="display: none;">🚨 Simular Alerta Crítica</button>
+            </div>
+
+          </div><!-- /adminPanel -->
         </div>
 
         <div class="settings-sidebar-column">
@@ -598,7 +606,7 @@
               <div class="profile-info-wrapper">
                 <h3 id="profileName">Usuario Google</h3>
                 <p id="profileEmail">usuario@gmail.com</p>
-                <span class="badge-role">Operador Vecinal</span>
+                <span class="badge-role" id="userRoleBadge">Operador Vecinal</span>
               </div>
             </div>
             <button id="logoutBtn" class="btn btn-logout-outline">Cerrar Sesión</button>
