@@ -240,7 +240,7 @@
 
               <!-- Grid Size Selector (only visible in grid view) -->
               <div class="grid-size-selector" id="gridSizeSelector">
-                <label for="lensSelector" style="font-size: 0.8rem; color: var(--text-secondary); white-space: nowrap;">Diseño:</label>
+                <label for="lensSelector" id="label-lens-selector" style="font-size: 0.8rem; color: var(--text-secondary); white-space: nowrap;">Diseño:</label>
                 <select id="lensSelector" class="cam-grid-select">
                   <option value="2">2 Cámaras (1+1)</option>
                   <option value="fixed">1 Lente (Solo Fijo)</option>
@@ -477,7 +477,7 @@
             </div>
 
             <div class="input-group">
-              <label for="rtspUrl">Cambiar dirección RTSP / Cámara WiFi:</label>
+              <label for="rtspUrl" id="label-rtsp-url">Cambiar dirección RTSP / Cámara WiFi:</label>
               <div class="input-with-action">
                 <input type="text" id="rtspUrl" placeholder="rtsp://usuario:password@ip:554/stream1">
                 <button id="applyRtspBtn" class="btn">Aplicar</button>
@@ -485,7 +485,7 @@
             </div>
 
             <div class="input-group">
-              <label>Origen de Video Actual:</label>
+              <label id="label-active-camera">Origen de Video Actual:</label>
               <input type="text" id="activeCameraInfo" readonly value="Ninguna cámara activa"
                 style="opacity: 0.8; font-size: 0.85rem;">
             </div>

@@ -1694,12 +1694,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (ws) ws.close();
 
-    wsStatusText.textContent = 'Conectando...';
+    wsStatusText.textContent = t('status_connecting');
     wsStatusDot.className = 'dot connecting';
-    connectBtn.textContent = 'Conectando...';
+    connectBtn.textContent = t('status_connecting');
     
     videoSpinner.style.display = 'inline-block';
-    ptzMsg.textContent = 'Conectando al servidor IA...';
+    ptzMsg.textContent = t('status_connecting_ia');
     placeholderPtz.style.display = 'flex';
 
     ws = new WebSocket(wsUrl);
@@ -1743,13 +1743,13 @@ document.addEventListener('DOMContentLoaded', () => {
             if (data.camera) {
               activeCameraInfo.value = data.camera;
             }
-            videoMetaText.textContent = `FPS de Servidor: ${data.fps || '0.0'} | Clientes: ${data.clients || '0'}`;
+            videoMetaText.textContent = t('cam_meta').replace('{fps}', data.fps || '0.0').replace('{clients}', data.clients || '0');
           } 
           else if (data.type === 'cameras') {
             populateCamerasModal(data.list);
           }
           else if (data.type === 'frame_meta') {
-            videoMetaText.textContent = `FPS de Servidor: ${data.fps || '0.0'} | Clientes: ${data.clients || '0'}`;
+            videoMetaText.textContent = t('cam_meta').replace('{fps}', data.fps || '0.0').replace('{clients}', data.clients || '0');
           }
           else if (data.type === 'audio') {
             playRawPcm(data.data);
@@ -1832,9 +1832,9 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     ws.onclose = () => {
-      wsStatusText.textContent = 'Desconectado';
+      wsStatusText.textContent = t('status_disconnected');
       wsStatusDot.className = 'dot';
-      connectBtn.textContent = 'Conectar';
+      connectBtn.textContent = t('admin_connect');
       connectBtn.className = 'btn';
       recIndicator.style.display = 'none';
       placeholderPtz.style.display = 'flex';
@@ -1845,11 +1845,11 @@ document.addEventListener('DOMContentLoaded', () => {
       const isLocalIp = ip === 'localhost' || ip === '127.0.0.1' || ip.startsWith('192.168.') || ip.startsWith('10.') || ip.startsWith('172.');
 
       if (isHttps && isLocalIp) {
-        ptzMsg.innerHTML = '<span style="color:#FFD600; font-weight:bold; font-size:0.85rem;">⚠️ Error de Conexión (Bloqueo HTTPS)</span><br>' +
-                           '<span style="font-size:0.75rem; color:#fff; display:block; margin-top:5px; max-width:90%;">No se puede conectar a un servidor local ("localhost" o IP privada) desde una web segura (Vercel).</span><br>' +
-                           '<span style="font-size:0.72rem; color:#aaa; display:block;"><b>Solución rápida:</b> Corre la web en tu laptop ejecutando: <br><code style="color:#FFD600; background:rgba(0,0,0,0.5); padding:2px 4px; border-radius:3px;">python -m http.server 8000</code> y entra a: <br><a href="http://localhost:8000/web_pwa/" target="_blank" style="color:#00C2D1; text-decoration:underline;">http://localhost:8000/web_pwa/</a></span>';
+        ptzMsg.innerHTML = `<span style="color:#FFD600; font-weight:bold; font-size:0.85rem;">${t('status_https_error_title')}</span><br>` +
+                           `<span style="font-size:0.75rem; color:#fff; display:block; margin-top:5px; max-width:90%;">${t('status_https_error_desc')}</span><br>` +
+                           `<span style="font-size:0.72rem; color:#aaa; display:block;"><b>${t('status_https_error_sol_title')}:</b> ${t('status_https_error_sol_desc')}<br><code style="color:#FFD600; background:rgba(0,0,0,0.5); padding:2px 4px; border-radius:3px;">python -m http.server 8000</code> y entra a: <br><a href="http://localhost:8000/web_pwa/" target="_blank" style="color:#00C2D1; text-decoration:underline;">http://localhost:8000/web_pwa/</a></span>`;
       } else {
-        ptzMsg.textContent = 'Servidor desconectado.';
+        ptzMsg.textContent = t('status_server_disconnected');
       }
       
       // Reiniciar la simulación del lente fijo al desconectarse del backend
@@ -1871,7 +1871,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (demoMode || userDisconnected) return;
     if (reconnectTimeout) clearTimeout(reconnectTimeout);
     
-    wsStatusText.textContent = 'Reconectando...';
+    wsStatusText.textContent = t('status_reconnecting');
     wsStatusDot.className = 'dot connecting';
     
     reconnectTimeout = setTimeout(() => {
@@ -2525,6 +2525,27 @@ document.addEventListener('DOMContentLoaded', () => {
       cam_apply: 'Aplicar',
       cam_source: 'Origen de Video Actual:',
       cam_inactive: 'Cámara inactiva — Esperando señal',
+      cam_select_usb: 'Seleccionar Cámara USB:',
+      cam_layout_2: '2 Cámaras (1+1)',
+      cam_layout_fixed: '1 Lente (Solo Fijo)',
+      cam_layout_ptz: '1 Lente (Solo PTZ)',
+      cam_layout_4: '4 Cámaras (2x2)',
+      cam_layout_9: '9 Cámaras (3x3)',
+      cam_layout_16: '16 Cámaras (4x4)',
+      cam_source_none: 'Ninguna cámara activa',
+      cam_inactive_aux: 'Cámara inactiva<br>Esperando señal',
+      status_connecting_ia: 'Conectando al servidor IA...',
+      status_server_disconnected: 'Servidor desconectado.',
+      status_https_error_title: '⚠️ Error de Conexión (Bloqueo HTTPS)',
+      status_https_error_desc: 'No se puede conectar a un servidor local ("localhost" o IP privada) desde una web segura (Vercel).',
+      status_https_error_sol_title: 'Solución rápida',
+      status_https_error_sol_desc: 'Corre la web en tu laptop ejecutando:',
+      cam_fixed_name: 'Lente Gran Angular',
+      cam_ptz_name: 'Lente Móvil',
+      cam_fixed_fullscreen: 'Lente Gran Angular (Fijo) — Vista Completa',
+      cam_ptz_fullscreen: 'Lente Móvil PTZ — Vista Completa',
+      cam_aux_name: 'Cámara Auxiliar',
+      cam_meta: 'FPS de Servidor: {fps} | Clientes: {clients}',
       // History
       hist_title: 'Historial de Alertas',
       hist_export: '📥 Exportar CSV', hist_clear: '🗑️ Vaciar Logs',
@@ -2629,6 +2650,27 @@ document.addEventListener('DOMContentLoaded', () => {
       cam_apply: 'Apply',
       cam_source: 'Current Video Source:',
       cam_inactive: 'Camera inactive — Awaiting signal',
+      cam_select_usb: 'Select USB Camera:',
+      cam_layout_2: '2 Cameras (1+1)',
+      cam_layout_fixed: '1 Lens (Fixed Only)',
+      cam_layout_ptz: '1 Lens (PTZ Only)',
+      cam_layout_4: '4 Cameras (2x2)',
+      cam_layout_9: '9 Cameras (3x3)',
+      cam_layout_16: '16 Cameras (4x4)',
+      cam_source_none: 'No active camera',
+      cam_inactive_aux: 'Camera inactive<br>Awaiting signal',
+      status_connecting_ia: 'Connecting to AI server...',
+      status_server_disconnected: 'Server disconnected.',
+      status_https_error_title: '⚠️ Connection Error (HTTPS Block)',
+      status_https_error_desc: 'Cannot connect to a local server ("localhost" or private IP) from a secure website (Vercel).',
+      status_https_error_sol_title: 'Quick solution',
+      status_https_error_sol_desc: 'Run the web on your laptop executing:',
+      cam_fixed_name: 'Wide Angle Lens',
+      cam_ptz_name: 'Mobile Lens',
+      cam_fixed_fullscreen: 'Wide Angle Lens (Fixed) — Full View',
+      cam_ptz_fullscreen: 'Mobile PTZ Lens — Full View',
+      cam_aux_name: 'Auxiliary Camera',
+      cam_meta: 'Server FPS: {fps} | Clients: {clients}',
       // History
       hist_title: 'Alert History',
       hist_export: '📥 Export CSV', hist_clear: '🗑️ Clear Logs',
@@ -2760,11 +2802,76 @@ document.addEventListener('DOMContentLoaded', () => {
     const scanBtn = document.getElementById('listCamerasBtn');
     if (scanBtn) scanBtn.textContent = L.cam_scan;
 
-    const rtspLabel = document.querySelector('label[for="rtspUrl"]');
+    const rtspLabel = document.getElementById('label-rtsp-url');
     if (rtspLabel) rtspLabel.textContent = L.cam_rtsp;
 
     const camConfigH2 = document.querySelector('#view-monitor .monitor-grid > .card:last-child h2');
     if (camConfigH2) camConfigH2.textContent = L.cam_config;
+
+    const usbLabel = document.getElementById('label-list-cameras');
+    if (usbLabel) usbLabel.textContent = L.cam_select_usb;
+
+    const activeCamLabel = document.getElementById('label-active-camera');
+    if (activeCamLabel) activeCamLabel.textContent = L.cam_source;
+
+    const lensLabel = document.getElementById('label-lens-selector');
+    if (lensLabel) lensLabel.textContent = L.cam_layout;
+
+    const lensSel = document.getElementById('lensSelector');
+    if (lensSel && lensSel.options.length >= 6) {
+      lensSel.options[0].text = L.cam_layout_2;
+      lensSel.options[1].text = L.cam_layout_fixed;
+      lensSel.options[2].text = L.cam_layout_ptz;
+      lensSel.options[3].text = L.cam_layout_4;
+      lensSel.options[4].text = L.cam_layout_9;
+      lensSel.options[5].text = L.cam_layout_16;
+    }
+
+    if (activeCameraInfo) {
+      if (activeCameraInfo.value === 'Ninguna cámara activa' || activeCameraInfo.value === 'No active camera') {
+        activeCameraInfo.value = L.cam_source_none;
+      }
+    }
+
+    const fixedMsg = document.getElementById('fixedMsg');
+    if (fixedMsg) fixedMsg.textContent = L.cam_inactive;
+
+    const ptzMsgEl = document.getElementById('ptzMsg');
+    if (ptzMsgEl) {
+      const txt = ptzMsgEl.textContent;
+      if (txt === 'Cámara inactiva — Esperando señal' || txt === 'Camera inactive — Awaiting signal') {
+        ptzMsgEl.textContent = L.cam_inactive;
+      } else if (txt === 'Servidor desconectado.' || txt === 'Server disconnected.') {
+        ptzMsgEl.textContent = L.status_server_disconnected;
+      } else if (txt === 'Conectando al servidor IA...' || txt === 'Connecting to AI server...') {
+        ptzMsgEl.textContent = L.status_connecting_ia;
+      }
+    }
+
+    document.querySelectorAll('.aux-cell .cam-inactive-overlay span').forEach(el => {
+      el.innerHTML = L.cam_inactive_aux;
+    });
+
+    // Translate Camera Names
+    const fixedLbl = document.querySelector('#lensFixedContainer .cam-cell-name');
+    if (fixedLbl) fixedLbl.textContent = L.cam_fixed_name;
+
+    const ptzLbl = document.querySelector('#lensPtzContainer .cam-cell-name');
+    if (ptzLbl) ptzLbl.textContent = L.cam_ptz_name;
+
+    const fixedFsLbl = document.querySelector('#viewFixed .cam-cell-name');
+    if (fixedFsLbl) fixedFsLbl.textContent = L.cam_fixed_fullscreen;
+
+    const ptzFsLbl = document.querySelector('#viewPtz .cam-cell-name');
+    if (ptzFsLbl) ptzFsLbl.textContent = L.cam_ptz_fullscreen;
+
+    document.querySelectorAll('.aux-cell').forEach(cell => {
+      const nameEl = cell.querySelector('.cam-cell-name');
+      if (nameEl) {
+        const num = cell.id.replace('auxCam', '');
+        nameEl.textContent = `${L.cam_aux_name} ${parseInt(num) + 1}`;
+      }
+    });
 
     // === SECCIÓN HISTORIAL ===
     const histH2 = document.querySelector('#view-history h2');
