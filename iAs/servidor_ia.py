@@ -69,6 +69,33 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from databases.database import DatabasePlacas
 from alerta_telegram import enviar_alerta_telegram, guardar_capturas
 
+TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN", "")
+bot_username = ""
+
+def obtener_info_bot(difundir=False):
+    global bot_username, TELEGRAM_TOKEN
+    TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN", "")
+    if not TELEGRAM_TOKEN:
+        bot_username = ""
+        return
+    try:
+        import requests
+        res = requests.get(f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/getMe", timeout=5.0)
+        if res.ok:
+            data = res.json()
+            bot_username = data.get("result", {}).get("username", "")
+            print(f"[Telegram] Bot cargado: @{bot_username}")
+            if difundir and estado.loop and not estado.loop.is_closed():
+                asyncio.run_coroutine_threadsafe(
+                    _difundir_evento({"type": "status", "bot_username": bot_username}),
+                    estado.loop
+                )
+    except Exception as e:
+        print(f"[Telegram] No se pudo obtener el nombre del bot: {e}")
+
+# Ejecutar obtención de nombre de bot en segundo plano
+threading.Thread(target=obtener_info_bot, args=(False,), daemon=True).start()
+
 # ─── Argumentos ──────────────────────────────────────────────────────────────
 
 parser = argparse.ArgumentParser(description="Servidor IA AlertaVecinal — WebSocket")
@@ -176,6 +203,7 @@ async def punto_enlace_socket(socket_cliente: WebSocket):
         "camera": estado.origen_video,
         "fps": round(estado.fps_actual, 1),
         "cameras": estado.camaras_disponibles,
+        "bot_username": bot_username,
     })
 
     try:
@@ -476,6 +504,55 @@ async def _procesar_comando(socket_cliente: WebSocket, datos_crudos: str):
             # Log de integración para simular/recibir la voz del altavoz
             print(f"[ONVIF Parlante] 🎤 Recibiendo {len(pcm_bytes)} bytes de voz desde la PWA (Conversión a G.711 completada). Transmitiendo al altavoz de la cámara en {estado.origen_video}...")
 
+    elif action == "process_frame":
+        b64_img = cmd.get("image", "")
+        if b64_img:
+            def _procesar_frame_cliente():
+                try:
+                    if "," in b64_img:
+                        raw_b64 = b64_img.split(",", 1)[1]
+                    else:
+                        raw_b64 = b64_img
+                    
+                    img_bytes = base64.b64decode(raw_b64)
+                    nparr = np.frombuffer(img_bytes, np.uint8)
+                    fotograma = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+                    
+                    if fotograma is not None and fotograma.size > 0:
+                        resultados_directos = modelo_placas(fotograma, verbose=False)
+                        if len(resultados_directos[0].boxes) > 0:
+                            mejor_idx = int(resultados_directos[0].boxes.conf.argmax())
+                            conf_placa = float(resultados_directos[0].boxes.conf[mejor_idx])
+                            if conf_placa >= 0.15:
+                                dx1, dy1, dx2, dy2 = resultados_directos[0].boxes.xyxy[mejor_idx].int().cpu().tolist()
+                                roi_placa = fotograma[dy1:dy2, dx1:dx2].copy()
+                                if roi_placa.size > 0:
+                                    img_ocr = preprocesar_placa(roi_placa)
+                                    if img_ocr is not None:
+                                        res_ocr = lector_ocr.readtext(img_ocr, allowlist='0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ')
+                                        for r in res_ocr:
+                                            txt = r[1].strip().upper().replace(" ", "").replace("-", "")
+                                            c = float(r[2])
+                                            if len(txt) >= 4 and c >= 0.20:
+                                                db = DatabasePlacas()
+                                                es_robado, info = db.consultar_placa(txt)
+                                                if es_robado:
+                                                    ruta_v, ruta_p = guardar_capturas(fotograma, roi_placa, txt)
+                                                    _emitir_alerta({
+                                                        "type": "alert",
+                                                        "placa": txt,
+                                                        "es_robado": True,
+                                                        "info": info,
+                                                        "timeStr": datetime.now().strftime("%H:%M:%S %d/%m/%Y"),
+                                                        "ruta_v": ruta_v,
+                                                        "ruta_p": ruta_p
+                                                    })
+                                                    enviar_alerta_telegram(placa_detectada=txt, info=info, rutas_imagenes=[ruta_v, ruta_p])
+                except Exception as e:
+                    pass
+
+            threading.Thread(target=_procesar_frame_cliente, daemon=True).start()
+
     elif action == "save_telegram_config":
         token = cmd.get("token", "").strip()
         chat_id = cmd.get("chat_id", "").strip()
@@ -513,6 +590,8 @@ async def _procesar_comando(socket_cliente: WebSocket, datos_crudos: str):
             alerta_telegram.TELEGRAM_CHAT_ID_ENV = chat_id
             alerta_telegram._modo_real = bool(token)
             print(f"[Telegram] Módulo alerta_telegram actualizado dinámicamente. Modo Real: {alerta_telegram._modo_real}")
+            # Actualizar también el bot_username en caliente
+            threading.Thread(target=obtener_info_bot, args=(True,), daemon=True).start()
         except Exception as e:
             print(f"[Telegram] No se pudo actualizar el módulo alerta_telegram en caliente: {e}")
 

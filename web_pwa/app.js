@@ -167,6 +167,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // DOM Elements - Settings & Config
   const listCamerasBtn = document.getElementById('listCamerasBtn');
   const rtspUrlInput = document.getElementById('rtspUrl');
+  const useWebcamBtn = document.getElementById('useWebcamBtn');
   const applyRtspBtn = document.getElementById('applyRtspBtn');
   const activeCameraInfo = document.getElementById('activeCameraInfo');
   
@@ -1255,6 +1256,95 @@ document.addEventListener('DOMContentLoaded', () => {
       if (demoMode) {
         if (zoomAction === 'in') demoZoomScale = Math.min(demoZoomScale + 0.2, 2.5);
         if (zoomAction === 'out') demoZoomScale = Math.max(demoZoomScale - 0.2, 0.6);
+      }
+    });
+  }
+
+  // --- 📷 LOCAL WEBCAM (1-CLICK GETUSERMEDIA) ---
+  let localWebcamStream = null;
+  let localWebcamVideoEl = null;
+  let localWebcamAnimationFrame = null;
+  let lastWebcamFrameSentTime = 0;
+
+  if (useWebcamBtn) {
+    useWebcamBtn.addEventListener('click', async () => {
+      try {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          showToast('❌ Tu navegador no soporta acceso directo a la webcam.');
+          return;
+        }
+
+        useWebcamBtn.disabled = true;
+        useWebcamBtn.textContent = '⏳ Accediendo a la cámara...';
+
+        localWebcamStream = await navigator.mediaDevices.getUserMedia({
+          video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' }
+        });
+
+        if (!localWebcamVideoEl) {
+          localWebcamVideoEl = document.createElement('video');
+          localWebcamVideoEl.autoplay = true;
+          localWebcamVideoEl.playsInline = true;
+          localWebcamVideoEl.muted = true;
+        }
+        localWebcamVideoEl.srcObject = localWebcamStream;
+        await localWebcamVideoEl.play();
+
+        const placeholderFixed = document.getElementById('placeholderFixed');
+        const placeholderPtz = document.getElementById('placeholderPtz');
+        if (placeholderFixed) placeholderFixed.style.display = 'none';
+        if (placeholderPtz) placeholderPtz.style.display = 'none';
+
+        if (activeCameraInfo) {
+          activeCameraInfo.value = '📷 Cámara Web de este Dispositivo';
+        }
+
+        useWebcamBtn.disabled = false;
+        useWebcamBtn.textContent = '✅ Cámara Web Activa (1-Clic)';
+        showToast('📷 Cámara web de tu dispositivo conectada con éxito.');
+
+        const renderLoop = () => {
+          if (!localWebcamStream) return;
+          const videoCanvasFixed = document.getElementById('videoCanvasFixed');
+          const videoCanvasPtz = document.getElementById('videoCanvasPtz');
+
+          if (videoCanvasFixed && localWebcamVideoEl.videoWidth) {
+            const ctxFixed = videoCanvasFixed.getContext('2d');
+            videoCanvasFixed.width = localWebcamVideoEl.videoWidth;
+            videoCanvasFixed.height = localWebcamVideoEl.videoHeight;
+            ctxFixed.drawImage(localWebcamVideoEl, 0, 0, videoCanvasFixed.width, videoCanvasFixed.height);
+          }
+
+          if (videoCanvasPtz && localWebcamVideoEl.videoWidth) {
+            const ctxPtz = videoCanvasPtz.getContext('2d');
+            videoCanvasPtz.width = localWebcamVideoEl.videoWidth;
+            videoCanvasPtz.height = localWebcamVideoEl.videoHeight;
+            ctxPtz.drawImage(localWebcamVideoEl, 0, 0, videoCanvasPtz.width, videoCanvasPtz.height);
+          }
+
+          const now = Date.now();
+          if (ws && ws.readyState === WebSocket.OPEN && (now - lastWebcamFrameSentTime > 200)) {
+            lastWebcamFrameSentTime = now;
+            if (videoCanvasFixed) {
+              const dataUrl = videoCanvasFixed.toDataURL('image/jpeg', 0.6);
+              ws.send(JSON.stringify({
+                cmd: 'process_frame',
+                image: dataUrl
+              }));
+            }
+          }
+
+          localWebcamAnimationFrame = requestAnimationFrame(renderLoop);
+        };
+
+        if (localWebcamAnimationFrame) cancelAnimationFrame(localWebcamAnimationFrame);
+        renderLoop();
+
+      } catch (err) {
+        console.error('Error al acceder a la webcam:', err);
+        useWebcamBtn.disabled = false;
+        useWebcamBtn.textContent = '📷 Usar Cámara de este Dispositivo (1-Clic)';
+        showToast('❌ Permiso de cámara denegado o no disponible.');
       }
     });
   });
