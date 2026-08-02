@@ -2354,6 +2354,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // Navegar a la vista predeterminada
     const defaultTab = document.querySelector(`.tab-btn[data-target="${prefStartView}"]`);
     if (defaultTab) defaultTab.click();
+
+    // Aplicar idioma guardado (después del login, cuando el DOM ya está listo)
+    if (prefLanguage && prefLanguage !== 'es') {
+      setTimeout(() => applyLanguage(prefLanguage), 100);
+    }
   }
 
   function wireUserPreferencesListeners() {
@@ -2471,12 +2476,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (langEl) langEl.addEventListener('change', () => {
       prefLanguage = langEl.value;
       saveUserPreference('language', prefLanguage);
-      if (prefLanguage === 'en') {
-        showToast('🇳🇿 English support coming soon!');
-        langEl.value = 'es'; prefLanguage = 'es';
-      } else {
-        showToast('🇲🇽 Idioma: Español (México)');
-      }
+      applyLanguage(prefLanguage);
+      showToast(prefLanguage === 'en' ? '🇺🇸 Language: English' : '🇲🇽 Idioma: Español (México)');
     });
 
     // Zona horaria
@@ -2485,7 +2486,7 @@ document.addEventListener('DOMContentLoaded', () => {
       prefTimezone = tzEl.value;
       saveUserPreference('timezone', prefTimezone);
       renderHistory();
-      showToast(`🌎 Zona horaria actualizada`);
+      showToast(prefLanguage === 'en' ? '🌎 Time zone updated' : '🌎 Zona horaria actualizada');
     });
 
     // Tamaño de fuente
@@ -2498,8 +2499,435 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     if (fontEl) fontEl.addEventListener('change', () => {
       saveUserPreference('fontSize', prefFontSize);
-      showToast(`🔤 Tamaño de texto: ${prefFontSize}px`);
+      showToast(prefLanguage === 'en' ? `🔤 Text size: ${prefFontSize}px` : `🔤 Tamaño de texto: ${prefFontSize}px`);
     });
+  }
+
+  // ============================================================
+  //  🌍 SISTEMA DE INTERNACIONALIZACIÓN (i18n)
+  // ============================================================
+  const translations = {
+    es: {
+      // Nav
+      nav_monitor: 'Monitor', nav_history: 'Historial', nav_settings: 'Ajustes',
+      // Status
+      status_disconnected: 'Desconectado', status_reconnecting: 'Reconectando...',
+      status_connected: 'Conectado', status_connecting: 'Conectando...',
+      // Monitor tools
+      tool_talk: 'Hablar', tool_listen: 'Escuchar', tool_capture: 'Captura', tool_ai: 'IA Placas',
+      // Camera card
+      cam_view_title: 'Visualización de Cámaras',
+      cam_grid: 'Vista Rejilla', cam_wide: 'Gran Angular', cam_ptz: 'Lente PTZ',
+      cam_layout: 'Diseño:',
+      cam_config: 'Configuración de Cámara',
+      cam_scan: '🔍 Escanear Cámaras USB',
+      cam_rtsp: 'Cambiar dirección RTSP / Cámara WiFi:',
+      cam_apply: 'Aplicar',
+      cam_source: 'Origen de Video Actual:',
+      cam_inactive: 'Cámara inactiva — Esperando señal',
+      // History
+      hist_title: 'Historial de Alertas',
+      hist_export: '📥 Exportar CSV', hist_clear: '🗑️ Vaciar Logs',
+      hist_search: 'Buscar por placa...',
+      hist_all: 'Todos los vehículos', hist_stolen: 'Solo robados', hist_auth: 'Solo autorizados',
+      hist_col_plate: 'Placa', hist_col_status: 'Estado',
+      hist_col_model: 'Modelo y Color', hist_col_owner: 'Propietario', hist_col_date: 'Fecha y Hora',
+      hist_no_records: 'Sin registros',
+      hist_row_stolen: '🔴 ROBADO', hist_row_authorized: '🟢 Autorizado',
+      // Settings - admin
+      admin_backend: 'Conexión Servidor Backend',
+      admin_ip: '🌐 Dirección IP del Servidor:', admin_port: '🔌 Puerto WebSocket:',
+      admin_connect: 'Conectar',
+      admin_demo: 'Módulo de Demostración (Offline)',
+      admin_demo_label: 'Modo Demo', admin_demo_inactive: 'Inactivo', admin_demo_active: 'Activo',
+      admin_demo_desc: 'Simular flujo completo con radar y alertas ficticias',
+      admin_simulate: '🚨 Simular Alerta Crítica',
+      // Settings - notifications
+      pref_notif_title: '🔔 Notificaciones y Alertas',
+      pref_alarm_title: 'Sonido de alerta crítica',
+      pref_alarm_desc: 'Reproducir sirena al detectar un vehículo robado',
+      pref_browser_title: 'Notificaciones del navegador',
+      pref_browser_desc: 'Recibir alertas aunque la app esté en segundo plano',
+      pref_vib_title: 'Vibración en alertas', pref_vib_mobile: '(móvil)',
+      pref_vib_desc: 'Vibrar el dispositivo al recibir una alerta crítica',
+      // Settings - appearance
+      pref_appear_title: '🎨 Apariencia y Visualización',
+      pref_theme_label: 'Tema visual:',
+      pref_theme_dark: '🌙 Oscuro (Dark Mode)', pref_theme_light: '☀️ Claro (Light Mode)',
+      pref_start_label: 'Vista al iniciar sesión:',
+      pref_start_monitor: '📺 Monitor (por defecto)',
+      pref_start_history: '📋 Historial de Alertas', pref_start_settings: '⚙️ Ajustes',
+      pref_fps_title: 'Mostrar métricas técnicas (FPS)',
+      pref_fps_desc: 'Ver FPS del servidor y número de clientes conectados',
+      // Settings - history data
+      pref_hist_title: '📋 Historial y Datos',
+      pref_maxhist_label: 'Máximo de registros en historial:',
+      pref_rec_50: '50 registros', pref_rec_100: '100 registros (recomendado)',
+      pref_rec_200: '200 registros', pref_rec_500: '500 registros',
+      pref_timefmt_label: 'Formato de hora en el historial:',
+      pref_time24: '⏰ 24 horas (ej: 13:45)', pref_time12: '🕐 12 horas (ej: 1:45 PM)',
+      pref_filter_title: 'Filtrar solo robados por defecto',
+      pref_filter_desc: 'Al abrir el historial, mostrar solo vehículos con reporte de robo',
+      // Settings - region
+      pref_region_title: '🌍 Región, Idioma y Accesibilidad',
+      pref_lang_label: 'Idioma de la interfaz:',
+      pref_tz_label: 'Zona horaria para registros:',
+      pref_font_label: 'Tamaño del texto de la interfaz:',
+      // Profile
+      profile_title: 'Perfil de Usuario (Google)',
+      role_operator: 'Operador Vecinal', role_admin: 'Administrador 🔐',
+      btn_logout: 'Cerrar Sesión',
+      // Auth
+      auth_subtitle: 'Plataforma de Monitoreo Inteligente',
+      auth_email: 'Usuario / Correo:', auth_password: 'Contraseña:',
+      auth_show_pw: 'Mostrar contraseña',
+      auth_login: 'Iniciar Sesión', auth_google: 'Iniciar Sesión con Google',
+      auth_first_time: '¿Primera vez en la plataforma?',
+      auth_create: 'Crea tu cuenta de vecino',
+      auth_have_account: '¿Ya tienes una cuenta registrada?',
+      auth_go_login: 'Iniciar Sesión',
+      auth_name: 'Nombre Completo:',
+      auth_register: 'Registrarse',
+      // Toasts
+      toast_alarm_on: '🔔 Sonido de alertas activado',
+      toast_alarm_off: '🔕 Sonido de alertas desactivado',
+      toast_notif_on: '🔔 Notificaciones activadas',
+      toast_notif_denied: '❌ Permiso denegado por el navegador',
+      toast_notif_off: '🔕 Notificaciones del navegador desactivadas',
+      toast_vib_on: '📳 Vibración activada', toast_vib_off: '📴 Vibración desactivada',
+      toast_fps_on: '📊 Métricas FPS visibles', toast_fps_off: '📊 Métricas FPS ocultas',
+      toast_start_view: '📍 Vista predeterminada guardada',
+      toast_filter_stolen: '🔴 Mostrando solo robados por defecto',
+      toast_filter_all: '🟢 Mostrando todos los vehículos por defecto',
+      toast_tz: '🌎 Zona horaria actualizada',
+      toast_welcome: '👋 ¡Bienvenido de nuevo',
+      toast_logout: '🔒 Sesión cerrada correctamente.',
+      toast_dark: '🌓 Modo oscuro activado', toast_light: '🌓 Modo claro activado',
+      // Critical alert modal
+      modal_title: 'ALERTA DE ROBO',
+      modal_desc: 'Se ha detectado una coincidencia en la Base de Datos',
+      modal_model: 'Modelo', modal_color: 'Color',
+      modal_owner: 'Propietario', modal_time: 'Fecha / Hora',
+      modal_dismiss: 'Entendido',
+    },
+
+    en: {
+      // Nav
+      nav_monitor: 'Monitor', nav_history: 'History', nav_settings: 'Settings',
+      // Status
+      status_disconnected: 'Disconnected', status_reconnecting: 'Reconnecting...',
+      status_connected: 'Connected', status_connecting: 'Connecting...',
+      // Monitor tools
+      tool_talk: 'Talk', tool_listen: 'Listen', tool_capture: 'Capture', tool_ai: 'AI Plates',
+      // Camera card
+      cam_view_title: 'Camera View',
+      cam_grid: 'Grid View', cam_wide: 'Wide Angle', cam_ptz: 'PTZ Lens',
+      cam_layout: 'Layout:',
+      cam_config: 'Camera Configuration',
+      cam_scan: '🔍 Scan USB Cameras',
+      cam_rtsp: 'Change RTSP / WiFi Camera address:',
+      cam_apply: 'Apply',
+      cam_source: 'Current Video Source:',
+      cam_inactive: 'Camera inactive — Awaiting signal',
+      // History
+      hist_title: 'Alert History',
+      hist_export: '📥 Export CSV', hist_clear: '🗑️ Clear Logs',
+      hist_search: 'Search by plate...',
+      hist_all: 'All vehicles', hist_stolen: 'Stolen only', hist_auth: 'Authorized only',
+      hist_col_plate: 'Plate', hist_col_status: 'Status',
+      hist_col_model: 'Model & Color', hist_col_owner: 'Owner', hist_col_date: 'Date & Time',
+      hist_no_records: 'No records',
+      hist_row_stolen: '🔴 STOLEN', hist_row_authorized: '🟢 Authorized',
+      // Settings - admin
+      admin_backend: 'Backend Server Connection',
+      admin_ip: '🌐 Server IP Address:', admin_port: '🔌 WebSocket Port:',
+      admin_connect: 'Connect',
+      admin_demo: 'Demo Module (Offline)',
+      admin_demo_label: 'Demo Mode', admin_demo_inactive: 'Inactive', admin_demo_active: 'Active',
+      admin_demo_desc: 'Simulate full flow with radar and fictitious alerts',
+      admin_simulate: '🚨 Simulate Critical Alert',
+      // Settings - notifications
+      pref_notif_title: '🔔 Notifications & Alerts',
+      pref_alarm_title: 'Critical alert sound',
+      pref_alarm_desc: 'Play siren when a stolen vehicle is detected',
+      pref_browser_title: 'Browser notifications',
+      pref_browser_desc: 'Receive alerts even when the app is in the background',
+      pref_vib_title: 'Vibration on alerts', pref_vib_mobile: '(mobile)',
+      pref_vib_desc: 'Vibrate the device when a critical alert is received',
+      // Settings - appearance
+      pref_appear_title: '🎨 Appearance & Display',
+      pref_theme_label: 'Visual theme:',
+      pref_theme_dark: '🌙 Dark Mode', pref_theme_light: '☀️ Light Mode',
+      pref_start_label: 'Default view on login:',
+      pref_start_monitor: '📺 Monitor (default)',
+      pref_start_history: '📋 Alert History', pref_start_settings: '⚙️ Settings',
+      pref_fps_title: 'Show technical metrics (FPS)',
+      pref_fps_desc: 'See server FPS and number of connected clients',
+      // Settings - history data
+      pref_hist_title: '📋 History & Data',
+      pref_maxhist_label: 'Maximum history entries:',
+      pref_rec_50: '50 records', pref_rec_100: '100 records (recommended)',
+      pref_rec_200: '200 records', pref_rec_500: '500 records',
+      pref_timefmt_label: 'Time format in history:',
+      pref_time24: '⏰ 24 hours (e.g. 13:45)', pref_time12: '🕐 12 hours (e.g. 1:45 PM)',
+      pref_filter_title: 'Filter only stolen by default',
+      pref_filter_desc: 'When opening history, show only vehicles with theft report',
+      // Settings - region
+      pref_region_title: '🌍 Region, Language & Accessibility',
+      pref_lang_label: 'Interface language:',
+      pref_tz_label: 'Time zone for records:',
+      pref_font_label: 'Interface text size:',
+      // Profile
+      profile_title: 'User Profile (Google)',
+      role_operator: 'Neighborhood Operator', role_admin: 'Administrator 🔐',
+      btn_logout: 'Sign Out',
+      // Auth
+      auth_subtitle: 'Intelligent Monitoring Platform',
+      auth_email: 'Username / Email:', auth_password: 'Password:',
+      auth_show_pw: 'Show password',
+      auth_login: 'Sign In', auth_google: 'Sign In with Google',
+      auth_first_time: 'First time on the platform?',
+      auth_create: 'Create your neighborhood account',
+      auth_have_account: 'Already have an account?',
+      auth_go_login: 'Sign In',
+      auth_name: 'Full Name:',
+      auth_register: 'Register',
+      // Toasts
+      toast_alarm_on: '🔔 Alert sound enabled',
+      toast_alarm_off: '🔕 Alert sound disabled',
+      toast_notif_on: '🔔 Notifications enabled',
+      toast_notif_denied: '❌ Permission denied by browser',
+      toast_notif_off: '🔕 Browser notifications disabled',
+      toast_vib_on: '📳 Vibration enabled', toast_vib_off: '📴 Vibration disabled',
+      toast_fps_on: '📊 FPS metrics visible', toast_fps_off: '📊 FPS metrics hidden',
+      toast_start_view: '📍 Default view saved',
+      toast_filter_stolen: '🔴 Showing only stolen by default',
+      toast_filter_all: '🟢 Showing all vehicles by default',
+      toast_tz: '🌎 Time zone updated',
+      toast_welcome: '👋 Welcome back',
+      toast_logout: '🔒 Session closed successfully.',
+      toast_dark: '🌓 Dark mode activated', toast_light: '🌓 Light mode activated',
+      // Critical alert modal
+      modal_title: 'THEFT ALERT',
+      modal_desc: 'A match has been detected in the Database',
+      modal_model: 'Model', modal_color: 'Color',
+      modal_owner: 'Owner', modal_time: 'Date / Time',
+      modal_dismiss: 'Understood',
+    }
+  };
+
+  /** Traduce una clave al idioma actual */
+  function t(key) {
+    const lang = prefLanguage || 'es';
+    return (translations[lang] && translations[lang][key]) ||
+           (translations['es'] && translations['es'][key]) || key;
+  }
+
+  /** Aplica el idioma seleccionado a todos los elementos del DOM */
+  function applyLanguage(lang) {
+    prefLanguage = lang;
+    const L = translations[lang] || translations['es'];
+
+    // === NAVEGACIÓN ===
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      const target = btn.getAttribute('data-target');
+      const icon = btn.querySelector('[aria-hidden="true"]');
+      if (!icon) return;
+      if (target === 'view-monitor') btn.lastChild.textContent = ' ' + L.nav_monitor;
+      if (target === 'view-history') btn.lastChild.textContent = ' ' + L.nav_history;
+      if (target === 'view-settings') btn.lastChild.textContent = ' ' + L.nav_settings;
+    });
+
+    // === BOTONES DE HERRAMIENTAS DEL MONITOR ===
+    const toolMap = { toolTalk: 'tool_talk', toolListen: 'tool_listen', toolCapture: 'tool_capture', toolAi: 'tool_ai' };
+    Object.entries(toolMap).forEach(([id, key]) => {
+      const btn = document.getElementById(id);
+      if (btn) { const sp = btn.querySelector('span:not(.tool-icon)'); if (sp) sp.textContent = L[key]; }
+    });
+
+    // === PANEL DE CÁMARA ===
+    const camTitle = document.querySelector('.cam-panel-title');
+    if (camTitle) camTitle.textContent = L.cam_view_title;
+
+    const camTabs = document.querySelectorAll('.cam-tab');
+    if (camTabs[0]) camTabs[0].lastChild.textContent = '\n                  ' + L.cam_grid + '\n                ';
+    if (camTabs[1]) camTabs[1].lastChild.textContent = '\n                  ' + L.cam_wide + '\n                ';
+    if (camTabs[2]) camTabs[2].lastChild.textContent = '\n                  ' + L.cam_ptz + '\n                ';
+
+    const applyRtspBtn = document.getElementById('applyRtspBtn');
+    if (applyRtspBtn) applyRtspBtn.textContent = L.cam_apply;
+
+    const scanBtn = document.getElementById('listCamerasBtn');
+    if (scanBtn) scanBtn.textContent = L.cam_scan;
+
+    const rtspLabel = document.querySelector('label[for="rtspUrl"]');
+    if (rtspLabel) rtspLabel.textContent = L.cam_rtsp;
+
+    const camConfigH2 = document.querySelector('#view-monitor .monitor-grid > .card:last-child h2');
+    if (camConfigH2) camConfigH2.textContent = L.cam_config;
+
+    // === SECCIÓN HISTORIAL ===
+    const histH2 = document.querySelector('#view-history h2');
+    if (histH2) histH2.textContent = L.hist_title;
+
+    const exportBtn = document.getElementById('exportCsvBtn');
+    if (exportBtn) exportBtn.textContent = L.hist_export;
+
+    const clearBtn = document.getElementById('clearHistoryBtn');
+    if (clearBtn) clearBtn.textContent = L.hist_clear;
+
+    const searchInput = document.getElementById('searchPlate');
+    if (searchInput) searchInput.placeholder = L.hist_search;
+
+    const filterSel = document.getElementById('filterStatus');
+    if (filterSel && filterSel.options.length >= 3) {
+      filterSel.options[0].text = L.hist_all;
+      filterSel.options[1].text = L.hist_stolen;
+      filterSel.options[2].text = L.hist_auth;
+    }
+
+    const ths = document.querySelectorAll('.history-table thead th');
+    if (ths.length >= 5) {
+      ths[0].textContent = L.hist_col_plate;
+      ths[1].textContent = L.hist_col_status;
+      ths[2].textContent = L.hist_col_model;
+      ths[3].textContent = L.hist_col_owner;
+      ths[4].textContent = L.hist_col_date;
+    }
+
+    // Re-renderizar historial para aplicar los textos de estado
+    renderHistory();
+
+    // === PANEL DE AJUSTES - TARJETAS DE USUARIO ===
+    const cards = document.querySelectorAll('#userSettingsPanel .card');
+    if (cards.length >= 4) {
+      // Card 1: Notificaciones
+      const c1 = cards[0];
+      c1.querySelector('h2').textContent = L.pref_notif_title;
+      const tw1 = c1.querySelectorAll('.toggle-wrapper');
+      if (tw1[0]) { tw1[0].querySelector('h3').textContent = L.pref_alarm_title; tw1[0].querySelector('p').textContent = L.pref_alarm_desc; }
+      if (tw1[1]) { tw1[1].querySelector('h3').textContent = L.pref_browser_title; tw1[1].querySelector('p').textContent = L.pref_browser_desc; }
+      if (tw1[2]) {
+        tw1[2].querySelector('h3').innerHTML = `${L.pref_vib_title} <span style="font-size:0.75rem;color:var(--text-secondary);">${L.pref_vib_mobile}</span>`;
+        tw1[2].querySelector('p').textContent = L.pref_vib_desc;
+      }
+
+      // Card 2: Apariencia
+      const c2 = cards[1];
+      c2.querySelector('h2').textContent = L.pref_appear_title;
+      const l2 = c2.querySelectorAll('label');
+      if (l2[0]) l2[0].textContent = L.pref_theme_label;
+      if (l2[1]) l2[1].textContent = L.pref_start_label;
+      const thSel = document.getElementById('settingTheme');
+      if (thSel) { thSel.options[0].text = L.pref_theme_dark; thSel.options[1].text = L.pref_theme_light; }
+      const svSel = document.getElementById('settingStartView');
+      if (svSel) { svSel.options[0].text = L.pref_start_monitor; svSel.options[1].text = L.pref_start_history; svSel.options[2].text = L.pref_start_settings; }
+      const tw2 = c2.querySelector('.toggle-wrapper');
+      if (tw2) { tw2.querySelector('h3').textContent = L.pref_fps_title; tw2.querySelector('p').textContent = L.pref_fps_desc; }
+
+      // Card 3: Historial y Datos
+      const c3 = cards[2];
+      c3.querySelector('h2').textContent = L.pref_hist_title;
+      const l3 = c3.querySelectorAll('label');
+      if (l3[0]) l3[0].textContent = L.pref_maxhist_label;
+      if (l3[1]) l3[1].textContent = L.pref_timefmt_label;
+      const mhSel = document.getElementById('settingMaxHistory');
+      if (mhSel) { mhSel.options[0].text = L.pref_rec_50; mhSel.options[1].text = L.pref_rec_100; mhSel.options[2].text = L.pref_rec_200; mhSel.options[3].text = L.pref_rec_500; }
+      const tfSel = document.getElementById('settingTimeFormat');
+      if (tfSel) { tfSel.options[0].text = L.pref_time24; tfSel.options[1].text = L.pref_time12; }
+      const tw3 = c3.querySelector('.toggle-wrapper');
+      if (tw3) { tw3.querySelector('h3').textContent = L.pref_filter_title; tw3.querySelector('p').textContent = L.pref_filter_desc; }
+
+      // Card 4: Región, Idioma y Accesibilidad
+      const c4 = cards[3];
+      c4.querySelector('h2').textContent = L.pref_region_title;
+      const l4 = c4.querySelectorAll('label');
+      if (l4[0]) l4[0].textContent = L.pref_lang_label;
+      if (l4[1]) l4[1].textContent = L.pref_tz_label;
+      if (l4[2]) l4[2].textContent = L.pref_font_label;
+    }
+
+    // === PANEL ADMIN ===
+    const adminCards = document.querySelectorAll('#adminPanel .card');
+    if (adminCards.length >= 2) {
+      const ac1 = adminCards[0];
+      const ac1h2 = ac1.querySelector('h2');
+      if (ac1h2) ac1h2.textContent = L.admin_backend;
+      const connectBtn = document.getElementById('connectBtn');
+      if (connectBtn) connectBtn.textContent = L.admin_connect;
+
+      const ac2 = adminCards[1];
+      const ac2h2 = ac2.querySelector('h2');
+      if (ac2h2) ac2h2.textContent = L.admin_demo;
+      const simBtn = document.getElementById('triggerDemoAlertBtn');
+      if (simBtn) simBtn.textContent = L.admin_simulate;
+      const demoP = ac2.querySelector('p');
+      if (demoP) demoP.textContent = L.admin_demo_desc;
+    }
+
+    // === PERFIL DE USUARIO ===
+    const profileCard = document.getElementById('googleProfileCard');
+    if (profileCard) {
+      const ph2 = profileCard.querySelector('h2');
+      if (ph2) ph2.textContent = L.profile_title;
+      const logoutBtnEl = document.getElementById('logoutBtn');
+      if (logoutBtnEl) logoutBtnEl.textContent = L.btn_logout;
+      // Badge de rol
+      const roleBadge = document.getElementById('userRoleBadge');
+      if (roleBadge) roleBadge.textContent = isAdmin ? L.role_admin : L.role_operator;
+    }
+
+    // === FORMULARIO DE LOGIN ===
+    const loginSubtitle = document.querySelector('.auth-header p');
+    if (loginSubtitle) loginSubtitle.textContent = L.auth_subtitle;
+    const emailLbl = document.querySelector('label[for="loginEmail"]');
+    if (emailLbl) emailLbl.textContent = L.auth_email;
+    const passLbl = document.querySelector('label[for="loginPassword"]');
+    if (passLbl) passLbl.textContent = L.auth_password;
+    const showPwLbl = document.querySelector('label[for="showPasswordCheckbox"]');
+    if (showPwLbl) showPwLbl.textContent = L.auth_show_pw;
+    const loginBtnEl = document.getElementById('normalLoginBtn');
+    if (loginBtnEl) loginBtnEl.textContent = L.auth_login;
+    const gLoginBtn = document.getElementById('googleLoginBtn');
+    if (gLoginBtn) { const sp = gLoginBtn.querySelector('span'); if (sp) sp.textContent = L.auth_google; }
+    const nameLbl = document.querySelector('label[for="registerName"]');
+    if (nameLbl) nameLbl.textContent = L.auth_name;
+    const regBtn = document.getElementById('submitRegisterBtn');
+    if (regBtn) regBtn.textContent = L.auth_register;
+
+    // === MODAL DE ALERTA CRÍTICA ===
+    const modalTitle = document.getElementById('criticalAlertTitle');
+    if (modalTitle) modalTitle.textContent = L.modal_title;
+    const modalDesc = document.getElementById('criticalAlertDesc');
+    if (modalDesc) modalDesc.textContent = L.modal_desc;
+    const dismissBtn = document.getElementById('dismissAlertBtn');
+    if (dismissBtn) dismissBtn.textContent = L.modal_dismiss;
+    const modalLabels = document.querySelectorAll('.critical-details-grid label');
+    if (modalLabels.length >= 4) {
+      modalLabels[0].textContent = L.modal_model;
+      modalLabels[1].textContent = L.modal_color;
+      modalLabels[2].textContent = L.modal_owner;
+      modalLabels[3].textContent = L.modal_time;
+    }
+
+    // === STATUS DEL WEBSOCKET ===
+    const wsText = document.getElementById('wsStatusText');
+    if (wsText) {
+      const currentText = wsText.textContent;
+      if (currentText === translations['es'].status_disconnected || currentText === translations['en'].status_disconnected)
+        wsText.textContent = L.status_disconnected;
+      else if (currentText === translations['es'].status_connected || currentText === translations['en'].status_connected)
+        wsText.textContent = L.status_connected;
+      else if (currentText === translations['es'].status_reconnecting || currentText === translations['en'].status_reconnecting)
+        wsText.textContent = L.status_reconnecting;
+    }
+
+    // Actualizar selector de idioma en la opción inglés
+    const langSelect = document.getElementById('settingLanguage');
+    if (langSelect && langSelect.options.length >= 2) {
+      langSelect.options[0].text = lang === 'en' ? '🇲🇽 Español (México)' : '🇲🇽 Español (México)';
+      langSelect.options[1].text = lang === 'en' ? '🇺🇸 English' : '🇺🇸 English';
+    }
   }
 
   // --- HISTORY SEARCH & FILTER LISTENERS ---
