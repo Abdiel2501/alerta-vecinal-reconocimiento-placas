@@ -1296,13 +1296,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // --- 💬 TELEGRAM WIZARD HELPER ---
   function updateTelegramBotLink(username) {
     if (!telegramBotLink) return;
+    telegramBotLink.style.display = 'flex';
     if (username) {
       telegramBotLink.href = `https://t.me/${username}`;
-      telegramBotLink.style.display = 'flex';
-      if (telegramBotMissing) telegramBotMissing.style.display = 'none';
-    } else {
-      telegramBotLink.style.display = 'none';
-      if (telegramBotMissing) telegramBotMissing.style.display = 'block';
     }
   }
 
@@ -3031,24 +3027,6 @@ document.addEventListener('DOMContentLoaded', () => {
       const botLink = document.getElementById('telegramBotLink');
       if (botLink) {
         botLink.innerHTML = `💬 ${L.tg_btn.replace('💬 ', '')}`;
-      }
-      
-      const botMissing = document.getElementById('telegramBotMissing');
-      if (botMissing) botMissing.textContent = L.tg_missing;
-      
-      const adminSec = document.getElementById('telegramAdminSection');
-      if (adminSec) {
-        const adminH3 = adminSec.querySelector('h3');
-        if (adminH3) {
-          adminH3.innerHTML = `<span style="font-size:0.65rem; font-weight:700; background:linear-gradient(135deg,#ff6b35,#f7c59f); color:#1a1a1a; padding:2px 6px; border-radius:20px;">🔐 ADMIN</span> ${L.tg_admin_title}`;
-        }
-        const adminLabels = adminSec.querySelectorAll('label');
-        if (adminLabels.length >= 2) {
-          adminLabels[0].textContent = L.tg_admin_token;
-          adminLabels[1].textContent = L.tg_admin_chatid;
-        }
-        const adminBtn = document.getElementById('saveTelegramBtn');
-        if (adminBtn) adminBtn.textContent = L.tg_admin_btn;
       }
     }
 
