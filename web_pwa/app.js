@@ -251,6 +251,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Load cache from localStorage
   let history = [];
+  let demoHistory = [];
   serverIpInput.value = getLocalItem('server_ip', '127.0.0.1');
   serverPortInput.value = getLocalItem('server_port', '8765');
   if (telegramTokenInput) telegramTokenInput.value = getLocalItem('telegram_token', '');
@@ -1286,7 +1287,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const searchQuery = searchInput ? searchInput.value.trim().toUpperCase() : '';
     const filterValue = filterInput ? filterInput.value : 'all';
 
-    const filtered = history.filter(item => {
+    const activeHistory = demoMode ? demoHistory : history;
+
+    const filtered = activeHistory.filter(item => {
       const matchesSearch = (item.placa || '').toUpperCase().includes(searchQuery);
       let matchesFilter = true;
       if (filterValue === 'stolen') {
@@ -1371,13 +1374,20 @@ document.addEventListener('DOMContentLoaded', () => {
       timeStr: timeStr
     };
 
-    // Agregar al historial local
-    history.unshift(formattedAlert);
-    if (history.length > 100) {
-      history.pop();
+    // Agregar al historial adecuado
+    if (demoMode) {
+      demoHistory.unshift(formattedAlert);
+      if (demoHistory.length > 100) {
+        demoHistory.pop();
+      }
+    } else {
+      history.unshift(formattedAlert);
+      if (history.length > 100) {
+        history.pop();
+      }
+      saveHistory();
     }
 
-    saveHistory();
     renderHistory();
 
     // Si es robado, disparar modal y TTS
@@ -1916,9 +1926,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (ws) ws.close();
     
-    if (history.length === 0) {
-      preloadDemoHistory();
-    }
+    demoHistory = [];
+    preloadDemoHistory();
 
     startDemoCanvasAnimation();
     startDemoAlertGenerator();
@@ -1945,6 +1954,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (demoAlertInterval) clearInterval(demoAlertInterval);
 
     userDisconnected = false;
+    demoHistory = [];
+    renderHistory();
     connectWebSocket();
     showToast('🔌 Modo Demo apagado. Intentando conectar al servidor backend.');
   }
@@ -2076,21 +2087,20 @@ document.addEventListener('DOMContentLoaded', () => {
     ];
 
     demoAlerts.forEach(alert => {
-      const exists = history.some(h => h.placa === alert.placa);
+      const exists = demoHistory.some(h => h.placa === alert.placa);
       if (!exists) {
         const dateObj = new Date(alert.timestamp);
         const timeStr = dateObj.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) + ' ' + 
                         dateObj.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' });
         
-        history.push({
+        demoHistory.push({
           ...alert,
           timeStr: timeStr
         });
       }
     });
 
-    history.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-    saveHistory();
+    demoHistory.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
     renderHistory();
   }
 
@@ -2107,8 +2117,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   clearHistoryBtn.addEventListener('click', () => {
     if (confirm('¿Deseas vaciar el historial de alertas local?')) {
-      history = [];
-      saveHistory();
+      if (demoMode) {
+        demoHistory = [];
+      } else {
+        history = [];
+        saveHistory();
+      }
       renderHistory();
       showToast('🗑️ Historial vaciado.');
     }
@@ -2242,7 +2256,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const exportCsvBtn = document.getElementById('exportCsvBtn');
   if (exportCsvBtn) {
     exportCsvBtn.addEventListener('click', () => {
-      if (history.length === 0) {
+      const activeHistory = demoMode ? demoHistory : history;
+      if (activeHistory.length === 0) {
         alert('No hay registros en el historial para exportar.');
         return;
       }
@@ -2250,7 +2265,7 @@ document.addEventListener('DOMContentLoaded', () => {
       let csvContent = "data:text/csv;charset=utf-8,\uFEFF"; // UTF-8 BOM for Excel
       csvContent += "Placa,Estado,Modelo y Color,Propietario,Fecha y Hora\n";
 
-      history.forEach(item => {
+      activeHistory.forEach(item => {
         const placa = (item.placa || '').replace(/"/g, '""');
         const estado = item.es_robado ? 'ROBADO' : 'LIBRE';
         const vehiculo = `${item.modelo || '?'} (${item.color || '?'})`.replace(/"/g, '""');
