@@ -595,6 +595,138 @@
             </div>
 
           </div><!-- /adminPanel -->
+
+          <!-- ⚙️ AJUSTES DE USUARIO — Visibles para todos los usuarios -->
+          <div id="userSettingsPanel">
+
+            <!-- Card 1: Notificaciones y Alertas -->
+            <div class="card settings-card">
+              <h2>🔔 Notificaciones y Alertas</h2>
+
+              <div class="toggle-wrapper" style="margin-bottom: 14px; padding-bottom: 14px; border-bottom: 1px solid var(--border-color);">
+                <div>
+                  <h3 style="font-size:0.95rem; font-weight:700;">Sonido de alerta crítica</h3>
+                  <p style="font-size:0.82rem; color:var(--text-secondary);">Reproducir sirena al detectar un vehículo robado</p>
+                </div>
+                <label class="switch"><input type="checkbox" id="settingAlarmSound" checked><span class="slider"></span></label>
+              </div>
+
+              <div class="toggle-wrapper" style="margin-bottom: 14px; padding-bottom: 14px; border-bottom: 1px solid var(--border-color);">
+                <div>
+                  <h3 style="font-size:0.95rem; font-weight:700;">Notificaciones del navegador</h3>
+                  <p style="font-size:0.82rem; color:var(--text-secondary);">Recibir alertas aunque la app esté en segundo plano</p>
+                </div>
+                <label class="switch"><input type="checkbox" id="settingBrowserNotif"><span class="slider"></span></label>
+              </div>
+
+              <div class="toggle-wrapper">
+                <div>
+                  <h3 style="font-size:0.95rem; font-weight:700;">Vibración en alertas <span style="font-size:0.75rem; color:var(--text-secondary);">(móvil)</span></h3>
+                  <p style="font-size:0.82rem; color:var(--text-secondary);">Vibrar el dispositivo al recibir una alerta crítica</p>
+                </div>
+                <label class="switch"><input type="checkbox" id="settingVibration" checked><span class="slider"></span></label>
+              </div>
+            </div>
+
+            <!-- Card 2: Apariencia y Visualización -->
+            <div class="card settings-card">
+              <h2>🎨 Apariencia y Visualización</h2>
+
+              <div class="input-group" style="margin-bottom: 14px;">
+                <label for="settingTheme">Tema visual:</label>
+                <select id="settingTheme" class="cam-grid-select" style="width:100%; padding:10px 12px; border-radius:8px; background:var(--card-bg); border:1px solid var(--border-color); color:var(--text-primary); font-size:0.9rem;">
+                  <option value="dark">🌙 Oscuro (Dark Mode)</option>
+                  <option value="light">☀️ Claro (Light Mode)</option>
+                </select>
+              </div>
+
+              <div class="input-group" style="margin-bottom: 14px;">
+                <label for="settingStartView">Vista al iniciar sesión:</label>
+                <select id="settingStartView" class="cam-grid-select" style="width:100%; padding:10px 12px; border-radius:8px; background:var(--card-bg); border:1px solid var(--border-color); color:var(--text-primary); font-size:0.9rem;">
+                  <option value="view-monitor">📺 Monitor (por defecto)</option>
+                  <option value="view-history">📋 Historial de Alertas</option>
+                  <option value="view-settings">⚙️ Ajustes</option>
+                </select>
+              </div>
+
+              <div class="toggle-wrapper">
+                <div>
+                  <h3 style="font-size:0.95rem; font-weight:700;">Mostrar métricas técnicas (FPS)</h3>
+                  <p style="font-size:0.82rem; color:var(--text-secondary);">Ver FPS del servidor y número de clientes conectados</p>
+                </div>
+                <label class="switch"><input type="checkbox" id="settingShowFps" checked><span class="slider"></span></label>
+              </div>
+            </div>
+
+            <!-- Card 3: Historial y Datos -->
+            <div class="card settings-card">
+              <h2>📋 Historial y Datos</h2>
+
+              <div class="input-group" style="margin-bottom: 14px;">
+                <label for="settingMaxHistory">Máximo de registros en historial:</label>
+                <select id="settingMaxHistory" class="cam-grid-select" style="width:100%; padding:10px 12px; border-radius:8px; background:var(--card-bg); border:1px solid var(--border-color); color:var(--text-primary); font-size:0.9rem;">
+                  <option value="50">50 registros</option>
+                  <option value="100" selected>100 registros (recomendado)</option>
+                  <option value="200">200 registros</option>
+                  <option value="500">500 registros</option>
+                </select>
+              </div>
+
+              <div class="input-group" style="margin-bottom: 14px;">
+                <label for="settingTimeFormat">Formato de hora en el historial:</label>
+                <select id="settingTimeFormat" class="cam-grid-select" style="width:100%; padding:10px 12px; border-radius:8px; background:var(--card-bg); border:1px solid var(--border-color); color:var(--text-primary); font-size:0.9rem;">
+                  <option value="24">⏰ 24 horas (ej: 13:45)</option>
+                  <option value="12">🕐 12 horas (ej: 1:45 PM)</option>
+                </select>
+              </div>
+
+              <div class="toggle-wrapper">
+                <div>
+                  <h3 style="font-size:0.95rem; font-weight:700;">Filtrar solo robados por defecto</h3>
+                  <p style="font-size:0.82rem; color:var(--text-secondary);">Al abrir el historial, mostrar solo vehículos con reporte de robo</p>
+                </div>
+                <label class="switch"><input type="checkbox" id="settingFilterStolen"><span class="slider"></span></label>
+              </div>
+            </div>
+
+            <!-- Card 4: Región, Idioma y Accesibilidad -->
+            <div class="card settings-card">
+              <h2>🌍 Región, Idioma y Accesibilidad</h2>
+
+              <div class="input-group" style="margin-bottom: 14px;">
+                <label for="settingLanguage">Idioma de la interfaz:</label>
+                <select id="settingLanguage" class="cam-grid-select" style="width:100%; padding:10px 12px; border-radius:8px; background:var(--card-bg); border:1px solid var(--border-color); color:var(--text-primary); font-size:0.9rem;">
+                  <option value="es">🇲🇽 Español (México)</option>
+                  <option value="en">🇺🇸 English (próximamente)</option>
+                </select>
+              </div>
+
+              <div class="input-group" style="margin-bottom: 14px;">
+                <label for="settingTimezone">Zona horaria para registros:</label>
+                <select id="settingTimezone" class="cam-grid-select" style="width:100%; padding:10px 12px; border-radius:8px; background:var(--card-bg); border:1px solid var(--border-color); color:var(--text-primary); font-size:0.9rem;">
+                  <option value="America/Mexico_City">🇲🇽 Ciudad de México (CST/CDT)</option>
+                  <option value="America/Monterrey">🇲🇽 Monterrey (CST/CDT)</option>
+                  <option value="America/Tijuana">🇲🇽 Tijuana (PST/PDT)</option>
+                  <option value="America/Cancun">🇲🇽 Cancún (EST)</option>
+                  <option value="America/Chihuahua">🇲🇽 Chihuahua (MST/MDT)</option>
+                  <option value="America/New_York">🇺🇸 Nueva York (EST/EDT)</option>
+                  <option value="America/Los_Angeles">🇺🇸 Los Ángeles (PST/PDT)</option>
+                </select>
+              </div>
+
+              <div class="input-group">
+                <label for="settingFontSize">Tamaño del texto de la interfaz:</label>
+                <div style="display:flex; align-items:center; gap:12px; margin-top:6px;">
+                  <span style="font-size:0.75rem; color:var(--text-secondary); font-weight:700;">A</span>
+                  <input type="range" id="settingFontSize" min="12" max="18" value="14" step="1"
+                    style="flex:1; accent-color: var(--primary-color); cursor:pointer;">
+                  <span style="font-size:1.1rem; color:var(--text-secondary); font-weight:700;">A</span>
+                  <span id="settingFontSizeLabel" style="font-size:0.82rem; color:var(--primary-color); font-weight:700; min-width:34px; text-align:right;">14px</span>
+                </div>
+              </div>
+            </div>
+
+          </div><!-- /userSettingsPanel -->
         </div>
 
         <div class="settings-sidebar-column">

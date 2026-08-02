@@ -221,6 +221,19 @@ document.addEventListener('DOMContentLoaded', () => {
   let currentTheme = 'dark';
   let isAdmin = false;
 
+  // --- USER PREFERENCES STATE ---
+  let prefAlarmSound = true;
+  let prefBrowserNotif = false;
+  let prefVibration = true;
+  let prefStartView = 'view-monitor';
+  let prefShowFps = true;
+  let prefMaxHistory = 100;
+  let prefTimeFormat = '24';
+  let prefFilterStolen = false;
+  let prefLanguage = 'es';
+  let prefTimezone = 'America/Mexico_City';
+  let prefFontSize = 14;
+
   // --- SaaS Data Isolation Helpers ---
   function getUserKey(baseKey) {
     if (currentUserEmail) {
@@ -516,6 +529,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Cargar y aislar configuraciones del usuario
     loadUserSettings(session);
+
+    // Cargar y aplicar preferencias personalizadas del usuario
+    loadUserPreferences();
+    applyUserPreferences();
+    wireUserPreferencesListeners();
 
     loginScreen.style.display = 'none';
     appLayout.style.display = 'flex';
@@ -1538,7 +1556,17 @@ document.addEventListener('DOMContentLoaded', () => {
     
     criticalAlertModal.classList.add('active');
     speakAlert(alertData.placa);
-    playAlarmSound();
+
+    // Respetar preferencias del usuario
+    if (prefAlarmSound) playAlarmSound();
+    if (prefVibration && navigator.vibrate) navigator.vibrate([400, 200, 400, 200, 800]);
+    if (prefBrowserNotif && Notification.permission === 'granted') {
+      new Notification('🚨 PLACA ROBADA DETECTADA', {
+        body: `${alertData.placa} — ${alertData.modelo || '?'} (${alertData.color || '?'})`,
+        icon: '/logo_project.png',
+        badge: '/logo_project.png'
+      });
+    }
   }
 
   dismissAlertBtn.addEventListener('click', () => {
@@ -2262,6 +2290,216 @@ document.addEventListener('DOMContentLoaded', () => {
   function updateThemeIcon(theme) {
     if (!themeToggleBtn) return;
     themeToggleBtn.textContent = (theme === 'dark') ? '☀️' : '🌙';
+  }
+
+  // --- ⚙️ USER PREFERENCES SYSTEM ---
+  function saveUserPreference(key, value) {
+    setLocalItem(`pref_${key}`, String(value));
+  }
+
+  function loadUserPreferences() {
+    const boolVal = (key, def) => {
+      const v = getLocalItem(`pref_${key}`);
+      return v === '' ? def : v === 'true';
+    };
+    const strVal = (key, def) => getLocalItem(`pref_${key}`) || def;
+    const numVal = (key, def) => parseInt(getLocalItem(`pref_${key}`)) || def;
+
+    prefAlarmSound    = boolVal('alarmSound', true);
+    prefBrowserNotif  = boolVal('browserNotif', false);
+    prefVibration     = boolVal('vibration', true);
+    prefShowFps       = boolVal('showFps', true);
+    prefFilterStolen  = boolVal('filterStolen', false);
+    prefStartView     = strVal('startView', 'view-monitor');
+    prefTimeFormat    = strVal('timeFormat', '24');
+    prefLanguage      = strVal('language', 'es');
+    prefTimezone      = strVal('timezone', 'America/Mexico_City');
+    prefMaxHistory    = numVal('maxHistory', 100);
+    prefFontSize      = numVal('fontSize', 14);
+  }
+
+  function applyUserPreferences() {
+    // Sincronizar checkboxes
+    const s = (id, val) => { const el = document.getElementById(id); if (el) el.checked = val; };
+    const sv = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
+
+    s('settingAlarmSound',   prefAlarmSound);
+    s('settingBrowserNotif', prefBrowserNotif);
+    s('settingVibration',    prefVibration);
+    s('settingShowFps',      prefShowFps);
+    s('settingFilterStolen', prefFilterStolen);
+    sv('settingTheme',       currentTheme);
+    sv('settingStartView',   prefStartView);
+    sv('settingMaxHistory',  prefMaxHistory);
+    sv('settingTimeFormat',  prefTimeFormat);
+    sv('settingLanguage',    prefLanguage);
+    sv('settingTimezone',    prefTimezone);
+    sv('settingFontSize',    prefFontSize);
+
+    // Actualizar label del slider
+    const lbl = document.getElementById('settingFontSizeLabel');
+    if (lbl) lbl.textContent = `${prefFontSize}px`;
+
+    // Aplicar tamaño de fuente
+    document.documentElement.style.fontSize = `${prefFontSize}px`;
+
+    // Aplicar visibilidad de FPS
+    const fpsEl = document.getElementById('videoMetaText');
+    if (fpsEl) fpsEl.style.display = prefShowFps ? '' : 'none';
+
+    // Aplicar filtro por defecto en historial
+    const filterSel = document.getElementById('filterStatus');
+    if (filterSel && prefFilterStolen) filterSel.value = 'stolen';
+
+    // Navegar a la vista predeterminada
+    const defaultTab = document.querySelector(`.tab-btn[data-target="${prefStartView}"]`);
+    if (defaultTab) defaultTab.click();
+  }
+
+  function wireUserPreferencesListeners() {
+    const onToggle = (id, key, prefVar, callback) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.addEventListener('change', () => {
+        const val = el.checked;
+        window[prefVar] = val; // actualizar var global no es posible directo, usamos closure
+        saveUserPreference(key, val);
+        if (callback) callback(val);
+      });
+    };
+    const onSelect = (id, key, callback) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.addEventListener('change', () => {
+        saveUserPreference(key, el.value);
+        if (callback) callback(el.value);
+      });
+    };
+
+    // Sonido
+    const alarmEl = document.getElementById('settingAlarmSound');
+    if (alarmEl) alarmEl.addEventListener('change', () => {
+      prefAlarmSound = alarmEl.checked;
+      saveUserPreference('alarmSound', prefAlarmSound);
+      showToast(prefAlarmSound ? '🔔 Sonido de alertas activado' : '🔕 Sonido de alertas desactivado');
+    });
+
+    // Notificaciones del navegador
+    const notifEl = document.getElementById('settingBrowserNotif');
+    if (notifEl) notifEl.addEventListener('change', () => {
+      if (notifEl.checked) {
+        Notification.requestPermission().then(perm => {
+          prefBrowserNotif = perm === 'granted';
+          notifEl.checked = prefBrowserNotif;
+          saveUserPreference('browserNotif', prefBrowserNotif);
+          showToast(prefBrowserNotif ? '🔔 Notificaciones activadas' : '❌ Permiso denegado por el navegador');
+        });
+      } else {
+        prefBrowserNotif = false;
+        saveUserPreference('browserNotif', false);
+        showToast('🔕 Notificaciones del navegador desactivadas');
+      }
+    });
+
+    // Vibración
+    const vibEl = document.getElementById('settingVibration');
+    if (vibEl) vibEl.addEventListener('change', () => {
+      prefVibration = vibEl.checked;
+      saveUserPreference('vibration', prefVibration);
+      if (prefVibration && navigator.vibrate) navigator.vibrate(200);
+      showToast(prefVibration ? '📳 Vibración activada' : '📴 Vibración desactivada');
+    });
+
+    // Tema (sincronizado con el botón de la cabecera)
+    const themeEl = document.getElementById('settingTheme');
+    if (themeEl) themeEl.addEventListener('change', () => {
+      currentTheme = themeEl.value;
+      document.documentElement.setAttribute('data-theme', currentTheme);
+      setLocalItem('theme', currentTheme);
+      updateThemeIcon(currentTheme);
+      showToast(`🌓 Tema ${currentTheme === 'dark' ? 'oscuro' : 'claro'} aplicado`);
+    });
+
+    // Vista predeterminada
+    const startViewEl = document.getElementById('settingStartView');
+    if (startViewEl) startViewEl.addEventListener('change', () => {
+      prefStartView = startViewEl.value;
+      saveUserPreference('startView', prefStartView);
+      showToast('📍 Vista predeterminada guardada');
+    });
+
+    // FPS
+    const fpsEl2 = document.getElementById('settingShowFps');
+    if (fpsEl2) fpsEl2.addEventListener('change', () => {
+      prefShowFps = fpsEl2.checked;
+      saveUserPreference('showFps', prefShowFps);
+      const metaEl = document.getElementById('videoMetaText');
+      if (metaEl) metaEl.style.display = prefShowFps ? '' : 'none';
+      showToast(prefShowFps ? '📊 Métricas FPS visibles' : '📊 Métricas FPS ocultas');
+    });
+
+    // Máximo historial
+    const maxHEl = document.getElementById('settingMaxHistory');
+    if (maxHEl) maxHEl.addEventListener('change', () => {
+      prefMaxHistory = parseInt(maxHEl.value);
+      saveUserPreference('maxHistory', prefMaxHistory);
+      showToast(`📊 Límite de historial: ${prefMaxHistory} registros`);
+    });
+
+    // Formato de hora
+    const timeFormatEl = document.getElementById('settingTimeFormat');
+    if (timeFormatEl) timeFormatEl.addEventListener('change', () => {
+      prefTimeFormat = timeFormatEl.value;
+      saveUserPreference('timeFormat', prefTimeFormat);
+      renderHistory();
+      showToast(`⏰ Formato de hora: ${prefTimeFormat === '24' ? '24 horas' : '12 horas (AM/PM)'}`);
+    });
+
+    // Filtro por defecto
+    const filterStolenEl = document.getElementById('settingFilterStolen');
+    if (filterStolenEl) filterStolenEl.addEventListener('change', () => {
+      prefFilterStolen = filterStolenEl.checked;
+      saveUserPreference('filterStolen', prefFilterStolen);
+      const filterSel = document.getElementById('filterStatus');
+      if (filterSel) filterSel.value = prefFilterStolen ? 'stolen' : 'all';
+      renderHistory();
+      showToast(prefFilterStolen ? '🔴 Mostrando solo robados por defecto' : '🟢 Mostrando todos los vehículos por defecto');
+    });
+
+    // Idioma
+    const langEl = document.getElementById('settingLanguage');
+    if (langEl) langEl.addEventListener('change', () => {
+      prefLanguage = langEl.value;
+      saveUserPreference('language', prefLanguage);
+      if (prefLanguage === 'en') {
+        showToast('🇳🇿 English support coming soon!');
+        langEl.value = 'es'; prefLanguage = 'es';
+      } else {
+        showToast('🇲🇽 Idioma: Español (México)');
+      }
+    });
+
+    // Zona horaria
+    const tzEl = document.getElementById('settingTimezone');
+    if (tzEl) tzEl.addEventListener('change', () => {
+      prefTimezone = tzEl.value;
+      saveUserPreference('timezone', prefTimezone);
+      renderHistory();
+      showToast(`🌎 Zona horaria actualizada`);
+    });
+
+    // Tamaño de fuente
+    const fontEl = document.getElementById('settingFontSize');
+    const fontLbl = document.getElementById('settingFontSizeLabel');
+    if (fontEl) fontEl.addEventListener('input', () => {
+      prefFontSize = parseInt(fontEl.value);
+      if (fontLbl) fontLbl.textContent = `${prefFontSize}px`;
+      document.documentElement.style.fontSize = `${prefFontSize}px`;
+    });
+    if (fontEl) fontEl.addEventListener('change', () => {
+      saveUserPreference('fontSize', prefFontSize);
+      showToast(`🔤 Tamaño de texto: ${prefFontSize}px`);
+    });
   }
 
   // --- HISTORY SEARCH & FILTER LISTENERS ---
