@@ -476,6 +476,49 @@ async def _procesar_comando(socket_cliente: WebSocket, datos_crudos: str):
             # Log de integración para simular/recibir la voz del altavoz
             print(f"[ONVIF Parlante] 🎤 Recibiendo {len(pcm_bytes)} bytes de voz desde la PWA (Conversión a G.711 completada). Transmitiendo al altavoz de la cámara en {estado.origen_video}...")
 
+    elif action == "save_telegram_config":
+        token = cmd.get("token", "").strip()
+        chat_id = cmd.get("chat_id", "").strip()
+        
+        # 1. Guardar en config.env de manera persistente
+        env_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "config.env"))
+        if os.path.exists(env_path):
+            try:
+                with open(env_path, "r", encoding="utf-8") as f:
+                    lines = f.readlines()
+                
+                new_lines = []
+                for line in lines:
+                    if line.startswith("TELEGRAM_TOKEN="):
+                        new_lines.append(f"TELEGRAM_TOKEN={token}\n")
+                    elif line.startswith("TELEGRAM_CHAT_ID="):
+                        new_lines.append(f"TELEGRAM_CHAT_ID={chat_id}\n")
+                    else:
+                        new_lines.append(line)
+                
+                with open(env_path, "w", encoding="utf-8") as f:
+                    f.writelines(new_lines)
+                print(f"[Telegram] Configuración guardada exitosamente en config.env.")
+            except Exception as e:
+                print(f"[Telegram] Error al escribir en config.env: {e}")
+
+        # 2. Actualizar variables de entorno de la sesión actual
+        os.environ["TELEGRAM_TOKEN"] = token
+        os.environ["TELEGRAM_CHAT_ID"] = chat_id
+
+        # 3. Actualizar dinámicamente en el módulo importado alerta_telegram
+        try:
+            import alerta_telegram
+            alerta_telegram.TELEGRAM_TOKEN = token
+            alerta_telegram.TELEGRAM_CHAT_ID_ENV = chat_id
+            alerta_telegram._modo_real = bool(token)
+            print(f"[Telegram] Módulo alerta_telegram actualizado dinámicamente. Modo Real: {alerta_telegram._modo_real}")
+        except Exception as e:
+            print(f"[Telegram] No se pudo actualizar el módulo alerta_telegram en caliente: {e}")
+
+        # 4. Responder al cliente
+        await _enviar_seguro(socket_cliente, {"type": "toast", "message": "✅ Configuración de Telegram guardada y activada."})
+
 
 async def _difundir_fotograma(bytes_fotograma: bytes):
     """Envía el fotograma procesado a TODOS los clientes conectados como bytes binarios.
