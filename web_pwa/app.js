@@ -177,6 +177,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const telegramTokenInput = document.getElementById('telegramToken');
   const telegramChatIdInput = document.getElementById('telegramChatId');
   const saveTelegramBtn = document.getElementById('saveTelegramBtn');
+  const telegramAdminSection = document.getElementById('telegramAdminSection');
+  const telegramUserSection = document.getElementById('telegramUserSection');
+  const telegramBotLink = document.getElementById('telegramBotLink');
+  const telegramBotMissing = document.getElementById('telegramBotMissing');
   const showPasswordCheckbox = document.getElementById('showPasswordCheckbox');
   const lensSelector = document.getElementById('lensSelector');
   
@@ -517,6 +521,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const adminPanel = document.getElementById('adminPanel');
     if (adminPanel) {
       adminPanel.style.display = isAdmin ? 'block' : 'none';
+    }
+    if (telegramAdminSection) {
+      telegramAdminSection.style.display = isAdmin ? 'block' : 'none';
     }
 
     // Actualizar badge de rol en la tarjeta de perfil
@@ -879,6 +886,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Ocultar panel de admin al cerrar sesion
     const adminPanel = document.getElementById('adminPanel');
     if (adminPanel) adminPanel.style.display = 'none';
+    if (telegramAdminSection) telegramAdminSection.style.display = 'none';
 
     if (ws) ws.close();
     if (demoCanvasInterval) clearInterval(demoCanvasInterval);
@@ -1283,6 +1291,19 @@ document.addEventListener('DOMContentLoaded', () => {
         }));
       }
     });
+  }
+
+  // --- 💬 TELEGRAM WIZARD HELPER ---
+  function updateTelegramBotLink(username) {
+    if (!telegramBotLink) return;
+    if (username) {
+      telegramBotLink.href = `https://t.me/${username}`;
+      telegramBotLink.style.display = 'flex';
+      if (telegramBotMissing) telegramBotMissing.style.display = 'none';
+    } else {
+      telegramBotLink.style.display = 'none';
+      if (telegramBotMissing) telegramBotMissing.style.display = 'block';
+    }
   }
 
   // --- HISTORY MANAGEMENT ---
@@ -1744,6 +1765,9 @@ document.addEventListener('DOMContentLoaded', () => {
               activeCameraInfo.value = data.camera;
             }
             videoMetaText.textContent = t('cam_meta').replace('{fps}', data.fps || '0.0').replace('{clients}', data.clients || '0');
+            if (data.bot_username) {
+              updateTelegramBotLink(data.bot_username);
+            }
           } 
           else if (data.type === 'cameras') {
             populateCamerasModal(data.list);
@@ -2633,6 +2657,19 @@ document.addEventListener('DOMContentLoaded', () => {
       modal_model: 'Modelo', modal_color: 'Color',
       modal_owner: 'Propietario', modal_time: 'Fecha / Hora',
       modal_dismiss: 'Entendido',
+      // Telegram Card i18n
+      tg_title: '🔔 Alertas de Telegram (Celular)',
+      tg_desc: 'Recibe notificaciones automáticas con fotos del vehículo y de la placa directamente en tu celular.',
+      tg_how: '¿Cómo activarlo?',
+      tg_step1: 'Haz clic en el botón de abajo para abrir el bot en Telegram.',
+      tg_step2: 'Presiona el botón de <strong>Iniciar</strong> o envía <strong>/start</strong>.',
+      tg_step3: '¡Eso es todo! El sistema te registrará y recibirás alertas.',
+      tg_btn: '💬 Abrir Bot de Telegram',
+      tg_missing: '⚠️ El bot de Telegram no está configurado por el administrador aún.',
+      tg_admin_title: 'Configuración del Bot de la Comunidad',
+      tg_admin_token: 'Token del Bot (de @BotFather):',
+      tg_admin_chatid: 'ID de Chat del Administrador:',
+      tg_admin_btn: 'Guardar Credenciales del Bot',
     },
 
     en: {
@@ -2760,6 +2797,19 @@ document.addEventListener('DOMContentLoaded', () => {
       modal_model: 'Model', modal_color: 'Color',
       modal_owner: 'Owner', modal_time: 'Date / Time',
       modal_dismiss: 'Understood',
+      // Telegram Card i18n
+      tg_title: '🔔 Telegram Alerts (Mobile)',
+      tg_desc: 'Receive automatic notifications with photos of the vehicle and plate directly on your phone.',
+      tg_how: 'How to activate?',
+      tg_step1: 'Click the button below to open the bot on Telegram.',
+      tg_step2: 'Press the <strong>Start</strong> button or send <strong>/start</strong>.',
+      tg_step3: "That's it! The system will register you and you will receive alerts.",
+      tg_btn: '💬 Open Telegram Bot',
+      tg_missing: '⚠️ The Telegram bot is not configured by the administrator yet.',
+      tg_admin_title: 'Community Bot Configuration',
+      tg_admin_token: 'Bot Token (from @BotFather):',
+      tg_admin_chatid: 'Administrator Chat ID:',
+      tg_admin_btn: 'Save Bot Credentials',
     }
   };
 
@@ -2957,6 +3007,49 @@ document.addEventListener('DOMContentLoaded', () => {
       if (l4[0]) l4[0].textContent = L.pref_lang_label;
       if (l4[1]) l4[1].textContent = L.pref_tz_label;
       if (l4[2]) l4[2].textContent = L.pref_font_label;
+    }
+
+    // === CARD 5: TELEGRAM CONFIG ===
+    const tgCard = document.getElementById('telegramConfigCard');
+    if (tgCard) {
+      const h2 = tgCard.querySelector('h2');
+      if (h2) h2.textContent = L.tg_title;
+      
+      const descP = tgCard.querySelector('#telegramUserSection p');
+      if (descP) descP.textContent = L.tg_desc;
+      
+      const howH4 = tgCard.querySelector('#telegramUserSection h4');
+      if (howH4) howH4.textContent = L.tg_how;
+      
+      const steps = tgCard.querySelectorAll('#telegramUserSection ol li');
+      if (steps.length >= 3) {
+        steps[0].innerHTML = L.tg_step1;
+        steps[1].innerHTML = L.tg_step2;
+        steps[2].innerHTML = L.tg_step3;
+      }
+      
+      const botLink = document.getElementById('telegramBotLink');
+      if (botLink) {
+        botLink.innerHTML = `💬 ${L.tg_btn.replace('💬 ', '')}`;
+      }
+      
+      const botMissing = document.getElementById('telegramBotMissing');
+      if (botMissing) botMissing.textContent = L.tg_missing;
+      
+      const adminSec = document.getElementById('telegramAdminSection');
+      if (adminSec) {
+        const adminH3 = adminSec.querySelector('h3');
+        if (adminH3) {
+          adminH3.innerHTML = `<span style="font-size:0.65rem; font-weight:700; background:linear-gradient(135deg,#ff6b35,#f7c59f); color:#1a1a1a; padding:2px 6px; border-radius:20px;">🔐 ADMIN</span> ${L.tg_admin_title}`;
+        }
+        const adminLabels = adminSec.querySelectorAll('label');
+        if (adminLabels.length >= 2) {
+          adminLabels[0].textContent = L.tg_admin_token;
+          adminLabels[1].textContent = L.tg_admin_chatid;
+        }
+        const adminBtn = document.getElementById('saveTelegramBtn');
+        if (adminBtn) adminBtn.textContent = L.tg_admin_btn;
+      }
     }
 
     // === PANEL ADMIN ===
