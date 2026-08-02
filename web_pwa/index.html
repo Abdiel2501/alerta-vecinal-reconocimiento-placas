@@ -576,25 +576,25 @@
               <button id="connectBtn" class="btn btn-primary-gradient">Conectar</button>
             </div>
 
-            <!-- Módulo de Demostración (Offline) -->
-            <div class="card settings-card">
-              <h2>Módulo de Demostración (Offline)</h2>
-              <div class="toggle-wrapper">
-                <div>
-                  <h3 style="font-size: 1rem; font-weight: 700; display: flex; align-items: center; gap: 8px;">
-                    Modo Demo <span id="demoModeBadge" class="status-badge-inactive">Inactivo</span>
-                  </h3>
-                  <p style="font-size: 0.85rem; color: var(--text-secondary);">Simular flujo completo con radar y alertas ficticias</p>
-                </div>
-                <label class="switch">
-                  <input type="checkbox" id="demoModeToggle">
-                  <span class="slider"></span>
-                </label>
-              </div>
-              <button id="triggerDemoAlertBtn" class="btn btn-secondary" style="display: none;">🚨 Simular Alerta Crítica</button>
-            </div>
-
           </div><!-- /adminPanel -->
+
+          <!-- Módulo de Demostración (Offline) -->
+          <div class="card settings-card" id="demoModeCard">
+            <h2>Módulo de Demostración (Offline)</h2>
+            <div class="toggle-wrapper">
+              <div>
+                <h3 style="font-size: 1rem; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+                  Modo Demo <span id="demoModeBadge" class="status-badge-inactive">Inactivo</span>
+                </h3>
+                <p style="font-size: 0.85rem; color: var(--text-secondary);">Simular flujo completo con radar y alertas ficticias</p>
+              </div>
+              <label class="switch">
+                <input type="checkbox" id="demoModeToggle">
+                <span class="slider"></span>
+              </label>
+            </div>
+            <button id="triggerDemoAlertBtn" class="btn btn-secondary" style="display: none;">🚨 Simular Alerta Crítica</button>
+          </div>
 
           <!-- ⚙️ AJUSTES DE USUARIO — Visibles para todos los usuarios -->
           <div id="userSettingsPanel">

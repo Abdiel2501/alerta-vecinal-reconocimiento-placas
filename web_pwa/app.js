@@ -1964,14 +1964,14 @@ document.addEventListener('DOMContentLoaded', () => {
     demoBadge.style.display = 'inline-block';
     triggerDemoAlertBtn.style.display = 'inline-block';
     
-    wsStatusText.textContent = 'Conectado (Demo)';
+    wsStatusText.textContent = `${t('status_connected')} (Demo)`;
     wsStatusDot.className = 'dot connected';
     placeholderPtz.style.display = 'none';
     recIndicator.style.display = 'flex';
     
     const demoModeBadge = document.getElementById('demoModeBadge');
     if (demoModeBadge) {
-      demoModeBadge.textContent = 'Activo';
+      demoModeBadge.textContent = t('admin_demo_active');
       demoModeBadge.className = 'status-badge-active';
     }
 
@@ -1982,7 +1982,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     startDemoCanvasAnimation();
     startDemoAlertGenerator();
-    showToast('🚀 Modo Demo iniciado. Puedes usar los joysticks e interruptores.');
+    showToast(t('toast_demo_started'));
   }
 
   function stopDemoMode() {
@@ -1990,16 +1990,17 @@ document.addEventListener('DOMContentLoaded', () => {
     demoBadge.style.display = 'none';
     triggerDemoAlertBtn.style.display = 'none';
 
-    wsStatusText.textContent = 'Desconectado';
+    wsStatusText.textContent = t('status_disconnected');
     wsStatusDot.className = 'dot';
     recIndicator.style.display = 'none';
     placeholderPtz.style.display = 'flex';
 
     const demoModeBadge = document.getElementById('demoModeBadge');
     if (demoModeBadge) {
-      demoModeBadge.textContent = 'Inactivo';
+      demoModeBadge.textContent = t('admin_demo_inactive');
       demoModeBadge.className = 'status-badge-inactive';
     }
+    showToast(t('toast_demo_stopped'));
 
     if (demoCanvasInterval) clearInterval(demoCanvasInterval);
     if (demoAlertInterval) clearInterval(demoAlertInterval);
@@ -2546,6 +2547,8 @@ document.addEventListener('DOMContentLoaded', () => {
       cam_ptz_fullscreen: 'Lente Móvil PTZ — Vista Completa',
       cam_aux_name: 'Cámara Auxiliar',
       cam_meta: 'FPS de Servidor: {fps} | Clientes: {clients}',
+      toast_demo_started: '🚀 Modo Demo iniciado. Puedes usar los joysticks e interruptores.',
+      toast_demo_stopped: '⏹️ Modo Demo detenido.',
       // History
       hist_title: 'Historial de Alertas',
       hist_export: '📥 Exportar CSV', hist_clear: '🗑️ Vaciar Logs',
@@ -2671,6 +2674,8 @@ document.addEventListener('DOMContentLoaded', () => {
       cam_ptz_fullscreen: 'Mobile PTZ Lens — Full View',
       cam_aux_name: 'Auxiliary Camera',
       cam_meta: 'Server FPS: {fps} | Clients: {clients}',
+      toast_demo_started: '🚀 Demo Mode started. You can use the joysticks and switches.',
+      toast_demo_stopped: '⏹️ Demo Mode stopped.',
       // History
       hist_title: 'Alert History',
       hist_export: '📥 Export CSV', hist_clear: '🗑️ Clear Logs',
@@ -2955,21 +2960,29 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // === PANEL ADMIN ===
-    const adminCards = document.querySelectorAll('#adminPanel .card');
-    if (adminCards.length >= 2) {
-      const ac1 = adminCards[0];
-      const ac1h2 = ac1.querySelector('h2');
-      if (ac1h2) ac1h2.textContent = L.admin_backend;
-      const connectBtn = document.getElementById('connectBtn');
-      if (connectBtn) connectBtn.textContent = L.admin_connect;
+    const backendCard = document.querySelector('#adminPanel .card');
+    if (backendCard) {
+      const h2 = backendCard.querySelector('h2');
+      if (h2) h2.textContent = L.admin_backend;
+      const connectBtnEl = document.getElementById('connectBtn');
+      if (connectBtnEl && connectBtnEl.textContent !== 'Conectando...' && connectBtnEl.textContent !== 'Connecting...') {
+        connectBtnEl.textContent = L.admin_connect;
+      }
+    }
 
-      const ac2 = adminCards[1];
-      const ac2h2 = ac2.querySelector('h2');
-      if (ac2h2) ac2h2.textContent = L.admin_demo;
+    // === MÓDULO DE DEMOSTRACIÓN ===
+    const demoCard = document.getElementById('demoModeCard');
+    if (demoCard) {
+      const h2 = demoCard.querySelector('h2');
+      if (h2) h2.textContent = L.admin_demo;
+      const demoP = demoCard.querySelector('.toggle-wrapper p');
+      if (demoP) demoP.textContent = L.admin_demo_desc;
       const simBtn = document.getElementById('triggerDemoAlertBtn');
       if (simBtn) simBtn.textContent = L.admin_simulate;
-      const demoP = ac2.querySelector('p');
-      if (demoP) demoP.textContent = L.admin_demo_desc;
+      const demoToggleH3 = demoCard.querySelector('.toggle-wrapper h3');
+      if (demoToggleH3) {
+        demoToggleH3.innerHTML = `${L.admin_demo_label} <span id="demoModeBadge" class="${demoMode ? 'status-badge-active' : 'status-badge-inactive'}">${demoMode ? L.admin_demo_active : L.admin_demo_inactive}</span>`;
+      }
     }
 
     // === PERFIL DE USUARIO ===
