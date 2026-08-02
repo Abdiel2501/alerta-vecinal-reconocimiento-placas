@@ -1,3 +1,4 @@
+
 """
 database.py — Gestión de la base de datos de placas robadas.
 Usa SQLite (incluido en Python, sin instalación extra).
