@@ -2706,6 +2706,27 @@ document.addEventListener('DOMContentLoaded', () => {
       saveUserPreference('fontSize', prefFontSize);
       showToast(prefLanguage === 'en' ? `🔤 Text size: ${prefFontSize}px` : `🔤 Tamaño de texto: ${prefFontSize}px`);
     });
+    if (fontLbl) {
+      fontLbl.addEventListener('click', () => {
+        const promptMsg = prefLanguage === 'en' 
+          ? 'Enter desired font size in pixels (10 to 24):' 
+          : 'Ingresa el tamaño de texto deseado en píxeles (entre 10 y 24):';
+        const inputVal = prompt(promptMsg, prefFontSize);
+        if (inputVal !== null) {
+          const numVal = parseInt(inputVal);
+          if (!isNaN(numVal) && numVal >= 10 && numVal <= 24) {
+            prefFontSize = numVal;
+            if (fontEl) fontEl.value = Math.min(Math.max(numVal, 12), 18);
+            fontLbl.textContent = `${prefFontSize}px`;
+            document.documentElement.style.fontSize = `${prefFontSize}px`;
+            saveUserPreference('fontSize', prefFontSize);
+            showToast(prefLanguage === 'en' ? `🔤 Text size: ${prefFontSize}px` : `🔤 Tamaño de texto: ${prefFontSize}px`);
+          } else {
+            alert(prefLanguage === 'en' ? 'Please enter a valid number between 10 and 24.' : 'Por favor ingresa un número válido entre 10 y 24.');
+          }
+        }
+      });
+    }
   }
 
   // ============================================================

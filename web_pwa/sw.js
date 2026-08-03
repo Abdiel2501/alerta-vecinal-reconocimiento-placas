@@ -1,4 +1,4 @@
-const CACHE_NAME = 'alertavecinal-v103-no-webcam-btn';
+const CACHE_NAME = 'alertavecinal-v104-manual-fontsize';
 const APP_SHELL = [
   'index.html',
   'styles.css',
