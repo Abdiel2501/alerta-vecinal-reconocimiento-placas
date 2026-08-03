@@ -2527,13 +2527,12 @@ input:checked+.slider:before {
 
 /* Custom Premium Styles for Settings */
 .settings-grid-layout {
-  display: flex;
   flex-direction: column;
   gap: 20px;
 }
 
 @media (min-width: 768px) {
-  .settings-grid-layout {
+  .settings-grid-layout.active {
     display: grid !important;
     grid-template-columns: 1.2fr 0.8fr !important;
     align-items: start;

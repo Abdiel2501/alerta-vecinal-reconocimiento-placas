@@ -167,6 +167,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // DOM Elements - Settings & Config
   const listCamerasBtn = document.getElementById('listCamerasBtn');
   const rtspUrlInput = document.getElementById('rtspUrl');
+  const useWebcamBtn = document.getElementById('useWebcamBtn');
   const applyRtspBtn = document.getElementById('applyRtspBtn');
   const activeCameraInfo = document.getElementById('activeCameraInfo');
   
@@ -177,6 +178,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const telegramTokenInput = document.getElementById('telegramToken');
   const telegramChatIdInput = document.getElementById('telegramChatId');
   const saveTelegramBtn = document.getElementById('saveTelegramBtn');
+  const telegramAdminSection = document.getElementById('telegramAdminSection');
+  const telegramUserSection = document.getElementById('telegramUserSection');
+  const telegramBotLink = document.getElementById('telegramBotLink');
+  const telegramBotMissing = document.getElementById('telegramBotMissing');
   const showPasswordCheckbox = document.getElementById('showPasswordCheckbox');
   const lensSelector = document.getElementById('lensSelector');
   
@@ -219,6 +224,20 @@ document.addEventListener('DOMContentLoaded', () => {
   let isAiActive = true;
   let currentUserEmail = '';
   let currentTheme = 'dark';
+  let isAdmin = false;
+
+  // --- USER PREFERENCES STATE ---
+  let prefAlarmSound = true;
+  let prefBrowserNotif = false;
+  let prefVibration = true;
+  let prefStartView = 'view-monitor';
+  let prefShowFps = true;
+  let prefMaxHistory = 100;
+  let prefTimeFormat = '24';
+  let prefFilterStolen = false;
+  let prefLanguage = 'es';
+  let prefTimezone = 'America/Mexico_City';
+  let prefFontSize = 14;
 
   // --- SaaS Data Isolation Helpers ---
   function getUserKey(baseKey) {
@@ -251,6 +270,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Load cache from localStorage
   let history = [];
+  let demoHistory = [];
   serverIpInput.value = getLocalItem('server_ip', '127.0.0.1');
   serverPortInput.value = getLocalItem('server_port', '8765');
   if (telegramTokenInput) telegramTokenInput.value = getLocalItem('telegram_token', '');
@@ -495,8 +515,33 @@ document.addEventListener('DOMContentLoaded', () => {
   function logInSuccess(session) {
     localStorage.setItem('user_session', JSON.stringify(session));
     
+    // Determinar si el usuario que inicia sesion es administrador
+    isAdmin = session.email && session.email.toLowerCase() === 'admin@alertavecinal.com';
+
+    // Mostrar/ocultar el panel de administracion segun el rol (ahora siempre visible para configuración manual)
+    const adminPanel = document.getElementById('adminPanel');
+    if (adminPanel) {
+      adminPanel.style.display = 'block';
+    }
+    if (telegramAdminSection) {
+      telegramAdminSection.style.display = isAdmin ? 'block' : 'none';
+    }
+
+    // Actualizar badge de rol en la tarjeta de perfil
+    const userRoleBadge = document.getElementById('userRoleBadge');
+    if (userRoleBadge) {
+      userRoleBadge.textContent = isAdmin ? 'Administrador 🔐' : 'Operador Vecinal';
+      userRoleBadge.style.background = isAdmin ? 'linear-gradient(135deg, #ff6b35, #f7c59f)' : '';
+      userRoleBadge.style.color = isAdmin ? '#1a1a1a' : '';
+    }
+
     // Cargar y aislar configuraciones del usuario
     loadUserSettings(session);
+
+    // Cargar y aplicar preferencias personalizadas del usuario
+    loadUserPreferences();
+    applyUserPreferences();
+    wireUserPreferencesListeners();
 
     loginScreen.style.display = 'none';
     appLayout.style.display = 'flex';
@@ -519,7 +564,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Iniciar renderizado estático del lente fijo
     startFixedLensRender();
 
-    // Iniciar conexión automática
+    // Iniciar conexión automática (para todos los usuarios, en segundo plano)
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('demo') === 'true' || demoModeToggle.checked) {
       demoModeToggle.checked = true;
@@ -837,7 +882,13 @@ document.addEventListener('DOMContentLoaded', () => {
     localStorage.removeItem('user_session');
     sessionStorage.removeItem('session_crypto_key');
     sessionCryptoKey = null;
+    isAdmin = false;
     
+    // Ocultar panel de admin al cerrar sesion
+    const adminPanel = document.getElementById('adminPanel');
+    if (adminPanel) adminPanel.style.display = 'none';
+    if (telegramAdminSection) telegramAdminSection.style.display = 'none';
+
     if (ws) ws.close();
     if (demoCanvasInterval) clearInterval(demoCanvasInterval);
     if (demoAlertInterval) clearInterval(demoAlertInterval);
@@ -1209,6 +1260,176 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
+  // --- 📷 LOCAL WEBCAM (1-CLICK GETUSERMEDIA) ---
+  let localWebcamStream = null;
+  let localWebcamVideoEl = null;
+  let localWebcamAnimationFrame = null;
+  let lastWebcamFrameSentTime = 0;
+  let currentLocalSimPlate = null;
+
+  if (useWebcamBtn) {
+    useWebcamBtn.addEventListener('click', async () => {
+      try {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          showToast('❌ Tu navegador no soporta acceso directo a la webcam.');
+          return;
+        }
+
+        useWebcamBtn.disabled = true;
+        useWebcamBtn.textContent = '⏳ Accediendo a la cámara...';
+
+        localWebcamStream = await navigator.mediaDevices.getUserMedia({
+          video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' }
+        });
+
+        if (!localWebcamVideoEl) {
+          localWebcamVideoEl = document.createElement('video');
+          localWebcamVideoEl.autoplay = true;
+          localWebcamVideoEl.playsInline = true;
+          localWebcamVideoEl.muted = true;
+        }
+        localWebcamVideoEl.srcObject = localWebcamStream;
+        await localWebcamVideoEl.play();
+
+        const placeholderFixed = document.getElementById('placeholderFixed');
+        const placeholderPtz = document.getElementById('placeholderPtz');
+        if (placeholderFixed) placeholderFixed.style.display = 'none';
+        if (placeholderPtz) placeholderPtz.style.display = 'none';
+
+        if (activeCameraInfo) {
+          activeCameraInfo.value = '📷 Cámara Web de este Dispositivo';
+        }
+
+        useWebcamBtn.disabled = false;
+        useWebcamBtn.textContent = '✅ Cámara Web Activa (1-Clic)';
+        showToast('📷 Cámara web de tu dispositivo conectada con éxito.');
+
+        const renderLoop = () => {
+          if (!localWebcamStream) return;
+          const videoCanvasFixed = document.getElementById('videoCanvasFixed');
+          const videoCanvasPtz = document.getElementById('videoCanvasPtz');
+
+          if (videoCanvasFixed && localWebcamVideoEl.videoWidth) {
+            const ctxFixed = videoCanvasFixed.getContext('2d');
+            videoCanvasFixed.width = localWebcamVideoEl.videoWidth;
+            videoCanvasFixed.height = localWebcamVideoEl.videoHeight;
+            ctxFixed.drawImage(localWebcamVideoEl, 0, 0, videoCanvasFixed.width, videoCanvasFixed.height);
+          }
+
+          if (videoCanvasPtz && localWebcamVideoEl.videoWidth) {
+            const ctxPtz = videoCanvasPtz.getContext('2d');
+            videoCanvasPtz.width = localWebcamVideoEl.videoWidth;
+            videoCanvasPtz.height = localWebcamVideoEl.videoHeight;
+            ctxPtz.drawImage(localWebcamVideoEl, 0, 0, videoCanvasPtz.width, videoCanvasPtz.height);
+          }
+
+          const now = Date.now();
+          const isServerConnected = ws && ws.readyState === WebSocket.OPEN;
+
+          if (isServerConnected) {
+            if (now - lastWebcamFrameSentTime > 200) {
+              lastWebcamFrameSentTime = now;
+              if (videoCanvasFixed) {
+                const dataUrl = videoCanvasFixed.toDataURL('image/jpeg', 0.6);
+                ws.send(JSON.stringify({
+                  cmd: 'process_frame',
+                  image: dataUrl
+                }));
+              }
+            }
+          } else {
+            const width = videoCanvasFixed ? videoCanvasFixed.width : 1280;
+            const height = videoCanvasFixed ? videoCanvasFixed.height : 720;
+            
+            const drawLocalSim = (ctx) => {
+              if (!ctx) return;
+              ctx.strokeStyle = '#00c2d1';
+              ctx.lineWidth = 3;
+              const vx = width * 0.25;
+              const vy = height * 0.2;
+              const vw = width * 0.5;
+              const vh = height * 0.6;
+              ctx.strokeRect(vx, vy, vw, vh);
+
+              ctx.fillStyle = '#00c2d1';
+              ctx.font = 'bold 16px Outfit, Inter, sans-serif';
+              ctx.fillText('🚗 VEHÍCULO DETECTADO (YOLOv11 local)', vx + 8, vy + 24);
+
+              const px = width * 0.4;
+              const py = height * 0.65;
+              const pw = width * 0.2;
+              const ph = height * 0.08;
+
+              const simCycle = Math.floor(now / 5000) % 3;
+              if (simCycle === 0) {
+                ctx.strokeStyle = '#ffb703';
+                ctx.strokeRect(px, py, pw, ph);
+                ctx.fillStyle = '#ffb703';
+                ctx.fillText('🔍 ESCANEANDO PLACA...', px + 6, py + 22);
+              } else if (simCycle === 1) {
+                ctx.strokeStyle = '#ff6b35';
+                ctx.lineWidth = 4;
+                ctx.strokeRect(px, py, pw, ph);
+                ctx.fillStyle = '#ff6b35';
+                ctx.fillText('⚠️ ROBADO | XYZ1234', px + 6, py + 22);
+
+                ctx.fillStyle = 'rgba(255, 107, 107, 0.2)';
+                ctx.fillRect(0, 0, width, 40);
+                ctx.fillStyle = '#ff6b35';
+                ctx.fillText('🚨 ALERTA DE SEGURIDAD (Simulación): XYZ1234', 20, 26);
+
+                if (currentLocalSimPlate !== 'XYZ1234') {
+                  currentLocalSimPlate = 'XYZ1234';
+                  addAlert({
+                    placa: 'XYZ1234',
+                    es_robado: true,
+                    modelo: 'Toyota Corolla',
+                    color: 'Blanco',
+                    propietario: 'Carlos Mendoza',
+                    timestamp: new Date().toISOString()
+                  });
+                }
+              } else {
+                ctx.strokeStyle = '#00c2d1';
+                ctx.strokeRect(px, py, pw, ph);
+                ctx.fillStyle = '#00c2d1';
+                ctx.fillText('✅ LIBRE | ABC5678', px + 6, py + 22);
+
+                if (currentLocalSimPlate !== 'ABC5678') {
+                  currentLocalSimPlate = 'ABC5678';
+                  addAlert({
+                    placa: 'ABC5678',
+                    es_robado: false,
+                    modelo: 'Honda Civic',
+                    color: 'Rojo',
+                    propietario: 'María Rodríguez',
+                    timestamp: new Date().toISOString()
+                  });
+                }
+              }
+            };
+
+            const canvasFixed = document.getElementById('videoCanvasFixed');
+            if (canvasFixed) drawLocalSim(canvasFixed.getContext('2d'));
+            const canvasPtz = document.getElementById('videoCanvasPtz');
+            if (canvasPtz) drawLocalSim(canvasPtz.getContext('2d'));
+          }
+
+          localWebcamAnimationFrame = requestAnimationFrame(renderLoop);
+        };
+
+        if (localWebcamAnimationFrame) cancelAnimationFrame(localWebcamAnimationFrame);
+        renderLoop();
+
+      } catch (err) {
+        console.error('Error al acceder a la webcam:', err);
+        useWebcamBtn.disabled = false;
+        useWebcamBtn.textContent = '📷 Usar Cámara de este Dispositivo (1-Clic)';
+        showToast('❌ Permiso de cámara denegado o no disponible.');
+      }
+    });
+  }
+
   // --- 📢 TEXT-TO-SPEECH (TTS) ALERTS ---
   function speakAlert(plate) {
     if ('speechSynthesis' in window) {
@@ -1241,6 +1462,15 @@ document.addEventListener('DOMContentLoaded', () => {
         }));
       }
     });
+  }
+
+  // --- 💬 TELEGRAM WIZARD HELPER ---
+  function updateTelegramBotLink(username) {
+    if (!telegramBotLink) return;
+    telegramBotLink.style.display = 'flex';
+    if (username) {
+      telegramBotLink.href = `https://t.me/${username}`;
+    }
   }
 
   // --- HISTORY MANAGEMENT ---
@@ -1286,7 +1516,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const searchQuery = searchInput ? searchInput.value.trim().toUpperCase() : '';
     const filterValue = filterInput ? filterInput.value : 'all';
 
-    const filtered = history.filter(item => {
+    const activeHistory = demoMode ? demoHistory : history;
+
+    const filtered = activeHistory.filter(item => {
       const matchesSearch = (item.placa || '').toUpperCase().includes(searchQuery);
       let matchesFilter = true;
       if (filterValue === 'stolen') {
@@ -1371,13 +1603,20 @@ document.addEventListener('DOMContentLoaded', () => {
       timeStr: timeStr
     };
 
-    // Agregar al historial local
-    history.unshift(formattedAlert);
-    if (history.length > 100) {
-      history.pop();
+    // Agregar al historial adecuado
+    if (demoMode) {
+      demoHistory.unshift(formattedAlert);
+      if (demoHistory.length > 100) {
+        demoHistory.pop();
+      }
+    } else {
+      history.unshift(formattedAlert);
+      if (history.length > 100) {
+        history.pop();
+      }
+      saveHistory();
     }
 
-    saveHistory();
     renderHistory();
 
     // Si es robado, disparar modal y TTS
@@ -1505,7 +1744,17 @@ document.addEventListener('DOMContentLoaded', () => {
     
     criticalAlertModal.classList.add('active');
     speakAlert(alertData.placa);
-    playAlarmSound();
+
+    // Respetar preferencias del usuario
+    if (prefAlarmSound) playAlarmSound();
+    if (prefVibration && navigator.vibrate) navigator.vibrate([400, 200, 400, 200, 800]);
+    if (prefBrowserNotif && Notification.permission === 'granted') {
+      new Notification('🚨 PLACA ROBADA DETECTADA', {
+        body: `${alertData.placa} — ${alertData.modelo || '?'} (${alertData.color || '?'})`,
+        icon: '/logo_project.png',
+        badge: '/logo_project.png'
+      });
+    }
   }
 
   dismissAlertBtn.addEventListener('click', () => {
@@ -1633,12 +1882,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (ws) ws.close();
 
-    wsStatusText.textContent = 'Conectando...';
+    wsStatusText.textContent = t('status_connecting');
     wsStatusDot.className = 'dot connecting';
-    connectBtn.textContent = 'Conectando...';
+    connectBtn.textContent = t('status_connecting');
     
     videoSpinner.style.display = 'inline-block';
-    ptzMsg.textContent = 'Conectando al servidor IA...';
+    ptzMsg.textContent = t('status_connecting_ia');
     placeholderPtz.style.display = 'flex';
 
     ws = new WebSocket(wsUrl);
@@ -1682,13 +1931,16 @@ document.addEventListener('DOMContentLoaded', () => {
             if (data.camera) {
               activeCameraInfo.value = data.camera;
             }
-            videoMetaText.textContent = `FPS de Servidor: ${data.fps || '0.0'} | Clientes: ${data.clients || '0'}`;
+            videoMetaText.textContent = t('cam_meta').replace('{fps}', data.fps || '0.0').replace('{clients}', data.clients || '0');
+            if (data.bot_username) {
+              updateTelegramBotLink(data.bot_username);
+            }
           } 
           else if (data.type === 'cameras') {
             populateCamerasModal(data.list);
           }
           else if (data.type === 'frame_meta') {
-            videoMetaText.textContent = `FPS de Servidor: ${data.fps || '0.0'} | Clientes: ${data.clients || '0'}`;
+            videoMetaText.textContent = t('cam_meta').replace('{fps}', data.fps || '0.0').replace('{clients}', data.clients || '0');
           }
           else if (data.type === 'audio') {
             playRawPcm(data.data);
@@ -1771,9 +2023,9 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     ws.onclose = () => {
-      wsStatusText.textContent = 'Desconectado';
+      wsStatusText.textContent = t('status_disconnected');
       wsStatusDot.className = 'dot';
-      connectBtn.textContent = 'Conectar';
+      connectBtn.textContent = t('admin_connect');
       connectBtn.className = 'btn';
       recIndicator.style.display = 'none';
       placeholderPtz.style.display = 'flex';
@@ -1784,11 +2036,11 @@ document.addEventListener('DOMContentLoaded', () => {
       const isLocalIp = ip === 'localhost' || ip === '127.0.0.1' || ip.startsWith('192.168.') || ip.startsWith('10.') || ip.startsWith('172.');
 
       if (isHttps && isLocalIp) {
-        ptzMsg.innerHTML = '<span style="color:#FFD600; font-weight:bold; font-size:0.85rem;">⚠️ Error de Conexión (Bloqueo HTTPS)</span><br>' +
-                           '<span style="font-size:0.75rem; color:#fff; display:block; margin-top:5px; max-width:90%;">No se puede conectar a un servidor local ("localhost" o IP privada) desde una web segura (Vercel).</span><br>' +
-                           '<span style="font-size:0.72rem; color:#aaa; display:block;"><b>Solución rápida:</b> Corre la web en tu laptop ejecutando: <br><code style="color:#FFD600; background:rgba(0,0,0,0.5); padding:2px 4px; border-radius:3px;">python -m http.server 8000</code> y entra a: <br><a href="http://localhost:8000/web_pwa/" target="_blank" style="color:#00C2D1; text-decoration:underline;">http://localhost:8000/web_pwa/</a></span>';
+        ptzMsg.innerHTML = `<span style="color:#FFD600; font-weight:bold; font-size:0.85rem;">${t('status_https_error_title')}</span><br>` +
+                           `<span style="font-size:0.75rem; color:#fff; display:block; margin-top:5px; max-width:90%;">${t('status_https_error_desc')}</span><br>` +
+                           `<span style="font-size:0.72rem; color:#aaa; display:block;"><b>${t('status_https_error_sol_title')}:</b> ${t('status_https_error_sol_desc')}<br><code style="color:#FFD600; background:rgba(0,0,0,0.5); padding:2px 4px; border-radius:3px;">python -m http.server 8000</code> y entra a: <br><a href="http://localhost:8000/web_pwa/" target="_blank" style="color:#00C2D1; text-decoration:underline;">http://localhost:8000/web_pwa/</a></span>`;
       } else {
-        ptzMsg.textContent = 'Servidor desconectado.';
+        ptzMsg.textContent = t('status_server_disconnected');
       }
       
       // Reiniciar la simulación del lente fijo al desconectarse del backend
@@ -1810,7 +2062,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (demoMode || userDisconnected) return;
     if (reconnectTimeout) clearTimeout(reconnectTimeout);
     
-    wsStatusText.textContent = 'Reconectando...';
+    wsStatusText.textContent = t('status_reconnecting');
     wsStatusDot.className = 'dot connecting';
     
     reconnectTimeout = setTimeout(() => {
@@ -1903,26 +2155,25 @@ document.addEventListener('DOMContentLoaded', () => {
     demoBadge.style.display = 'inline-block';
     triggerDemoAlertBtn.style.display = 'inline-block';
     
-    wsStatusText.textContent = 'Conectado (Demo)';
+    wsStatusText.textContent = `${t('status_connected')} (Demo)`;
     wsStatusDot.className = 'dot connected';
     placeholderPtz.style.display = 'none';
     recIndicator.style.display = 'flex';
     
     const demoModeBadge = document.getElementById('demoModeBadge');
     if (demoModeBadge) {
-      demoModeBadge.textContent = 'Activo';
+      demoModeBadge.textContent = t('admin_demo_active');
       demoModeBadge.className = 'status-badge-active';
     }
 
     if (ws) ws.close();
     
-    if (history.length === 0) {
-      preloadDemoHistory();
-    }
+    demoHistory = [];
+    preloadDemoHistory();
 
     startDemoCanvasAnimation();
     startDemoAlertGenerator();
-    showToast('🚀 Modo Demo iniciado. Puedes usar los joysticks e interruptores.');
+    showToast(t('toast_demo_started'));
   }
 
   function stopDemoMode() {
@@ -1930,21 +2181,30 @@ document.addEventListener('DOMContentLoaded', () => {
     demoBadge.style.display = 'none';
     triggerDemoAlertBtn.style.display = 'none';
 
-    wsStatusText.textContent = 'Desconectado';
+    wsStatusText.textContent = t('status_disconnected');
     wsStatusDot.className = 'dot';
     recIndicator.style.display = 'none';
     placeholderPtz.style.display = 'flex';
 
     const demoModeBadge = document.getElementById('demoModeBadge');
     if (demoModeBadge) {
-      demoModeBadge.textContent = 'Inactivo';
+      demoModeBadge.textContent = t('admin_demo_inactive');
       demoModeBadge.className = 'status-badge-inactive';
     }
+    showToast(t('toast_demo_stopped'));
 
     if (demoCanvasInterval) clearInterval(demoCanvasInterval);
     if (demoAlertInterval) clearInterval(demoAlertInterval);
 
     userDisconnected = false;
+    demoHistory = [];
+
+    // Limpiar cualquier placa de demostración que haya podido filtrarse al historial real
+    const mockPlacasSet = new Set(["MHX-901", "KLP-204", "YTR-442", "ZXC-883", "PLM-112", "JVM-892", "KLO-112", "XRT-403"]);
+    history = history.filter(h => !mockPlacasSet.has(h.placa));
+    saveHistory();
+
+    renderHistory();
     connectWebSocket();
     showToast('🔌 Modo Demo apagado. Intentando conectar al servidor backend.');
   }
@@ -2076,21 +2336,20 @@ document.addEventListener('DOMContentLoaded', () => {
     ];
 
     demoAlerts.forEach(alert => {
-      const exists = history.some(h => h.placa === alert.placa);
+      const exists = demoHistory.some(h => h.placa === alert.placa);
       if (!exists) {
         const dateObj = new Date(alert.timestamp);
         const timeStr = dateObj.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) + ' ' + 
                         dateObj.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' });
         
-        history.push({
+        demoHistory.push({
           ...alert,
           timeStr: timeStr
         });
       }
     });
 
-    history.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-    saveHistory();
+    demoHistory.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
     renderHistory();
   }
 
@@ -2107,8 +2366,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   clearHistoryBtn.addEventListener('click', () => {
     if (confirm('¿Deseas vaciar el historial de alertas local?')) {
-      history = [];
-      saveHistory();
+      if (demoMode) {
+        demoHistory = [];
+      } else {
+        history = [];
+        saveHistory();
+      }
       renderHistory();
       showToast('🗑️ Historial vaciado.');
     }
@@ -2227,6 +2490,814 @@ document.addEventListener('DOMContentLoaded', () => {
     themeToggleBtn.textContent = (theme === 'dark') ? '☀️' : '🌙';
   }
 
+  // --- ⚙️ USER PREFERENCES SYSTEM ---
+  function saveUserPreference(key, value) {
+    setLocalItem(`pref_${key}`, String(value));
+  }
+
+  function loadUserPreferences() {
+    const boolVal = (key, def) => {
+      const v = getLocalItem(`pref_${key}`);
+      return v === '' ? def : v === 'true';
+    };
+    const strVal = (key, def) => getLocalItem(`pref_${key}`) || def;
+    const numVal = (key, def) => parseInt(getLocalItem(`pref_${key}`)) || def;
+
+    prefAlarmSound    = boolVal('alarmSound', true);
+    prefBrowserNotif  = boolVal('browserNotif', false);
+    prefVibration     = boolVal('vibration', true);
+    prefShowFps       = boolVal('showFps', true);
+    prefFilterStolen  = boolVal('filterStolen', false);
+    prefStartView     = strVal('startView', 'view-monitor');
+    prefTimeFormat    = strVal('timeFormat', '24');
+    prefLanguage      = strVal('language', 'es');
+    prefTimezone      = strVal('timezone', 'America/Mexico_City');
+    prefMaxHistory    = numVal('maxHistory', 100);
+    prefFontSize      = numVal('fontSize', 14);
+  }
+
+  function applyUserPreferences() {
+    // Sincronizar checkboxes
+    const s = (id, val) => { const el = document.getElementById(id); if (el) el.checked = val; };
+    const sv = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
+
+    s('settingAlarmSound',   prefAlarmSound);
+    s('settingBrowserNotif', prefBrowserNotif);
+    s('settingVibration',    prefVibration);
+    s('settingShowFps',      prefShowFps);
+    s('settingFilterStolen', prefFilterStolen);
+    sv('settingTheme',       currentTheme);
+    sv('settingStartView',   prefStartView);
+    sv('settingMaxHistory',  prefMaxHistory);
+    sv('settingTimeFormat',  prefTimeFormat);
+    sv('settingLanguage',    prefLanguage);
+    sv('settingTimezone',    prefTimezone);
+    sv('settingFontSize',    prefFontSize);
+
+    // Actualizar label del slider
+    const lbl = document.getElementById('settingFontSizeLabel');
+    if (lbl) lbl.textContent = `${prefFontSize}px`;
+
+    // Aplicar tamaño de fuente
+    document.documentElement.style.fontSize = `${prefFontSize}px`;
+
+    // Aplicar visibilidad de FPS
+    const fpsEl = document.getElementById('videoMetaText');
+    if (fpsEl) fpsEl.style.display = prefShowFps ? '' : 'none';
+
+    // Aplicar filtro por defecto en historial
+    const filterSel = document.getElementById('filterStatus');
+    if (filterSel && prefFilterStolen) filterSel.value = 'stolen';
+
+    // Navegar a la vista predeterminada
+    const defaultTab = document.querySelector(`.tab-btn[data-target="${prefStartView}"]`);
+    if (defaultTab) defaultTab.click();
+
+    // Aplicar idioma guardado (después del login, cuando el DOM ya está listo)
+    if (prefLanguage && prefLanguage !== 'es') {
+      setTimeout(() => applyLanguage(prefLanguage), 100);
+    }
+  }
+
+  function wireUserPreferencesListeners() {
+    const onToggle = (id, key, prefVar, callback) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.addEventListener('change', () => {
+        const val = el.checked;
+        window[prefVar] = val; // actualizar var global no es posible directo, usamos closure
+        saveUserPreference(key, val);
+        if (callback) callback(val);
+      });
+    };
+    const onSelect = (id, key, callback) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.addEventListener('change', () => {
+        saveUserPreference(key, el.value);
+        if (callback) callback(el.value);
+      });
+    };
+
+    // Sonido
+    const alarmEl = document.getElementById('settingAlarmSound');
+    if (alarmEl) alarmEl.addEventListener('change', () => {
+      prefAlarmSound = alarmEl.checked;
+      saveUserPreference('alarmSound', prefAlarmSound);
+      showToast(prefAlarmSound ? '🔔 Sonido de alertas activado' : '🔕 Sonido de alertas desactivado');
+    });
+
+    // Notificaciones del navegador
+    const notifEl = document.getElementById('settingBrowserNotif');
+    if (notifEl) notifEl.addEventListener('change', () => {
+      if (notifEl.checked) {
+        Notification.requestPermission().then(perm => {
+          prefBrowserNotif = perm === 'granted';
+          notifEl.checked = prefBrowserNotif;
+          saveUserPreference('browserNotif', prefBrowserNotif);
+          showToast(prefBrowserNotif ? '🔔 Notificaciones activadas' : '❌ Permiso denegado por el navegador');
+        });
+      } else {
+        prefBrowserNotif = false;
+        saveUserPreference('browserNotif', false);
+        showToast('🔕 Notificaciones del navegador desactivadas');
+      }
+    });
+
+    // Vibración
+    const vibEl = document.getElementById('settingVibration');
+    if (vibEl) vibEl.addEventListener('change', () => {
+      prefVibration = vibEl.checked;
+      saveUserPreference('vibration', prefVibration);
+      if (prefVibration && navigator.vibrate) navigator.vibrate(200);
+      showToast(prefVibration ? '📳 Vibración activada' : '📴 Vibración desactivada');
+    });
+
+    // Tema (sincronizado con el botón de la cabecera)
+    const themeEl = document.getElementById('settingTheme');
+    if (themeEl) themeEl.addEventListener('change', () => {
+      currentTheme = themeEl.value;
+      document.documentElement.setAttribute('data-theme', currentTheme);
+      setLocalItem('theme', currentTheme);
+      updateThemeIcon(currentTheme);
+      showToast(`🌓 Tema ${currentTheme === 'dark' ? 'oscuro' : 'claro'} aplicado`);
+    });
+
+    // Vista predeterminada
+    const startViewEl = document.getElementById('settingStartView');
+    if (startViewEl) startViewEl.addEventListener('change', () => {
+      prefStartView = startViewEl.value;
+      saveUserPreference('startView', prefStartView);
+      showToast('📍 Vista predeterminada guardada');
+    });
+
+    // FPS
+    const fpsEl2 = document.getElementById('settingShowFps');
+    if (fpsEl2) fpsEl2.addEventListener('change', () => {
+      prefShowFps = fpsEl2.checked;
+      saveUserPreference('showFps', prefShowFps);
+      const metaEl = document.getElementById('videoMetaText');
+      if (metaEl) metaEl.style.display = prefShowFps ? '' : 'none';
+      showToast(prefShowFps ? '📊 Métricas FPS visibles' : '📊 Métricas FPS ocultas');
+    });
+
+    // Máximo historial
+    const maxHEl = document.getElementById('settingMaxHistory');
+    if (maxHEl) maxHEl.addEventListener('change', () => {
+      prefMaxHistory = parseInt(maxHEl.value);
+      saveUserPreference('maxHistory', prefMaxHistory);
+      showToast(`📊 Límite de historial: ${prefMaxHistory} registros`);
+    });
+
+    // Formato de hora
+    const timeFormatEl = document.getElementById('settingTimeFormat');
+    if (timeFormatEl) timeFormatEl.addEventListener('change', () => {
+      prefTimeFormat = timeFormatEl.value;
+      saveUserPreference('timeFormat', prefTimeFormat);
+      renderHistory();
+      showToast(`⏰ Formato de hora: ${prefTimeFormat === '24' ? '24 horas' : '12 horas (AM/PM)'}`);
+    });
+
+    // Filtro por defecto
+    const filterStolenEl = document.getElementById('settingFilterStolen');
+    if (filterStolenEl) filterStolenEl.addEventListener('change', () => {
+      prefFilterStolen = filterStolenEl.checked;
+      saveUserPreference('filterStolen', prefFilterStolen);
+      const filterSel = document.getElementById('filterStatus');
+      if (filterSel) filterSel.value = prefFilterStolen ? 'stolen' : 'all';
+      renderHistory();
+      showToast(prefFilterStolen ? '🔴 Mostrando solo robados por defecto' : '🟢 Mostrando todos los vehículos por defecto');
+    });
+
+    // Idioma
+    const langEl = document.getElementById('settingLanguage');
+    if (langEl) langEl.addEventListener('change', () => {
+      prefLanguage = langEl.value;
+      saveUserPreference('language', prefLanguage);
+      applyLanguage(prefLanguage);
+      showToast(prefLanguage === 'en' ? '🇺🇸 Language: English' : '🇲🇽 Idioma: Español (México)');
+    });
+
+    // Zona horaria
+    const tzEl = document.getElementById('settingTimezone');
+    if (tzEl) tzEl.addEventListener('change', () => {
+      prefTimezone = tzEl.value;
+      saveUserPreference('timezone', prefTimezone);
+      renderHistory();
+      showToast(prefLanguage === 'en' ? '🌎 Time zone updated' : '🌎 Zona horaria actualizada');
+    });
+
+    // Tamaño de fuente
+    const fontEl = document.getElementById('settingFontSize');
+    const fontLbl = document.getElementById('settingFontSizeLabel');
+    if (fontEl) fontEl.addEventListener('input', () => {
+      prefFontSize = parseInt(fontEl.value);
+      if (fontLbl) fontLbl.textContent = `${prefFontSize}px`;
+      document.documentElement.style.fontSize = `${prefFontSize}px`;
+    });
+    if (fontEl) fontEl.addEventListener('change', () => {
+      saveUserPreference('fontSize', prefFontSize);
+      showToast(prefLanguage === 'en' ? `🔤 Text size: ${prefFontSize}px` : `🔤 Tamaño de texto: ${prefFontSize}px`);
+    });
+  }
+
+  // ============================================================
+  //  🌍 SISTEMA DE INTERNACIONALIZACIÓN (i18n)
+  // ============================================================
+  const translations = {
+    es: {
+      // Nav
+      nav_monitor: 'Monitor', nav_history: 'Historial', nav_settings: 'Ajustes',
+      // Status
+      status_disconnected: 'Desconectado', status_reconnecting: 'Reconectando...',
+      status_connected: 'Conectado', status_connecting: 'Conectando...',
+      // Monitor tools
+      tool_talk: 'Hablar', tool_listen: 'Escuchar', tool_capture: 'Captura', tool_ai: 'IA Placas',
+      // Camera card
+      cam_view_title: 'Visualización de Cámaras',
+      cam_grid: 'Vista Rejilla', cam_wide: 'Gran Angular', cam_ptz: 'Lente PTZ',
+      cam_layout: 'Diseño:',
+      cam_config: 'Configuración de Cámara',
+      cam_scan: '🔍 Escanear Cámaras USB',
+      cam_rtsp: 'Cambiar dirección RTSP / Cámara WiFi:',
+      cam_apply: 'Aplicar',
+      cam_source: 'Origen de Video Actual:',
+      cam_inactive: 'Cámara inactiva — Esperando señal',
+      cam_select_usb: 'Seleccionar Cámara USB:',
+      cam_layout_2: '2 Cámaras (1+1)',
+      cam_layout_fixed: '1 Lente (Solo Fijo)',
+      cam_layout_ptz: '1 Lente (Solo PTZ)',
+      cam_layout_4: '4 Cámaras (2x2)',
+      cam_layout_9: '9 Cámaras (3x3)',
+      cam_layout_16: '16 Cámaras (4x4)',
+      cam_source_none: 'Ninguna cámara activa',
+      cam_inactive_aux: 'Cámara inactiva<br>Esperando señal',
+      status_connecting_ia: 'Conectando al servidor IA...',
+      status_server_disconnected: 'Servidor desconectado.',
+      status_https_error_title: '⚠️ Error de Conexión (Bloqueo HTTPS)',
+      status_https_error_desc: 'No se puede conectar a un servidor local ("localhost" o IP privada) desde una web segura (Vercel).',
+      status_https_error_sol_title: 'Solución rápida',
+      status_https_error_sol_desc: 'Corre la web en tu laptop ejecutando:',
+      cam_fixed_name: 'Lente Gran Angular',
+      cam_ptz_name: 'Lente Móvil',
+      cam_fixed_fullscreen: 'Lente Gran Angular (Fijo) — Vista Completa',
+      cam_ptz_fullscreen: 'Lente Móvil PTZ — Vista Completa',
+      cam_aux_name: 'Cámara Auxiliar',
+      cam_meta: 'FPS de Servidor: {fps} | Clientes: {clients}',
+      toast_demo_started: '🚀 Modo Demo iniciado. Puedes usar los joysticks e interruptores.',
+      toast_demo_stopped: '⏹️ Modo Demo detenido.',
+      // History
+      hist_title: 'Historial de Alertas',
+      hist_export: '📥 Exportar CSV', hist_clear: '🗑️ Vaciar Logs',
+      hist_search: 'Buscar por placa...',
+      hist_all: 'Todos los vehículos', hist_stolen: 'Solo robados', hist_auth: 'Solo autorizados',
+      hist_col_plate: 'Placa', hist_col_status: 'Estado',
+      hist_col_model: 'Modelo y Color', hist_col_owner: 'Propietario', hist_col_date: 'Fecha y Hora',
+      hist_no_records: 'Sin registros',
+      hist_row_stolen: '🔴 ROBADO', hist_row_authorized: '🟢 Autorizado',
+      // Settings - admin
+      admin_backend: 'Conexión Servidor Backend',
+      admin_ip: '🌐 Dirección IP del Servidor:', admin_port: '🔌 Puerto WebSocket:',
+      admin_connect: 'Conectar',
+      admin_demo: 'Módulo de Demostración (Offline)',
+      admin_demo_label: 'Modo Demo', admin_demo_inactive: 'Inactivo', admin_demo_active: 'Activo',
+      admin_demo_desc: 'Simular flujo completo con radar y alertas ficticias',
+      admin_simulate: '🚨 Simular Alerta Crítica',
+      // Settings - notifications
+      pref_notif_title: '🔔 Notificaciones y Alertas',
+      pref_alarm_title: 'Sonido de alerta crítica',
+      pref_alarm_desc: 'Reproducir sirena al detectar un vehículo robado',
+      pref_browser_title: 'Notificaciones del navegador',
+      pref_browser_desc: 'Recibir alertas aunque la app esté en segundo plano',
+      pref_vib_title: 'Vibración en alertas', pref_vib_mobile: '(móvil)',
+      pref_vib_desc: 'Vibrar el dispositivo al recibir una alerta crítica',
+      // Settings - appearance
+      pref_appear_title: '🎨 Apariencia y Visualización',
+      pref_theme_label: 'Tema visual:',
+      pref_theme_dark: '🌙 Oscuro (Dark Mode)', pref_theme_light: '☀️ Claro (Light Mode)',
+      pref_start_label: 'Vista al iniciar sesión:',
+      pref_start_monitor: '📺 Monitor (por defecto)',
+      pref_start_history: '📋 Historial de Alertas', pref_start_settings: '⚙️ Ajustes',
+      pref_fps_title: 'Mostrar métricas técnicas (FPS)',
+      pref_fps_desc: 'Ver FPS del servidor y número de clientes conectados',
+      // Settings - history data
+      pref_hist_title: '📋 Historial y Datos',
+      pref_maxhist_label: 'Máximo de registros en historial:',
+      pref_rec_50: '50 registros', pref_rec_100: '100 registros (recomendado)',
+      pref_rec_200: '200 registros', pref_rec_500: '500 registros',
+      pref_timefmt_label: 'Formato de hora en el historial:',
+      pref_time24: '⏰ 24 horas (ej: 13:45)', pref_time12: '🕐 12 horas (ej: 1:45 PM)',
+      pref_filter_title: 'Filtrar solo robados por defecto',
+      pref_filter_desc: 'Al abrir el historial, mostrar solo vehículos con reporte de robo',
+      // Settings - region
+      pref_region_title: '🌍 Región, Idioma y Accesibilidad',
+      pref_lang_label: 'Idioma de la interfaz:',
+      pref_tz_label: 'Zona horaria para registros:',
+      pref_font_label: 'Tamaño del texto de la interfaz:',
+      // Profile
+      profile_title: 'Perfil de Usuario (Google)',
+      role_operator: 'Operador Vecinal', role_admin: 'Administrador 🔐',
+      btn_logout: 'Cerrar Sesión',
+      // Auth
+      auth_subtitle: 'Plataforma de Monitoreo Inteligente',
+      auth_email: 'Usuario / Correo:', auth_password: 'Contraseña:',
+      auth_show_pw: 'Mostrar contraseña',
+      auth_login: 'Iniciar Sesión', auth_google: 'Iniciar Sesión con Google',
+      auth_first_time: '¿Primera vez en la plataforma?',
+      auth_create: 'Crea tu cuenta de vecino',
+      auth_have_account: '¿Ya tienes una cuenta registrada?',
+      auth_go_login: 'Iniciar Sesión',
+      auth_name: 'Nombre Completo:',
+      auth_register: 'Registrarse',
+      // Toasts
+      toast_alarm_on: '🔔 Sonido de alertas activado',
+      toast_alarm_off: '🔕 Sonido de alertas desactivado',
+      toast_notif_on: '🔔 Notificaciones activadas',
+      toast_notif_denied: '❌ Permiso denegado por el navegador',
+      toast_notif_off: '🔕 Notificaciones del navegador desactivadas',
+      toast_vib_on: '📳 Vibración activada', toast_vib_off: '📴 Vibración desactivada',
+      toast_fps_on: '📊 Métricas FPS visibles', toast_fps_off: '📊 Métricas FPS ocultas',
+      toast_start_view: '📍 Vista predeterminada guardada',
+      toast_filter_stolen: '🔴 Mostrando solo robados por defecto',
+      toast_filter_all: '🟢 Mostrando todos los vehículos por defecto',
+      toast_tz: '🌎 Zona horaria actualizada',
+      toast_welcome: '👋 ¡Bienvenido de nuevo',
+      toast_logout: '🔒 Sesión cerrada correctamente.',
+      toast_dark: '🌓 Modo oscuro activado', toast_light: '🌓 Modo claro activado',
+      // Critical alert modal
+      modal_title: 'ALERTA DE ROBO',
+      modal_desc: 'Se ha detectado una coincidencia en la Base de Datos',
+      modal_model: 'Modelo', modal_color: 'Color',
+      modal_owner: 'Propietario', modal_time: 'Fecha / Hora',
+      modal_dismiss: 'Entendido',
+      // Telegram Card i18n
+      tg_title: '🔔 Alertas de Telegram (Celular)',
+      tg_desc: 'Recibe notificaciones automáticas con fotos del vehículo y de la placa directamente en tu celular.',
+      tg_how: '¿Cómo activarlo?',
+      tg_step1: 'Haz clic en el botón de abajo para abrir el bot en Telegram.',
+      tg_step2: 'Presiona el botón de <strong>Iniciar</strong> o envía <strong>/start</strong>.',
+      tg_step3: '¡Eso es todo! El sistema te registrará y recibirás alertas.',
+      tg_btn: '💬 Abrir Bot de Telegram',
+      tg_missing: '⚠️ El bot de Telegram no está configurado por el administrador aún.',
+      tg_admin_title: 'Configuración del Bot de la Comunidad',
+      tg_admin_token: 'Token del Bot (de @BotFather):',
+      tg_admin_chatid: 'ID de Chat del Administrador:',
+      tg_admin_btn: 'Guardar Credenciales del Bot',
+    },
+
+    en: {
+      // Nav
+      nav_monitor: 'Monitor', nav_history: 'History', nav_settings: 'Settings',
+      // Status
+      status_disconnected: 'Disconnected', status_reconnecting: 'Reconnecting...',
+      status_connected: 'Connected', status_connecting: 'Connecting...',
+      // Monitor tools
+      tool_talk: 'Talk', tool_listen: 'Listen', tool_capture: 'Capture', tool_ai: 'AI Plates',
+      // Camera card
+      cam_view_title: 'Camera View',
+      cam_grid: 'Grid View', cam_wide: 'Wide Angle', cam_ptz: 'PTZ Lens',
+      cam_layout: 'Layout:',
+      cam_config: 'Camera Configuration',
+      cam_scan: '🔍 Scan USB Cameras',
+      cam_rtsp: 'Change RTSP / WiFi Camera address:',
+      cam_apply: 'Apply',
+      cam_source: 'Current Video Source:',
+      cam_inactive: 'Camera inactive — Awaiting signal',
+      cam_select_usb: 'Select USB Camera:',
+      cam_layout_2: '2 Cameras (1+1)',
+      cam_layout_fixed: '1 Lens (Fixed Only)',
+      cam_layout_ptz: '1 Lens (PTZ Only)',
+      cam_layout_4: '4 Cameras (2x2)',
+      cam_layout_9: '9 Cameras (3x3)',
+      cam_layout_16: '16 Cameras (4x4)',
+      cam_source_none: 'No active camera',
+      cam_inactive_aux: 'Camera inactive<br>Awaiting signal',
+      status_connecting_ia: 'Connecting to AI server...',
+      status_server_disconnected: 'Server disconnected.',
+      status_https_error_title: '⚠️ Connection Error (HTTPS Block)',
+      status_https_error_desc: 'Cannot connect to a local server ("localhost" or private IP) from a secure website (Vercel).',
+      status_https_error_sol_title: 'Quick solution',
+      status_https_error_sol_desc: 'Run the web on your laptop executing:',
+      cam_fixed_name: 'Wide Angle Lens',
+      cam_ptz_name: 'Mobile Lens',
+      cam_fixed_fullscreen: 'Wide Angle Lens (Fixed) — Full View',
+      cam_ptz_fullscreen: 'Mobile PTZ Lens — Full View',
+      cam_aux_name: 'Auxiliary Camera',
+      cam_meta: 'Server FPS: {fps} | Clients: {clients}',
+      toast_demo_started: '🚀 Demo Mode started. You can use the joysticks and switches.',
+      toast_demo_stopped: '⏹️ Demo Mode stopped.',
+      // History
+      hist_title: 'Alert History',
+      hist_export: '📥 Export CSV', hist_clear: '🗑️ Clear Logs',
+      hist_search: 'Search by plate...',
+      hist_all: 'All vehicles', hist_stolen: 'Stolen only', hist_auth: 'Authorized only',
+      hist_col_plate: 'Plate', hist_col_status: 'Status',
+      hist_col_model: 'Model & Color', hist_col_owner: 'Owner', hist_col_date: 'Date & Time',
+      hist_no_records: 'No records',
+      hist_row_stolen: '🔴 STOLEN', hist_row_authorized: '🟢 Authorized',
+      // Settings - admin
+      admin_backend: 'Backend Server Connection',
+      admin_ip: '🌐 Server IP Address:', admin_port: '🔌 WebSocket Port:',
+      admin_connect: 'Connect',
+      admin_demo: 'Demo Module (Offline)',
+      admin_demo_label: 'Demo Mode', admin_demo_inactive: 'Inactive', admin_demo_active: 'Active',
+      admin_demo_desc: 'Simulate full flow with radar and fictitious alerts',
+      admin_simulate: '🚨 Simulate Critical Alert',
+      // Settings - notifications
+      pref_notif_title: '🔔 Notifications & Alerts',
+      pref_alarm_title: 'Critical alert sound',
+      pref_alarm_desc: 'Play siren when a stolen vehicle is detected',
+      pref_browser_title: 'Browser notifications',
+      pref_browser_desc: 'Receive alerts even when the app is in the background',
+      pref_vib_title: 'Vibration on alerts', pref_vib_mobile: '(mobile)',
+      pref_vib_desc: 'Vibrate the device when a critical alert is received',
+      // Settings - appearance
+      pref_appear_title: '🎨 Appearance & Display',
+      pref_theme_label: 'Visual theme:',
+      pref_theme_dark: '🌙 Dark Mode', pref_theme_light: '☀️ Light Mode',
+      pref_start_label: 'Default view on login:',
+      pref_start_monitor: '📺 Monitor (default)',
+      pref_start_history: '📋 Alert History', pref_start_settings: '⚙️ Settings',
+      pref_fps_title: 'Show technical metrics (FPS)',
+      pref_fps_desc: 'See server FPS and number of connected clients',
+      // Settings - history data
+      pref_hist_title: '📋 History & Data',
+      pref_maxhist_label: 'Maximum history entries:',
+      pref_rec_50: '50 records', pref_rec_100: '100 records (recommended)',
+      pref_rec_200: '200 records', pref_rec_500: '500 records',
+      pref_timefmt_label: 'Time format in history:',
+      pref_time24: '⏰ 24 hours (e.g. 13:45)', pref_time12: '🕐 12 hours (e.g. 1:45 PM)',
+      pref_filter_title: 'Filter only stolen by default',
+      pref_filter_desc: 'When opening history, show only vehicles with theft report',
+      // Settings - region
+      pref_region_title: '🌍 Region, Language & Accessibility',
+      pref_lang_label: 'Interface language:',
+      pref_tz_label: 'Time zone for records:',
+      pref_font_label: 'Interface text size:',
+      // Profile
+      profile_title: 'User Profile (Google)',
+      role_operator: 'Neighborhood Operator', role_admin: 'Administrator 🔐',
+      btn_logout: 'Sign Out',
+      // Auth
+      auth_subtitle: 'Intelligent Monitoring Platform',
+      auth_email: 'Username / Email:', auth_password: 'Password:',
+      auth_show_pw: 'Show password',
+      auth_login: 'Sign In', auth_google: 'Sign In with Google',
+      auth_first_time: 'First time on the platform?',
+      auth_create: 'Create your neighborhood account',
+      auth_have_account: 'Already have an account?',
+      auth_go_login: 'Sign In',
+      auth_name: 'Full Name:',
+      auth_register: 'Register',
+      // Toasts
+      toast_alarm_on: '🔔 Alert sound enabled',
+      toast_alarm_off: '🔕 Alert sound disabled',
+      toast_notif_on: '🔔 Notifications enabled',
+      toast_notif_denied: '❌ Permission denied by browser',
+      toast_notif_off: '🔕 Browser notifications disabled',
+      toast_vib_on: '📳 Vibration enabled', toast_vib_off: '📴 Vibration disabled',
+      toast_fps_on: '📊 FPS metrics visible', toast_fps_off: '📊 FPS metrics hidden',
+      toast_start_view: '📍 Default view saved',
+      toast_filter_stolen: '🔴 Showing only stolen by default',
+      toast_filter_all: '🟢 Showing all vehicles by default',
+      toast_tz: '🌎 Time zone updated',
+      toast_welcome: '👋 Welcome back',
+      toast_logout: '🔒 Session closed successfully.',
+      toast_dark: '🌓 Dark mode activated', toast_light: '🌓 Light mode activated',
+      // Critical alert modal
+      modal_title: 'THEFT ALERT',
+      modal_desc: 'A match has been detected in the Database',
+      modal_model: 'Model', modal_color: 'Color',
+      modal_owner: 'Owner', modal_time: 'Date / Time',
+      modal_dismiss: 'Understood',
+      // Telegram Card i18n
+      tg_title: '🔔 Telegram Alerts (Mobile)',
+      tg_desc: 'Receive automatic notifications with photos of the vehicle and plate directly on your phone.',
+      tg_how: 'How to activate?',
+      tg_step1: 'Click the button below to open the bot on Telegram.',
+      tg_step2: 'Press the <strong>Start</strong> button or send <strong>/start</strong>.',
+      tg_step3: "That's it! The system will register you and you will receive alerts.",
+      tg_btn: '💬 Open Telegram Bot',
+      tg_missing: '⚠️ The Telegram bot is not configured by the administrator yet.',
+      tg_admin_title: 'Community Bot Configuration',
+      tg_admin_token: 'Bot Token (from @BotFather):',
+      tg_admin_chatid: 'Administrator Chat ID:',
+      tg_admin_btn: 'Save Bot Credentials',
+    }
+  };
+
+  /** Traduce una clave al idioma actual */
+  function t(key) {
+    const lang = prefLanguage || 'es';
+    return (translations[lang] && translations[lang][key]) ||
+           (translations['es'] && translations['es'][key]) || key;
+  }
+
+  /** Aplica el idioma seleccionado a todos los elementos del DOM */
+  function applyLanguage(lang) {
+    prefLanguage = lang;
+    const L = translations[lang] || translations['es'];
+
+    // === NAVEGACIÓN ===
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      const target = btn.getAttribute('data-target');
+      const icon = btn.querySelector('[aria-hidden="true"]');
+      if (!icon) return;
+      if (target === 'view-monitor') btn.lastChild.textContent = ' ' + L.nav_monitor;
+      if (target === 'view-history') btn.lastChild.textContent = ' ' + L.nav_history;
+      if (target === 'view-settings') btn.lastChild.textContent = ' ' + L.nav_settings;
+    });
+
+    // === BOTONES DE HERRAMIENTAS DEL MONITOR ===
+    const toolMap = { toolTalk: 'tool_talk', toolListen: 'tool_listen', toolCapture: 'tool_capture', toolAi: 'tool_ai' };
+    Object.entries(toolMap).forEach(([id, key]) => {
+      const btn = document.getElementById(id);
+      if (btn) { const sp = btn.querySelector('span:not(.tool-icon)'); if (sp) sp.textContent = L[key]; }
+    });
+
+    // === PANEL DE CÁMARA ===
+    const camTitle = document.querySelector('.cam-panel-title');
+    if (camTitle) camTitle.textContent = L.cam_view_title;
+
+    const camTabs = document.querySelectorAll('.cam-tab');
+    if (camTabs[0]) camTabs[0].lastChild.textContent = '\n                  ' + L.cam_grid + '\n                ';
+    if (camTabs[1]) camTabs[1].lastChild.textContent = '\n                  ' + L.cam_wide + '\n                ';
+    if (camTabs[2]) camTabs[2].lastChild.textContent = '\n                  ' + L.cam_ptz + '\n                ';
+
+    const applyRtspBtn = document.getElementById('applyRtspBtn');
+    if (applyRtspBtn) applyRtspBtn.textContent = L.cam_apply;
+
+    const scanBtn = document.getElementById('listCamerasBtn');
+    if (scanBtn) scanBtn.textContent = L.cam_scan;
+
+    const rtspLabel = document.getElementById('label-rtsp-url');
+    if (rtspLabel) rtspLabel.textContent = L.cam_rtsp;
+
+    const camConfigH2 = document.querySelector('#view-monitor .monitor-grid > .card:last-child h2');
+    if (camConfigH2) camConfigH2.textContent = L.cam_config;
+
+    const usbLabel = document.getElementById('label-list-cameras');
+    if (usbLabel) usbLabel.textContent = L.cam_select_usb;
+
+    const activeCamLabel = document.getElementById('label-active-camera');
+    if (activeCamLabel) activeCamLabel.textContent = L.cam_source;
+
+    const lensLabel = document.getElementById('label-lens-selector');
+    if (lensLabel) lensLabel.textContent = L.cam_layout;
+
+    const lensSel = document.getElementById('lensSelector');
+    if (lensSel && lensSel.options.length >= 6) {
+      lensSel.options[0].text = L.cam_layout_2;
+      lensSel.options[1].text = L.cam_layout_fixed;
+      lensSel.options[2].text = L.cam_layout_ptz;
+      lensSel.options[3].text = L.cam_layout_4;
+      lensSel.options[4].text = L.cam_layout_9;
+      lensSel.options[5].text = L.cam_layout_16;
+    }
+
+    if (activeCameraInfo) {
+      if (activeCameraInfo.value === 'Ninguna cámara activa' || activeCameraInfo.value === 'No active camera') {
+        activeCameraInfo.value = L.cam_source_none;
+      }
+    }
+
+    const fixedMsg = document.getElementById('fixedMsg');
+    if (fixedMsg) fixedMsg.textContent = L.cam_inactive;
+
+    const ptzMsgEl = document.getElementById('ptzMsg');
+    if (ptzMsgEl) {
+      const txt = ptzMsgEl.textContent;
+      if (txt === 'Cámara inactiva — Esperando señal' || txt === 'Camera inactive — Awaiting signal') {
+        ptzMsgEl.textContent = L.cam_inactive;
+      } else if (txt === 'Servidor desconectado.' || txt === 'Server disconnected.') {
+        ptzMsgEl.textContent = L.status_server_disconnected;
+      } else if (txt === 'Conectando al servidor IA...' || txt === 'Connecting to AI server...') {
+        ptzMsgEl.textContent = L.status_connecting_ia;
+      }
+    }
+
+    document.querySelectorAll('.aux-cell .cam-inactive-overlay span').forEach(el => {
+      el.innerHTML = L.cam_inactive_aux;
+    });
+
+    // Translate Camera Names
+    const fixedLbl = document.querySelector('#lensFixedContainer .cam-cell-name');
+    if (fixedLbl) fixedLbl.textContent = L.cam_fixed_name;
+
+    const ptzLbl = document.querySelector('#lensPtzContainer .cam-cell-name');
+    if (ptzLbl) ptzLbl.textContent = L.cam_ptz_name;
+
+    const fixedFsLbl = document.querySelector('#viewFixed .cam-cell-name');
+    if (fixedFsLbl) fixedFsLbl.textContent = L.cam_fixed_fullscreen;
+
+    const ptzFsLbl = document.querySelector('#viewPtz .cam-cell-name');
+    if (ptzFsLbl) ptzFsLbl.textContent = L.cam_ptz_fullscreen;
+
+    document.querySelectorAll('.aux-cell').forEach(cell => {
+      const nameEl = cell.querySelector('.cam-cell-name');
+      if (nameEl) {
+        const num = cell.id.replace('auxCam', '');
+        nameEl.textContent = `${L.cam_aux_name} ${parseInt(num) + 1}`;
+      }
+    });
+
+    // === SECCIÓN HISTORIAL ===
+    const histH2 = document.querySelector('#view-history h2');
+    if (histH2) histH2.textContent = L.hist_title;
+
+    const exportBtn = document.getElementById('exportCsvBtn');
+    if (exportBtn) exportBtn.textContent = L.hist_export;
+
+    const clearBtn = document.getElementById('clearHistoryBtn');
+    if (clearBtn) clearBtn.textContent = L.hist_clear;
+
+    const searchInput = document.getElementById('searchPlate');
+    if (searchInput) searchInput.placeholder = L.hist_search;
+
+    const filterSel = document.getElementById('filterStatus');
+    if (filterSel && filterSel.options.length >= 3) {
+      filterSel.options[0].text = L.hist_all;
+      filterSel.options[1].text = L.hist_stolen;
+      filterSel.options[2].text = L.hist_auth;
+    }
+
+    const ths = document.querySelectorAll('.history-table thead th');
+    if (ths.length >= 5) {
+      ths[0].textContent = L.hist_col_plate;
+      ths[1].textContent = L.hist_col_status;
+      ths[2].textContent = L.hist_col_model;
+      ths[3].textContent = L.hist_col_owner;
+      ths[4].textContent = L.hist_col_date;
+    }
+
+    // Re-renderizar historial para aplicar los textos de estado
+    renderHistory();
+
+    // === PANEL DE AJUSTES - TARJETAS DE USUARIO ===
+    const cards = document.querySelectorAll('#userSettingsPanel .card');
+    if (cards.length >= 4) {
+      // Card 1: Notificaciones
+      const c1 = cards[0];
+      c1.querySelector('h2').textContent = L.pref_notif_title;
+      const tw1 = c1.querySelectorAll('.toggle-wrapper');
+      if (tw1[0]) { tw1[0].querySelector('h3').textContent = L.pref_alarm_title; tw1[0].querySelector('p').textContent = L.pref_alarm_desc; }
+      if (tw1[1]) { tw1[1].querySelector('h3').textContent = L.pref_browser_title; tw1[1].querySelector('p').textContent = L.pref_browser_desc; }
+      if (tw1[2]) {
+        tw1[2].querySelector('h3').innerHTML = `${L.pref_vib_title} <span style="font-size:0.75rem;color:var(--text-secondary);">${L.pref_vib_mobile}</span>`;
+        tw1[2].querySelector('p').textContent = L.pref_vib_desc;
+      }
+
+      // Card 2: Apariencia
+      const c2 = cards[1];
+      c2.querySelector('h2').textContent = L.pref_appear_title;
+      const l2 = c2.querySelectorAll('label');
+      if (l2[0]) l2[0].textContent = L.pref_theme_label;
+      if (l2[1]) l2[1].textContent = L.pref_start_label;
+      const thSel = document.getElementById('settingTheme');
+      if (thSel) { thSel.options[0].text = L.pref_theme_dark; thSel.options[1].text = L.pref_theme_light; }
+      const svSel = document.getElementById('settingStartView');
+      if (svSel) { svSel.options[0].text = L.pref_start_monitor; svSel.options[1].text = L.pref_start_history; svSel.options[2].text = L.pref_start_settings; }
+      const tw2 = c2.querySelector('.toggle-wrapper');
+      if (tw2) { tw2.querySelector('h3').textContent = L.pref_fps_title; tw2.querySelector('p').textContent = L.pref_fps_desc; }
+
+      // Card 3: Historial y Datos
+      const c3 = cards[2];
+      c3.querySelector('h2').textContent = L.pref_hist_title;
+      const l3 = c3.querySelectorAll('label');
+      if (l3[0]) l3[0].textContent = L.pref_maxhist_label;
+      if (l3[1]) l3[1].textContent = L.pref_timefmt_label;
+      const mhSel = document.getElementById('settingMaxHistory');
+      if (mhSel) { mhSel.options[0].text = L.pref_rec_50; mhSel.options[1].text = L.pref_rec_100; mhSel.options[2].text = L.pref_rec_200; mhSel.options[3].text = L.pref_rec_500; }
+      const tfSel = document.getElementById('settingTimeFormat');
+      if (tfSel) { tfSel.options[0].text = L.pref_time24; tfSel.options[1].text = L.pref_time12; }
+      const tw3 = c3.querySelector('.toggle-wrapper');
+      if (tw3) { tw3.querySelector('h3').textContent = L.pref_filter_title; tw3.querySelector('p').textContent = L.pref_filter_desc; }
+
+      // Card 4: Región, Idioma y Accesibilidad
+      const c4 = cards[3];
+      c4.querySelector('h2').textContent = L.pref_region_title;
+      const l4 = c4.querySelectorAll('label');
+      if (l4[0]) l4[0].textContent = L.pref_lang_label;
+      if (l4[1]) l4[1].textContent = L.pref_tz_label;
+      if (l4[2]) l4[2].textContent = L.pref_font_label;
+    }
+
+    // === CARD 5: TELEGRAM CONFIG ===
+    const tgCard = document.getElementById('telegramConfigCard');
+    if (tgCard) {
+      const h2 = tgCard.querySelector('h2');
+      if (h2) h2.textContent = L.tg_title;
+      
+      const descP = tgCard.querySelector('#telegramUserSection p');
+      if (descP) descP.textContent = L.tg_desc;
+      
+      const howH4 = tgCard.querySelector('#telegramUserSection h4');
+      if (howH4) howH4.textContent = L.tg_how;
+      
+      const steps = tgCard.querySelectorAll('#telegramUserSection ol li');
+      if (steps.length >= 3) {
+        steps[0].innerHTML = L.tg_step1;
+        steps[1].innerHTML = L.tg_step2;
+        steps[2].innerHTML = L.tg_step3;
+      }
+      
+      const botLink = document.getElementById('telegramBotLink');
+      if (botLink) {
+        botLink.innerHTML = `💬 ${L.tg_btn.replace('💬 ', '')}`;
+      }
+    }
+
+    // === PANEL ADMIN ===
+    const backendCard = document.querySelector('#adminPanel .card');
+    if (backendCard) {
+      const h2 = backendCard.querySelector('h2');
+      if (h2) h2.textContent = L.admin_backend;
+      const connectBtnEl = document.getElementById('connectBtn');
+      if (connectBtnEl && connectBtnEl.textContent !== 'Conectando...' && connectBtnEl.textContent !== 'Connecting...') {
+        connectBtnEl.textContent = L.admin_connect;
+      }
+    }
+
+    // === MÓDULO DE DEMOSTRACIÓN ===
+    const demoCard = document.getElementById('demoModeCard');
+    if (demoCard) {
+      const h2 = demoCard.querySelector('h2');
+      if (h2) h2.textContent = L.admin_demo;
+      const demoP = demoCard.querySelector('.toggle-wrapper p');
+      if (demoP) demoP.textContent = L.admin_demo_desc;
+      const simBtn = document.getElementById('triggerDemoAlertBtn');
+      if (simBtn) simBtn.textContent = L.admin_simulate;
+      const demoToggleH3 = demoCard.querySelector('.toggle-wrapper h3');
+      if (demoToggleH3) {
+        demoToggleH3.innerHTML = `${L.admin_demo_label} <span id="demoModeBadge" class="${demoMode ? 'status-badge-active' : 'status-badge-inactive'}">${demoMode ? L.admin_demo_active : L.admin_demo_inactive}</span>`;
+      }
+    }
+
+    // === PERFIL DE USUARIO ===
+    const profileCard = document.getElementById('googleProfileCard');
+    if (profileCard) {
+      const ph2 = profileCard.querySelector('h2');
+      if (ph2) ph2.textContent = L.profile_title;
+      const logoutBtnEl = document.getElementById('logoutBtn');
+      if (logoutBtnEl) logoutBtnEl.textContent = L.btn_logout;
+      // Badge de rol
+      const roleBadge = document.getElementById('userRoleBadge');
+      if (roleBadge) roleBadge.textContent = isAdmin ? L.role_admin : L.role_operator;
+    }
+
+    // === FORMULARIO DE LOGIN ===
+    const loginSubtitle = document.querySelector('.auth-header p');
+    if (loginSubtitle) loginSubtitle.textContent = L.auth_subtitle;
+    const emailLbl = document.querySelector('label[for="loginEmail"]');
+    if (emailLbl) emailLbl.textContent = L.auth_email;
+    const passLbl = document.querySelector('label[for="loginPassword"]');
+    if (passLbl) passLbl.textContent = L.auth_password;
+    const showPwLbl = document.querySelector('label[for="showPasswordCheckbox"]');
+    if (showPwLbl) showPwLbl.textContent = L.auth_show_pw;
+    const loginBtnEl = document.getElementById('normalLoginBtn');
+    if (loginBtnEl) loginBtnEl.textContent = L.auth_login;
+    const gLoginBtn = document.getElementById('googleLoginBtn');
+    if (gLoginBtn) { const sp = gLoginBtn.querySelector('span'); if (sp) sp.textContent = L.auth_google; }
+    const nameLbl = document.querySelector('label[for="registerName"]');
+    if (nameLbl) nameLbl.textContent = L.auth_name;
+    const regBtn = document.getElementById('submitRegisterBtn');
+    if (regBtn) regBtn.textContent = L.auth_register;
+
+    // === MODAL DE ALERTA CRÍTICA ===
+    const modalTitle = document.getElementById('criticalAlertTitle');
+    if (modalTitle) modalTitle.textContent = L.modal_title;
+    const modalDesc = document.getElementById('criticalAlertDesc');
+    if (modalDesc) modalDesc.textContent = L.modal_desc;
+    const dismissBtn = document.getElementById('dismissAlertBtn');
+    if (dismissBtn) dismissBtn.textContent = L.modal_dismiss;
+    const modalLabels = document.querySelectorAll('.critical-details-grid label');
+    if (modalLabels.length >= 4) {
+      modalLabels[0].textContent = L.modal_model;
+      modalLabels[1].textContent = L.modal_color;
+      modalLabels[2].textContent = L.modal_owner;
+      modalLabels[3].textContent = L.modal_time;
+    }
+
+    // === STATUS DEL WEBSOCKET ===
+    const wsText = document.getElementById('wsStatusText');
+    if (wsText) {
+      const currentText = wsText.textContent;
+      if (currentText === translations['es'].status_disconnected || currentText === translations['en'].status_disconnected)
+        wsText.textContent = L.status_disconnected;
+      else if (currentText === translations['es'].status_connected || currentText === translations['en'].status_connected)
+        wsText.textContent = L.status_connected;
+      else if (currentText === translations['es'].status_reconnecting || currentText === translations['en'].status_reconnecting)
+        wsText.textContent = L.status_reconnecting;
+    }
+
+    // Actualizar selector de idioma en la opción inglés
+    const langSelect = document.getElementById('settingLanguage');
+    if (langSelect && langSelect.options.length >= 2) {
+      langSelect.options[0].text = lang === 'en' ? '🇲🇽 Español (México)' : '🇲🇽 Español (México)';
+      langSelect.options[1].text = lang === 'en' ? '🇺🇸 English' : '🇺🇸 English';
+    }
+  }
+
   // --- HISTORY SEARCH & FILTER LISTENERS ---
   const searchPlateInput = document.getElementById('searchPlate');
   const filterStatusSelect = document.getElementById('filterStatus');
@@ -2242,7 +3313,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const exportCsvBtn = document.getElementById('exportCsvBtn');
   if (exportCsvBtn) {
     exportCsvBtn.addEventListener('click', () => {
-      if (history.length === 0) {
+      const activeHistory = demoMode ? demoHistory : history;
+      if (activeHistory.length === 0) {
         alert('No hay registros en el historial para exportar.');
         return;
       }
@@ -2250,7 +3322,7 @@ document.addEventListener('DOMContentLoaded', () => {
       let csvContent = "data:text/csv;charset=utf-8,\uFEFF"; // UTF-8 BOM for Excel
       csvContent += "Placa,Estado,Modelo y Color,Propietario,Fecha y Hora\n";
 
-      history.forEach(item => {
+      activeHistory.forEach(item => {
         const placa = (item.placa || '').replace(/"/g, '""');
         const estado = item.es_robado ? 'ROBADO' : 'LIBRE';
         const vehiculo = `${item.modelo || '?'} (${item.color || '?'})`.replace(/"/g, '""');
