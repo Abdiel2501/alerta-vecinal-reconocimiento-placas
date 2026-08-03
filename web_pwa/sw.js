@@ -1,4 +1,4 @@
-const CACHE_NAME = 'alertavecinal-v100-fixed';
+const CACHE_NAME = 'alertavecinal-v101-login-fix';
 const APP_SHELL = [
   'index.html',
   'styles.css',

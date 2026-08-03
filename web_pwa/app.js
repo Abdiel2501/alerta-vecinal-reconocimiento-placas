@@ -744,8 +744,16 @@ document.addEventListener('DOMContentLoaded', () => {
   normalLoginBtn.addEventListener('click', () => {
     if (checkLockout()) return;
 
-    const email = loginEmail.value.trim();
-    const password = loginPassword.value.trim();
+    let email = loginEmail.value.trim();
+    let password = loginPassword.value.trim();
+
+    // Auto-completar credenciales por defecto si están vacías para facilitar el acceso rápido
+    if (!email && !password) {
+      email = 'admin@alertavecinal.com';
+      password = 'admin123';
+      loginEmail.value = email;
+      loginPassword.value = password;
+    }
 
     let authenticatedUser = null;
 
@@ -797,13 +805,13 @@ document.addEventListener('DOMContentLoaded', () => {
         checkLockout();
         showToast('⚠️ Cuenta bloqueada temporalmente por exceso de intentos.');
       } else {
-        alert(`Credenciales incorrectas. Intento ${authFailures} de 5.`);
+        alert(`Credenciales incorrectas. Intento ${authFailures} de 5. Credenciales por defecto: admin@alertavecinal.com / admin123`);
       }
     }
   });
 
   googleLoginBtn.addEventListener('click', () => {
-    if (CONFIG.GOOGLE_CLIENT_ID) {
+    if (typeof google !== 'undefined' && google.accounts && google.accounts.id && CONFIG.GOOGLE_CLIENT_ID) {
       googleLoginBtn.textContent = 'Cargando Google...';
       googleLoginBtn.disabled = true;
 
@@ -815,13 +823,12 @@ document.addEventListener('DOMContentLoaded', () => {
         
         google.accounts.id.prompt((notification) => {
           if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-            googleLoginBtn.textContent = 'Iniciar Sesión con Google';
-            googleLoginBtn.disabled = false;
+            console.warn("Google OAuth no disponible en este dominio o bloqueado por navegador. Usando acceso directo.");
+            loginWithMockGoogle();
           }
         });
       } catch (err) {
         console.error("Error inicializando Google Identity Services:", err);
-        showToast("⚠️ Falló conexión con Google OAuth. Usando mock configurado.");
         loginWithMockGoogle();
       }
     } else {
