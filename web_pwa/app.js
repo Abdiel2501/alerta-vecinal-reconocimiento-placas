@@ -1793,26 +1793,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (ip.startsWith('ws://') || ip.startsWith('wss://')) {
       wsUrl = ip;
-      // Forzar wss sólo si la página web corre sobre HTTPS (exigido por seguridad del navegador)
-      if (isHttpsPage && wsUrl.startsWith('ws://')) {
-        wsUrl = wsUrl.replace(/^ws:\/\//, 'wss://');
-      }
       if (!wsUrl.endsWith('/ws')) {
         wsUrl = wsUrl.replace(/\/?$/, '/ws');
       }
     } else if (ip.startsWith('http://') || ip.startsWith('https://')) {
       wsUrl = ip.replace(/^http/, 'ws');
-      if (isHttpsPage && wsUrl.startsWith('ws://')) {
-        wsUrl = wsUrl.replace(/^ws:\/\//, 'wss://');
-      }
       if (!wsUrl.endsWith('/ws')) {
         wsUrl = wsUrl.replace(/\/?$/, '/ws');
       }
     } else {
       // Es una IP o un dominio sin protocolo
       let protocol = 'ws';
-      const isLocal = ip === 'localhost' || ip === '127.0.0.1' || ip.startsWith('192.168.') || ip.startsWith('10.') || ip.startsWith('172.');
-      if (isHttpsPage || !isLocal) {
+      // Solo usar wss:// si se especifica un dominio HTTPS con certificado SSL
+      if (ip.includes('.vercel.app') || ip.includes('.ngrok.io') || ip.includes('.loca.lt') || ip.includes('.railway.app')) {
         protocol = 'wss';
       }
       
