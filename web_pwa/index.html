@@ -468,9 +468,28 @@
 
           <!-- Camera Settings & Info Card -->
           <div class="card">
-            <h2>Configuración de Cámara</h2>
+            <h2>Configuración y Conexión de Cámara</h2>
 
-            <button id="useWebcamBtn" class="btn btn-primary-gradient" style="width:100%; margin-bottom:14px; display:flex; align-items:center; justify-content:center; gap:8px; font-weight:700;">
+            <!-- Conexión Servidor Backend -->
+            <div class="input-group">
+              <label for="serverIp">
+                <span class="input-icon">🌐</span> Dirección IP del Servidor:
+              </label>
+              <input type="text" id="serverIp" value="127.0.0.1" placeholder="Ej: 192.168.1.72">
+            </div>
+
+            <div class="input-group">
+              <label for="serverPort">
+                <span class="input-icon">🔌</span> Puerto WebSocket:
+              </label>
+              <input type="number" id="serverPort" value="8765" placeholder="8765">
+            </div>
+
+            <button id="connectBtn" class="btn btn-primary-gradient" style="width:100%; margin-bottom:16px;">Conectar</button>
+
+            <div style="border-top: 1px solid var(--border-color); margin: 14px 0; padding-top: 14px;"></div>
+
+            <button id="useWebcamBtn" class="btn btn-secondary" style="width:100%; margin-bottom:14px; display:flex; align-items:center; justify-content:center; gap:8px; font-weight:600;">
               📷 Usar Cámara de este Dispositivo (1-Clic)
             </button>
 
@@ -553,31 +572,6 @@
       <!-- ⚙️ SETTINGS SECTION -->
       <section id="view-settings" class="view-section settings-grid-layout" role="tabpanel" aria-label="Ajustes de la aplicación">
         <div class="settings-main-column">
-          <!-- ⚙️ Conexión Manual al Servidor Backend -->
-          <div id="adminPanel">
-
-            <!-- Conexión Servidor Backend -->
-            <div class="card settings-card">
-              <h2>Conexión Servidor Backend</h2>
-
-              <div class="input-group">
-                <label for="serverIp">
-                  <span class="input-icon">🌐</span> Dirección IP del Servidor:
-                </label>
-                <input type="text" id="serverIp" value="127.0.0.1" placeholder="Ej: 192.168.1.72">
-              </div>
-
-              <div class="input-group">
-                <label for="serverPort">
-                  <span class="input-icon">🔌</span> Puerto WebSocket:
-                </label>
-                <input type="number" id="serverPort" value="8765" placeholder="8765">
-              </div>
-
-              <button id="connectBtn" class="btn btn-primary-gradient">Conectar</button>
-            </div>
-
-          </div><!-- /adminPanel -->
 
           <!-- Módulo de Demostración (Offline) -->
           <div class="card settings-card" id="demoModeCard">
