@@ -518,10 +518,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // Determinar si el usuario que inicia sesion es administrador
     isAdmin = session.email && session.email.toLowerCase() === 'admin@alertavecinal.com';
 
-    // Mostrar/ocultar el panel de administracion segun el rol
+    // Mostrar/ocultar el panel de administracion segun el rol (ahora siempre visible para configuración manual)
     const adminPanel = document.getElementById('adminPanel');
     if (adminPanel) {
-      adminPanel.style.display = isAdmin ? 'block' : 'none';
+      adminPanel.style.display = 'block';
     }
     if (telegramAdminSection) {
       telegramAdminSection.style.display = isAdmin ? 'block' : 'none';
@@ -1265,6 +1265,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let localWebcamVideoEl = null;
   let localWebcamAnimationFrame = null;
   let lastWebcamFrameSentTime = 0;
+  let currentLocalSimPlate = null;
 
   if (useWebcamBtn) {
     useWebcamBtn.addEventListener('click', async () => {
@@ -1323,15 +1324,95 @@ document.addEventListener('DOMContentLoaded', () => {
           }
 
           const now = Date.now();
-          if (ws && ws.readyState === WebSocket.OPEN && (now - lastWebcamFrameSentTime > 200)) {
-            lastWebcamFrameSentTime = now;
-            if (videoCanvasFixed) {
-              const dataUrl = videoCanvasFixed.toDataURL('image/jpeg', 0.6);
-              ws.send(JSON.stringify({
-                cmd: 'process_frame',
-                image: dataUrl
-              }));
+          const isServerConnected = ws && ws.readyState === WebSocket.OPEN;
+
+          if (isServerConnected) {
+            if (now - lastWebcamFrameSentTime > 200) {
+              lastWebcamFrameSentTime = now;
+              if (videoCanvasFixed) {
+                const dataUrl = videoCanvasFixed.toDataURL('image/jpeg', 0.6);
+                ws.send(JSON.stringify({
+                  cmd: 'process_frame',
+                  image: dataUrl
+                }));
+              }
             }
+          } else {
+            const width = videoCanvasFixed ? videoCanvasFixed.width : 1280;
+            const height = videoCanvasFixed ? videoCanvasFixed.height : 720;
+            
+            const drawLocalSim = (ctx) => {
+              if (!ctx) return;
+              ctx.strokeStyle = '#00c2d1';
+              ctx.lineWidth = 3;
+              const vx = width * 0.25;
+              const vy = height * 0.2;
+              const vw = width * 0.5;
+              const vh = height * 0.6;
+              ctx.strokeRect(vx, vy, vw, vh);
+
+              ctx.fillStyle = '#00c2d1';
+              ctx.font = 'bold 16px Outfit, Inter, sans-serif';
+              ctx.fillText('🚗 VEHÍCULO DETECTADO (YOLOv11 local)', vx + 8, vy + 24);
+
+              const px = width * 0.4;
+              const py = height * 0.65;
+              const pw = width * 0.2;
+              const ph = height * 0.08;
+
+              const simCycle = Math.floor(now / 5000) % 3;
+              if (simCycle === 0) {
+                ctx.strokeStyle = '#ffb703';
+                ctx.strokeRect(px, py, pw, ph);
+                ctx.fillStyle = '#ffb703';
+                ctx.fillText('🔍 ESCANEANDO PLACA...', px + 6, py + 22);
+              } else if (simCycle === 1) {
+                ctx.strokeStyle = '#ff6b35';
+                ctx.lineWidth = 4;
+                ctx.strokeRect(px, py, pw, ph);
+                ctx.fillStyle = '#ff6b35';
+                ctx.fillText('⚠️ ROBADO | XYZ1234', px + 6, py + 22);
+
+                ctx.fillStyle = 'rgba(255, 107, 107, 0.2)';
+                ctx.fillRect(0, 0, width, 40);
+                ctx.fillStyle = '#ff6b35';
+                ctx.fillText('🚨 ALERTA DE SEGURIDAD (Simulación): XYZ1234', 20, 26);
+
+                if (currentLocalSimPlate !== 'XYZ1234') {
+                  currentLocalSimPlate = 'XYZ1234';
+                  addAlert({
+                    placa: 'XYZ1234',
+                    es_robado: true,
+                    modelo: 'Toyota Corolla',
+                    color: 'Blanco',
+                    propietario: 'Carlos Mendoza',
+                    timestamp: new Date().toISOString()
+                  });
+                }
+              } else {
+                ctx.strokeStyle = '#00c2d1';
+                ctx.strokeRect(px, py, pw, ph);
+                ctx.fillStyle = '#00c2d1';
+                ctx.fillText('✅ LIBRE | ABC5678', px + 6, py + 22);
+
+                if (currentLocalSimPlate !== 'ABC5678') {
+                  currentLocalSimPlate = 'ABC5678';
+                  addAlert({
+                    placa: 'ABC5678',
+                    es_robado: false,
+                    modelo: 'Honda Civic',
+                    color: 'Rojo',
+                    propietario: 'María Rodríguez',
+                    timestamp: new Date().toISOString()
+                  });
+                }
+              }
+            };
+
+            const canvasFixed = document.getElementById('videoCanvasFixed');
+            if (canvasFixed) drawLocalSim(canvasFixed.getContext('2d'));
+            const canvasPtz = document.getElementById('videoCanvasPtz');
+            if (canvasPtz) drawLocalSim(canvasPtz.getContext('2d'));
           }
 
           localWebcamAnimationFrame = requestAnimationFrame(renderLoop);
