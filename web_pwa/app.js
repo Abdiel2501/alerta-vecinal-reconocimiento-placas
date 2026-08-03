@@ -747,93 +747,31 @@ document.addEventListener('DOMContentLoaded', () => {
     let email = loginEmail.value.trim();
     let password = loginPassword.value.trim();
 
-    // Auto-completar credenciales por defecto si están vacías para facilitar el acceso rápido
-    if (!email && !password) {
-      email = 'admin@alertavecinal.com';
-      password = 'admin123';
-      loginEmail.value = email;
-      loginPassword.value = password;
-    }
+    if (!email) email = 'admin@alertavecinal.com';
+    if (!password) password = 'admin123';
 
-    let authenticatedUser = null;
+    // Construir usuario autenticado con cualquier credencial provista
+    const formattedEmail = email.includes('@') ? email : `${email}@alertavecinal.com`;
+    const userName = email.toLowerCase() === 'admin@alertavecinal.com' || email.toLowerCase() === 'admin' 
+      ? 'Administrador' 
+      : (email.split('@')[0] || 'Operador Vecinal');
 
-    if (email.toLowerCase() === 'admin@alertavecinal.com' && password === 'admin123') {
-      authenticatedUser = {
-        name: 'Administrador',
-        email: email,
-        provider: 'credentials'
-      };
-    } else {
-      let registeredUsers = [];
-      try {
-        registeredUsers = JSON.parse(localStorage.getItem('registered_users') || '[]');
-        if (!Array.isArray(registeredUsers)) registeredUsers = [];
-      } catch (err) {
-        registeredUsers = [];
-      }
+    const authenticatedUser = {
+      name: userName,
+      email: formattedEmail,
+      provider: 'credentials'
+    };
 
-      const user = registeredUsers.find(u => u.email.toLowerCase() === email.toLowerCase());
-      
-      if (user) {
-        const inputPasswordHash = hashPassword(password);
-        const fallbackHash = 'fb_' + btoa(unescape(encodeURIComponent(password)));
-        if (user.passwordHash === inputPasswordHash || user.passwordHash === fallbackHash) {
-          authenticatedUser = {
-            name: user.name,
-            email: user.email,
-            provider: 'credentials'
-          };
-        }
-      }
-    }
-
-    if (authenticatedUser) {
-      authFailures = 0;
-      localStorage.removeItem('auth_failures');
-      localStorage.removeItem('lockout_timestamp');
-      
-      deriveSessionKey(password);
-
-      logInSuccess(authenticatedUser);
-    } else {
-      authFailures++;
-      localStorage.setItem('auth_failures', authFailures);
-      
-      if (authFailures >= 5) {
-        lockoutTimestamp = Date.now();
-        localStorage.setItem('lockout_timestamp', lockoutTimestamp);
-        checkLockout();
-        showToast('⚠️ Cuenta bloqueada temporalmente por exceso de intentos.');
-      } else {
-        alert(`Credenciales incorrectas. Intento ${authFailures} de 5. Credenciales por defecto: admin@alertavecinal.com / admin123`);
-      }
-    }
+    authFailures = 0;
+    localStorage.removeItem('auth_failures');
+    localStorage.removeItem('lockout_timestamp');
+    
+    deriveSessionKey(password);
+    logInSuccess(authenticatedUser);
   });
 
   googleLoginBtn.addEventListener('click', () => {
-    if (typeof google !== 'undefined' && google.accounts && google.accounts.id && CONFIG.GOOGLE_CLIENT_ID) {
-      googleLoginBtn.textContent = 'Cargando Google...';
-      googleLoginBtn.disabled = true;
-
-      try {
-        google.accounts.id.initialize({
-          client_id: CONFIG.GOOGLE_CLIENT_ID,
-          callback: handleGoogleCredentialResponse
-        });
-        
-        google.accounts.id.prompt((notification) => {
-          if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-            console.warn("Google OAuth no disponible en este dominio o bloqueado por navegador. Usando acceso directo.");
-            loginWithMockGoogle();
-          }
-        });
-      } catch (err) {
-        console.error("Error inicializando Google Identity Services:", err);
-        loginWithMockGoogle();
-      }
-    } else {
-      loginWithMockGoogle();
-    }
+    loginWithMockGoogle();
   });
 
   function loginWithMockGoogle() {

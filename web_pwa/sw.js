@@ -1,4 +1,4 @@
-const CACHE_NAME = 'alertavecinal-v104-manual-fontsize';
+const CACHE_NAME = 'alertavecinal-v105-failproof-login';
 const APP_SHELL = [
   'index.html',
   'styles.css',
