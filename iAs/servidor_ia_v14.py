@@ -380,6 +380,7 @@ class UserPipeline:
                         if not (vot and vot.stable(min_lecturas=6, min_confianza=0.75)):
                             # Detección de placas en recorte (con umbral optimizado para compresión)
                             resultados_p = modelo_placas_global(recorte_vehiculo, conf=0.15, verbose=False)
+                            print(f"[Debug Loop] ID {track_id} - Detecciones de placas: {len(resultados_p[0].boxes) if resultados_p else 0}")
                             if resultados_p and len(resultados_p[0].boxes) > 0:
                                 mejor_idx = int(resultados_p[0].boxes.conf.argmax())
                                 conf_placa = float(resultados_p[0].boxes.conf[mejor_idx])
@@ -513,6 +514,7 @@ class UserPipeline:
                 vot = self.votadores.get(track_id)
                 if not (vot and vot.stable(min_lecturas=6, min_confianza=0.75)):
                     resultados_p = modelo_placas_global(recorte_vehiculo, conf=0.15, verbose=False)
+                    print(f"[Debug Manual] ID {track_id} - Detecciones de placas: {len(resultados_p[0].boxes) if resultados_p else 0}")
                     if resultados_p and len(resultados_p[0].boxes) > 0:
                         mejor_idx = int(resultados_p[0].boxes.conf.argmax())
                         conf_placa = float(resultados_p[0].boxes.conf[mejor_idx])
