@@ -390,7 +390,7 @@ class UserPipeline:
                 print(f"[User {self.usuario_id} IA Loop Error] {e}")
                 time.sleep(0.1)
 
-    def procesar_frame_manual(self, b64_img: str):
+    def procesar_frame_manual(self, b64_img: str, socket_cliente=None):
         if not self.lock_procesar_manual.acquire(blocking=False):
             return
         try:
@@ -523,7 +523,18 @@ class UserPipeline:
 
             # Codificar y transmitir de regreso
             _, buf = cv2.imencode(".jpg", fotograma, [cv2.IMWRITE_JPEG_QUALITY, 75])
-            self._difundir_fotograma_privado(buf.tobytes())
+            
+            if socket_cliente:
+                meta = json.dumps({
+                    "type": "frame_meta",
+                    "fps": round(self.fps_actual, 1),
+                    "clients": len(self.clientes),
+                    "size": len(buf.tobytes()),
+                })
+                asyncio.run_coroutine_threadsafe(socket_cliente.send_text(meta), estado_servidor_saas.loop)
+                asyncio.run_coroutine_threadsafe(socket_cliente.send_bytes(buf.tobytes()), estado_servidor_saas.loop)
+            else:
+                self._difundir_fotograma_privado(buf.tobytes())
 
         except Exception as e:
             print(f"[procesar_frame_manual Error] {e}")
@@ -1012,7 +1023,7 @@ async def websocket_legacy(websocket: WebSocket):
             elif action == "process_frame":
                 b64_img = cmd.get("image", "")
                 if b64_img:
-                    threading.Thread(target=pipeline.procesar_frame_manual, args=(b64_img,), daemon=True).start()
+                    threading.Thread(target=pipeline.procesar_frame_manual, args=(b64_img, websocket), daemon=True).start()
 
             elif action == "ptz":
                 direccion = cmd.get("action", "")
@@ -1111,7 +1122,7 @@ async def websocket_saas(websocket: WebSocket, token: str):
             elif action == "process_frame":
                 b64_img = cmd.get("image", "")
                 if b64_img:
-                    threading.Thread(target=pipeline.procesar_frame_manual, args=(b64_img,), daemon=True).start()
+                    threading.Thread(target=pipeline.procesar_frame_manual, args=(b64_img, websocket), daemon=True).start()
 
             elif action == "ptz":
                 direccion = cmd.get("action", "")
