@@ -386,6 +386,139 @@ class UserPipeline:
                 print(f"[User {self.usuario_id} IA Loop Error] {e}")
                 time.sleep(0.1)
 
+    def procesar_frame_manual(self, b64_img: str):
+        try:
+            if "," in b64_img:
+                b64_img = b64_img.split(",", 1)[1]
+            img_bytes = base64.b64decode(b64_img)
+            nparr = np.frombuffer(img_bytes, np.uint8)
+            fotograma = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+            if fotograma is None:
+                return
+
+            self.conteo_fotogramas += 1
+
+            # YOLO Tracking de Vehículos y Personas (para privacidad)
+            cajas_det, ids_rastreo_det, confianzas_det, clases_det = [], [], [], []
+            try:
+                results = modelo_vehiculos_global.track(fotograma, persist=True, classes=[0, 2, 3, 5, 7], conf=0.15, verbose=False)
+                if results and results[0].boxes.id is not None:
+                    cajas_det       = results[0].boxes.xyxy.int().cpu().tolist()
+                    ids_rastreo_det = results[0].boxes.id.int().cpu().tolist()
+                    confianzas_det  = results[0].boxes.conf.cpu().tolist()
+                    clases_det      = results[0].boxes.cls.int().cpu().tolist()
+            except Exception:
+                pass
+
+            # Aplicar desenfoque de privacidad a todas las personas detectadas en caliente
+            for box_p, cls_val in zip(cajas_det, clases_det):
+                if cls_val == 0:  # Persona
+                    px1, py1, px2, py2 = box_p
+                    h_img, w_img = fotograma.shape[:2]
+                    px1, py1 = max(0, px1), max(0, py1)
+                    px2, py2 = min(w_img, px2), min(h_img, py2)
+                    if px2 > px1 and py2 > py1:
+                        roi_persona = fotograma[py1:py2, px1:px2]
+                        blurred = cv2.GaussianBlur(roi_persona, (99, 99), 30)
+                        fotograma[py1:py2, px1:px2] = blurred
+
+            # Filtrar listas para excluir personas del pipeline de vehículos y OCR
+            ids_vistos = set()
+            ultimas_cajas = []
+            ultimas_cajas_personas = []
+            ultimos_ids_rastreo = []
+            ultimas_confianzas = []
+            for box_v, id_rastreo, conf_v, cls_v in zip(cajas_det, ids_rastreo_det, confianzas_det, clases_det):
+                if cls_v != 0:  # No es persona, es vehículo
+                    ultimas_cajas.append(box_v)
+                    ultimos_ids_rastreo.append(id_rastreo)
+                    ultimas_confianzas.append(conf_v)
+                else:
+                    ultimas_cajas_personas.append(box_v)
+
+            # ReID & OCR
+            for box, track_id, conf_v in zip(ultimas_cajas, ultimos_ids_rastreo, ultimas_confianzas):
+                if conf_v < 0.35: continue
+                x1, y1, x2, y2 = box
+                ids_vistos.add(track_id)
+
+                # ReID
+                placa_prev = self.cache_placas.get(track_id)
+                track_id, placa_prev, reid_aplicado = self.reider.actualizar(
+                    track_id, 2, (x1, y1, x2, y2), fotograma[y1:y2, x1:x2], placa_prev
+                )
+                if reid_aplicado and placa_prev:
+                    self.cache_placas[track_id] = placa_prev
+
+                # Nitidez
+                recorte_vehiculo = fotograma[y1:y2, x1:x2]
+                nitidez = calidad_imagen(recorte_vehiculo)
+                pnitidez = self.mejor_nitidez.get(track_id, 0.0)
+                if nitidez > pnitidez and recorte_vehiculo.size > 0:
+                    self.mejor_nitidez[track_id] = nitidez
+                    self.mejor_recorte[track_id] = recorte_vehiculo.copy()
+
+                # OCR Local Asíncrono
+                vot = self.votadores.get(track_id)
+                if not (vot and vot.stable(min_lecturas=6, min_confianza=0.75)):
+                    resultados_p = modelo_placas_global(recorte_vehiculo, verbose=False)
+                    if resultados_p and len(resultados_p[0].boxes) > 0:
+                        mejor_idx = int(resultados_p[0].boxes.conf.argmax())
+                        conf_placa = float(resultados_p[0].boxes.conf[mejor_idx])
+                        if conf_placa >= 0.25:
+                            px1, py1, px2, py2 = resultados_p[0].boxes.xyxy[mejor_idx].int().cpu().tolist()
+                            roi_placa = recorte_vehiculo[py1:py2, px1:px2]
+                            area = roi_placa.shape[0] * roi_placa.shape[1]
+                            if roi_placa.size > 0:
+                                self.ejecutor_ocr.submit(self._ejecutar_ocr_hilo, track_id, roi_placa.copy(), area)
+
+            self.reider.marcar_ids(ids_vistos)
+
+            # Dibujar detecciones en el fotograma para enviar de vuelta
+            ROJO    = (0, 0, 255)
+            VERDE   = (0, 200, 50)
+            NARANJA = (0, 130, 255)
+            AMARILLO= (0, 220, 255)
+            NEGRO   = (0, 0, 0)
+            BLANCO  = (255, 255, 255)
+
+            ORIGEN_COLORES = {
+                'Gemini'       : ((0, 220, 255), (0, 0, 0)),
+                'Gemini Fix'   : ((0, 165, 255), (0, 0, 0)),
+                'Confirmado'   : ((0, 255, 100), (0, 0, 0)),
+                'Local Estable': ((0, 200, 200), (0, 0, 0)),
+                'YOLO (local)' : ((200, 200, 200), (0, 0, 0)),
+            }
+
+            for box, id_rastreo, conf_v in zip(ultimas_cajas, ultimos_ids_rastreo, ultimas_confianzas):
+                if conf_v < 0.35: continue
+                x1, y1, x2, y2 = box
+                cache = self.cache_placas.get(id_rastreo)
+                if cache and cache.get('plate'):
+                    texto  = cache['plate']
+                    origen = cache.get('origen', 'Local')
+                    n      = cache.get('n_lecturas', 0)
+                    bg_c, fg_c = ORIGEN_COLORES.get(origen, (BLANCO, NEGRO))
+
+                    if cache.get('es_robado'):
+                        color = NARANJA if (self.conteo_fotogramas // 15) % 2 == 0 else AMARILLO
+                        cv2.rectangle(fotograma, (x1, y1), (x2, y2), color, 3)
+                        dibujar_etiqueta(fotograma, f"⚠ ROBADO | {texto}", x1, y1, color, NEGRO)
+                        info = cache.get('info') or {}
+                        dibujar_etiqueta(fotograma, f"{info.get('modelo','')} {info.get('color','')}", x1, y2 + 15, color, NEGRO)
+                    else:
+                        cv2.rectangle(fotograma, (x1, y1), (x2, y2), VERDE, 2)
+                        dibujar_etiqueta(fotograma, f"Plate: {texto} ({origen}, n={n})", x1, y1, bg_c, fg_c)
+                else:
+                    cv2.rectangle(fotograma, (x1, y1), (x2, y2), ROJO, 1)
+
+            # Codificar y transmitir de regreso
+            _, buf = cv2.imencode(".jpg", fotograma, [cv2.IMWRITE_JPEG_QUALITY, 75])
+            self._difundir_fotograma_privado(buf.tobytes())
+
+        except Exception as e:
+            print(f"[procesar_frame_manual Error] {e}")
+
     def _ejecutar_ocr_hilo(self, tid, roi_placa, area):
         try:
             lecturas, _ = leer_todas_variantes(reader_ocr_global, roi_placa, area, tid)
@@ -865,7 +998,10 @@ async def websocket_legacy(websocket: WebSocket):
                         websocket.send_text(json.dumps({"type": "cameras", "list": cams})),
                         loop
                     )
-                threading.Thread(target=realizar_escaneo_legacy, daemon=True).start()
+            elif action == "process_frame":
+                b64_img = cmd.get("image", "")
+                if b64_img:
+                    threading.Thread(target=pipeline.procesar_frame_manual, args=(b64_img,), daemon=True).start()
 
             elif action == "ptz":
                 direccion = cmd.get("action", "")
@@ -961,7 +1097,10 @@ async def websocket_saas(websocket: WebSocket, token: str):
                         websocket.send_text(json.dumps({"type": "cameras", "list": cams})),
                         loop
                     )
-                threading.Thread(target=realizar_escaneo, daemon=True).start()
+            elif action == "process_frame":
+                b64_img = cmd.get("image", "")
+                if b64_img:
+                    threading.Thread(target=pipeline.procesar_frame_manual, args=(b64_img,), daemon=True).start()
 
             elif action == "ptz":
                 direccion = cmd.get("action", "")
