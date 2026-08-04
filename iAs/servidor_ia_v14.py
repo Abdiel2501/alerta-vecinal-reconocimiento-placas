@@ -82,7 +82,7 @@ modelo_placas_global = YOLO(resource_path("runs/detect/license_plate_detector/we
 
 print("⚡ Inicializando PaddleOCR...")
 try:
-    reader_ocr_global = PaddleOCR(use_angle_cls=False, lang='en')
+    reader_ocr_global = PaddleOCR(use_angle_cls=False, lang='en', use_gpu=False)
 except Exception as e:
     print(f"❌ Error al inicializar PaddleOCR: {e}")
     sys.exit(1)
