@@ -148,6 +148,8 @@ class UserPipeline:
         self.telegram_chat_id = user_data.get("telegram_chat_id")
         self.telegram_token = user_data.get("telegram_token")
         self.gemini_api_key = user_data.get("gemini_api_key")
+        self.bot_username = None
+        self._cargar_bot_username()
         
         # Conexiones activas de este usuario (PWA, celular, etc.)
         self.clientes: set[WebSocket] = set()
@@ -223,8 +225,12 @@ class UserPipeline:
         """Actualiza la cámara y los tokens de notificación del usuario en caliente."""
         nueva_rtsp = user_data.get("rtsp_url")
         self.telegram_chat_id = user_data.get("telegram_chat_id")
-        self.telegram_token = user_data.get("telegram_token")
         self.gemini_api_key = user_data.get("gemini_api_key")
+
+        # Si el token de telegram cambia o se inicializa, actualizar el username del bot
+        if self.telegram_token != user_data.get("telegram_token"):
+            self.telegram_token = user_data.get("telegram_token")
+            self._cargar_bot_username()
 
         if nueva_rtsp != self.rtsp_url:
             print(f"[User {self.usuario_id}] Cambiando cámara de {self.rtsp_url} a {nueva_rtsp}")
@@ -234,6 +240,28 @@ class UserPipeline:
                 self.iniciar()
             else:
                 self.cambio_camara_solicitado = nueva_rtsp
+
+    def _cargar_bot_username(self):
+        if self.telegram_token:
+            def fetch_bot_name():
+                try:
+                    import requests
+                    r = requests.get(f"https://api.telegram.org/bot{self.telegram_token}/getMe", timeout=5)
+                    if r.status_code == 200 and r.json().get("ok"):
+                        self.bot_username = r.json()["result"].get("username")
+                        print(f"[Config] Nombre de usuario del bot obtenido para Usuario {self.usuario_id}: @{self.bot_username}")
+                        
+                        # Difundir el nuevo estado del bot a los clientes conectados
+                        self._difundir_evento_privado({
+                            "type": "status",
+                            "ai": "running" if self.inteligencia_artificial_ejecutandose else "iniciando",
+                            "camera": self.rtsp_url or "Ninguna",
+                            "fps": round(self.fps_actual, 1),
+                            "bot_username": self.bot_username
+                        })
+                except Exception as e:
+                    print(f"[Config Error] No se pudo obtener username del bot: {e}")
+            threading.Thread(target=fetch_bot_name, daemon=True).start()
 
     def _bucle_ia(self):
         self.inteligencia_artificial_ejecutandose = True
@@ -978,6 +1006,7 @@ async def websocket_legacy(websocket: WebSocket):
         "ai": "running" if pipeline.inteligencia_artificial_ejecutandose else "iniciando",
         "camera": pipeline.rtsp_url or "Ninguna",
         "fps": round(pipeline.fps_actual, 1),
+        "bot_username": pipeline.bot_username
     }))
 
     try:
@@ -1073,6 +1102,7 @@ async def websocket_saas(websocket: WebSocket, token: str):
         "ai": "running" if pipeline.inteligencia_artificial_ejecutandose else "iniciando",
         "camera": pipeline.rtsp_url or "Ninguna",
         "fps": round(pipeline.fps_actual, 1),
+        "bot_username": pipeline.bot_username
     }))
 
     try:
