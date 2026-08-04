@@ -1512,25 +1512,35 @@ class ReidentificadorVehiculos:
 
 def _ocr_intentar(reader, img, track_id, label):
     try:
-        res = reader.ocr(img, det=False, cls=False)
-        if res and res[0] and res[0][0]:
-            txt, conf = res[0][0]
-            print(f"[Debug OCR det=False] ID {track_id} - Leído: '{txt}' (Conf: {conf:.2f})")
-            tv = validar_formato_placa(txt)
-            if tv and conf > 0.40: return tv, float(conf), img
-    except Exception as e_ocr:
-        print(f"[Debug OCR error det=False] {e_ocr}")
-    try:
-        res = reader.ocr(img, det=True, cls=False)
+        res = reader.ocr(img)
         if res and res[0]:
-            lineas = sorted(res[0], key=lambda r: r[0][0][0])
-            txt = "".join(r[1][0] for r in lineas)
-            conf = sum(r[1][1] for r in lineas) / len(lineas) if len(lineas) > 0 else 0.0
-            print(f"[Debug OCR det=True] ID {track_id} - Leído: '{txt}' (Conf: {conf:.2f})")
-            tv = validar_formato_placa(txt)
-            if tv: return tv, conf, img
+            # Verificar si devolvió lista de líneas o formato directo (tupla/string)
+            if isinstance(res[0][0], str):
+                txt, conf = res[0]
+                print(f"[Debug OCR Simple] ID {track_id} - Leído: '{txt}' (Conf: {conf:.2f})")
+                tv = validar_formato_placa(txt)
+                if tv: return tv, float(conf), img
+            elif isinstance(res[0][0], list) and len(res[0][0]) == 2 and isinstance(res[0][0][0], str):
+                # Formato: [('TEXTO', confianza), ...]
+                txt, conf = res[0][0]
+                print(f"[Debug OCR ListDirect] ID {track_id} - Leído: '{txt}' (Conf: {conf:.2f})")
+                tv = validar_formato_placa(txt)
+                if tv: return tv, float(conf), img
+            else:
+                # Formato completo con bounding boxes: [ [ [ [x,y],... ], ('TEXTO', conf) ], ... ]
+                lineas = []
+                for r in res[0]:
+                    if isinstance(r, list) and len(r) > 1 and isinstance(r[1], tuple):
+                        lineas.append(r)
+                if lineas:
+                    lineas_ordenadas = sorted(lineas, key=lambda x: x[0][0][0])
+                    txt = "".join(r[1][0] for r in lineas_ordenadas)
+                    conf = sum(r[1][1] for r in lineas_ordenadas) / len(lineas_ordenadas)
+                    print(f"[Debug OCR Det] ID {track_id} - Leído: '{txt}' (Conf: {conf:.2f})")
+                    tv = validar_formato_placa(txt)
+                    if tv: return tv, conf, img
     except Exception as e_ocr:
-        print(f"[Debug OCR error det=True] {e_ocr}")
+        print(f"[Debug OCR error] {e_ocr}")
     return "", 0.0, img
 
 def leer_todas_variantes(reader, roi_base, area, track_id):
