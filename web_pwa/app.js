@@ -1259,7 +1259,7 @@ document.addEventListener('DOMContentLoaded', () => {
           const isServerConnected = ws && ws.readyState === WebSocket.OPEN;
 
           if (isServerConnected) {
-            // Enviamos fotogramas de forma controlada (máximo 1 a la vez y redimensionados a 640px para ahorrar ancho de banda y latencia)
+            // Enviamos fotogramas de forma controlada (máximo 1 a la vez y redimensionados a 960px para mayor nitidez y detección de placas)
             if (!isWebcamFrameProcessing && now - lastWebcamFrameSentTime > 33) {
               lastWebcamFrameSentTime = now;
               if (localWebcamVideoEl.videoWidth) {
@@ -1268,8 +1268,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Timeout de seguridad para evitar bloqueos
                 setTimeout(() => { isWebcamFrameProcessing = false; }, 800);
 
-                const scale = 640 / localWebcamVideoEl.videoWidth;
-                const width = 640;
+                const scale = 960 / localWebcamVideoEl.videoWidth;
+                const width = 960;
                 const height = localWebcamVideoEl.videoHeight * scale;
 
                 const offscreenCanvas = document.createElement('canvas');
@@ -1278,7 +1278,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const offscreenCtx = offscreenCanvas.getContext('2d');
                 offscreenCtx.drawImage(localWebcamVideoEl, 0, 0, width, height);
 
-                const dataUrl = offscreenCanvas.toDataURL('image/jpeg', 0.5);
+                const dataUrl = offscreenCanvas.toDataURL('image/jpeg', 0.7);
                 ws.send(JSON.stringify({
                   cmd: 'process_frame',
                   image: dataUrl

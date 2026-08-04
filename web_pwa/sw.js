@@ -1,4 +1,4 @@
-const CACHE_NAME = 'alertavecinal-v110-fluid-fps';
+const CACHE_NAME = 'alertavecinal-v111-ocr-resolution-increase';
 const APP_SHELL = [
   'index.html',
   'styles.css',
