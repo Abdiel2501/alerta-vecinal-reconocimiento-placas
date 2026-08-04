@@ -17,13 +17,6 @@ Esta versión implementa una arquitectura SaaS Multi-tenant optimizada:
 import os
 import sys
 
-# Deshabilitar OneDNN/MKL-DNN y forzar hilos a 1 para evitar crash en CPUs de Google Cloud
-os.environ['FLAGS_use_mkldnn'] = '0'
-os.environ['FLAGS_use_new_executor'] = '0'
-os.environ['PADDLE_DISABLE_MKL'] = '1'
-os.environ['OMP_NUM_THREADS'] = '1'
-os.environ['MKL_NUM_THREADS'] = '1'
-
 import warnings
 import asyncio
 import base64
@@ -46,7 +39,7 @@ import cv2
 import numpy as np
 import torch
 from ultralytics import YOLO
-from paddleocr import PaddleOCR
+import easyocr
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Body
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -88,28 +81,12 @@ modelo_vehiculos_global = YOLO(resource_path("yolo11n.pt"))
 print("🤖 Cargando modelo de detección de placas...")
 modelo_placas_global = YOLO(resource_path("runs/detect/license_plate_detector/weights/best.pt"))
 
-print("⚡ Inicializando OCR (PaddleX pipeline)...")
-reader_ocr_global = None
+print("⚡ Inicializando EasyOCR...")
 try:
-    import paddle
-    os.environ['FLAGS_use_mkldnn'] = '0'
-    os.environ['PADDLE_DISABLE_MKL'] = '1'
-    try:
-        paddle.set_device('cpu')
-    except Exception as e_dev:
-        print(f"⚠️ No se pudo forzar CPU en paddle: {e_dev}")
-    # Intentar con PaddleX v3 (el que tiene instalado el servidor de Google Cloud)
-    try:
-        from paddlex import create_pipeline
-        reader_ocr_global = create_pipeline(pipeline="OCR")
-        print("✅ PaddleX OCR pipeline cargado correctamente.")
-    except Exception as e_px:
-        print(f"⚠️ PaddleX pipeline falló ({e_px}), intentando PaddleOCR clásico...")
-        from paddleocr import PaddleOCR
-        reader_ocr_global = PaddleOCR(use_angle_cls=False, lang='en', enable_mkldnn=False)
-        print("✅ PaddleOCR clásico cargado correctamente.")
+    reader_ocr_global = easyocr.Reader(['en'], gpu=usar_gpu)
+    print("✅ EasyOCR cargado correctamente.")
 except Exception as e:
-    print(f"❌ Error al inicializar OCR: {e}")
+    print(f"❌ Error al inicializar EasyOCR: {e}")
     sys.exit(1)
 
 # ─── Utilidades de Contraseñas y Tokens ────────────────────────────────────────
@@ -1532,48 +1509,17 @@ class ReidentificadorVehiculos:
 
 def _ocr_intentar(reader, img, track_id, label):
     """
-    Intenta leer texto de img usando tanto PaddleX v3 (create_pipeline) como
-    PaddleOCR clásico, detectando el tipo de respuesta automáticamente.
+    Lee texto de img usando EasyOCR (confiable en cualquier CPU/GPU).
+    EasyOCR devuelve: [(bbox, text, confidence), ...]
     """
     try:
-        # ── PaddleX v3 pipeline (predict devuelve generador/lista de dicts) ──
-        if hasattr(reader, 'predict'):
-            rgb_img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-            resultados = list(reader.predict(rgb_img))
-            for res in resultados:
-                # Extraer texto según el formato del resultado de PaddleX
-                rec_texts  = None
-                rec_scores = None
-                if isinstance(res, dict):
-                    rec_texts  = res.get('rec_texts') or res.get('text') or []
-                    rec_scores = res.get('rec_scores') or res.get('score') or [1.0]*len(rec_texts)
-                elif hasattr(res, 'rec_texts'):
-                    rec_texts  = res.rec_texts
-                    rec_scores = getattr(res, 'rec_scores', [1.0]*len(rec_texts))
-                if rec_texts:
-                    txt  = "".join(rec_texts)
-                    conf = float(sum(rec_scores)/len(rec_scores)) if rec_scores else 0.5
-                    print(f"[Debug OCR PaddleX] ID {track_id}/{label} - Leído: '{txt}' (Conf: {conf:.2f})")
-                    tv = validar_formato_placa(txt)
-                    if tv:
-                        return tv, conf, img
-            return "", 0.0, img
-
-        # ── PaddleOCR clásico (reader.ocr) ──
-        res = reader.ocr(img)
-        if res and res[0]:
-            if isinstance(res[0][0], str):
-                txt, conf = res[0]
-            elif isinstance(res[0][0], list) and len(res[0][0]) == 2 and isinstance(res[0][0][0], str):
-                txt, conf = res[0][0]
-            else:
-                lineas = [r for r in res[0] if isinstance(r, list) and len(r) > 1 and isinstance(r[1], tuple)]
-                if not lineas:
-                    return "", 0.0, img
-                lineas_ord = sorted(lineas, key=lambda x: x[0][0][0])
-                txt  = "".join(r[1][0] for r in lineas_ord)
-                conf = sum(r[1][1] for r in lineas_ord) / len(lineas_ord)
-            print(f"[Debug OCR Classic] ID {track_id}/{label} - Leído: '{txt}' (Conf: {conf:.2f})")
+        resultados = reader.readtext(img)
+        if resultados:
+            # Ordenar por posición horizontal (x) y unir todos los textos
+            resultados_ord = sorted(resultados, key=lambda r: r[0][0][0])
+            txt  = "".join(r[1] for r in resultados_ord)
+            conf = sum(r[2] for r in resultados_ord) / len(resultados_ord)
+            print(f"[Debug OCR EasyOCR] ID {track_id}/{label} - Leído: '{txt}' (Conf: {conf:.2f})")
             tv = validar_formato_placa(txt)
             if tv:
                 return tv, float(conf), img
