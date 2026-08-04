@@ -373,14 +373,23 @@ class UserPipeline:
                         # OCR Local Asíncrono
                         vot = self.votadores.get(track_id)
                         if not (vot and vot.stable(min_lecturas=6, min_confianza=0.75)):
-                            # Detección de placas en recorte
-                            resultados_p = modelo_placas_global(recorte_vehiculo, verbose=False)
+                            # Detección de placas en recorte (con umbral optimizado para compresión)
+                            resultados_p = modelo_placas_global(recorte_vehiculo, conf=0.15, verbose=False)
                             if resultados_p and len(resultados_p[0].boxes) > 0:
                                 mejor_idx = int(resultados_p[0].boxes.conf.argmax())
                                 conf_placa = float(resultados_p[0].boxes.conf[mejor_idx])
-                                if conf_placa >= 0.25:
+                                if conf_placa >= 0.15:
                                     px1, py1, px2, py2 = resultados_p[0].boxes.xyxy[mejor_idx].int().cpu().tolist()
-                                    roi_placa = recorte_vehiculo[py1:py2, px1:px2]
+                                    
+                                    # Agregar margen inteligente (padding) para evitar recortes muy ajustados
+                                    pw = px2 - px1
+                                    m = max(int(pw * 0.15), 4)
+                                    px1c = max(0, px1 - m)
+                                    py1c = max(0, py1 - m)
+                                    px2c = min(recorte_vehiculo.shape[1], px2 + m)
+                                    py2c = min(recorte_vehiculo.shape[0], py2 + m)
+                                    
+                                    roi_placa = recorte_vehiculo[py1c:py2c, px1c:px2c]
                                     area = roi_placa.shape[0] * roi_placa.shape[1]
 
                                     if roi_placa.size > 0:
@@ -498,13 +507,22 @@ class UserPipeline:
                 # OCR Local Asíncrono
                 vot = self.votadores.get(track_id)
                 if not (vot and vot.stable(min_lecturas=6, min_confianza=0.75)):
-                    resultados_p = modelo_placas_global(recorte_vehiculo, verbose=False)
+                    resultados_p = modelo_placas_global(recorte_vehiculo, conf=0.15, verbose=False)
                     if resultados_p and len(resultados_p[0].boxes) > 0:
                         mejor_idx = int(resultados_p[0].boxes.conf.argmax())
                         conf_placa = float(resultados_p[0].boxes.conf[mejor_idx])
-                        if conf_placa >= 0.25:
+                        if conf_placa >= 0.15:
                             px1, py1, px2, py2 = resultados_p[0].boxes.xyxy[mejor_idx].int().cpu().tolist()
-                            roi_placa = recorte_vehiculo[py1:py2, px1:px2]
+                            
+                            # Agregar margen inteligente (padding) para evitar recortes muy ajustados
+                            pw = px2 - px1
+                            m = max(int(pw * 0.15), 4)
+                            px1c = max(0, px1 - m)
+                            py1c = max(0, py1 - m)
+                            px2c = min(recorte_vehiculo.shape[1], px2 + m)
+                            py2c = min(recorte_vehiculo.shape[0], py2 + m)
+                            
+                            roi_placa = recorte_vehiculo[py1c:py2c, px1c:px2c]
                             area = roi_placa.shape[0] * roi_placa.shape[1]
                             if roi_placa.size > 0:
                                 self.ejecutor_ocr.submit(self._ejecutar_ocr_hilo, track_id, roi_placa.copy(), area)
