@@ -16,6 +16,14 @@ Esta versión implementa una arquitectura SaaS Multi-tenant optimizada:
 
 import os
 import sys
+
+# Deshabilitar OneDNN/MKL-DNN y forzar hilos a 1 para evitar crash en CPUs de Google Cloud
+os.environ['FLAGS_use_mkldnn'] = '0'
+os.environ['FLAGS_use_new_executor'] = '0'
+os.environ['PADDLE_DISABLE_MKL'] = '1'
+os.environ['OMP_NUM_THREADS'] = '1'
+os.environ['MKL_NUM_THREADS'] = '1'
+
 import warnings
 import asyncio
 import base64
