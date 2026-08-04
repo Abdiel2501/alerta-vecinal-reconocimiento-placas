@@ -276,13 +276,16 @@ class UserPipeline:
                 cajas_det, ids_rastreo_det, confianzas_det, clases_det = [], [], [], []
                 try:
                     results = modelo_vehiculos_global.track(fotograma, persist=True, classes=[0, 2, 3, 5, 7], conf=0.15, verbose=False)
-                    if results and results[0].boxes.id is not None:
+                    if results and results[0].boxes is not None and len(results[0].boxes) > 0:
                         cajas_det       = results[0].boxes.xyxy.int().cpu().tolist()
-                        ids_rastreo_det = results[0].boxes.id.int().cpu().tolist()
                         confianzas_det  = results[0].boxes.conf.cpu().tolist()
                         clases_det      = results[0].boxes.cls.int().cpu().tolist()
-                except Exception:
-                    pass
+                        if results[0].boxes.id is not None:
+                            ids_rastreo_det = results[0].boxes.id.int().cpu().tolist()
+                        else:
+                            ids_rastreo_det = list(range(1, len(cajas_det) + 1))
+                except Exception as e:
+                    print(f"[YOLO Track Error] {e}")
 
                 # Aplicar desenfoque de privacidad a todas las personas detectadas en caliente
                 for box_p, cls_val in zip(cajas_det, clases_det):
@@ -402,13 +405,16 @@ class UserPipeline:
             cajas_det, ids_rastreo_det, confianzas_det, clases_det = [], [], [], []
             try:
                 results = modelo_vehiculos_global.track(fotograma, persist=True, classes=[0, 2, 3, 5, 7], conf=0.15, verbose=False)
-                if results and results[0].boxes.id is not None:
+                if results and results[0].boxes is not None and len(results[0].boxes) > 0:
                     cajas_det       = results[0].boxes.xyxy.int().cpu().tolist()
-                    ids_rastreo_det = results[0].boxes.id.int().cpu().tolist()
                     confianzas_det  = results[0].boxes.conf.cpu().tolist()
                     clases_det      = results[0].boxes.cls.int().cpu().tolist()
-            except Exception:
-                pass
+                    if results[0].boxes.id is not None:
+                        ids_rastreo_det = results[0].boxes.id.int().cpu().tolist()
+                    else:
+                        ids_rastreo_det = list(range(1, len(cajas_det) + 1))
+            except Exception as e:
+                print(f"[YOLO Manual Track Error] {e}")
 
             # Aplicar desenfoque de privacidad a todas las personas detectadas en caliente
             for box_p, cls_val in zip(cajas_det, clases_det):
