@@ -1439,6 +1439,11 @@ class VotadorPlacaCaracter:
             placa.append(mejor_ch)
         return "".join(placa), round(certeza_total / 7.0, 3), len(self.historial)
 
+    def stable(self, min_lecturas=6, min_confianza=0.75):
+        placa, conf, n = self.consenso()
+        if not placa: return False
+        return n >= min_lecturas and conf >= min_confianza
+
     def gemini_ya_leyo(self):
         return any(f == 'Gemini' for _, _, f in self.historial)
 
