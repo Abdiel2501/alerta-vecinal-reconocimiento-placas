@@ -1572,6 +1572,38 @@ def liberar_puerto_si_ocupado(port: int):
 async def _on_startup():
     estado_servidor_saas.loop = asyncio.get_running_loop()
 
+    # Sincronizar automáticamente config.env con el usuario admin (ID: 1) para no usar configuraciones obsoletas
+    for config_path in ["config.env", "../yolo-plate-recognition/config.env"]:
+        if os.path.exists(config_path):
+            try:
+                env_tok, env_chat, env_gemini = "", "", ""
+                with open(config_path, "r", encoding="utf-8") as f:
+                    for line in f:
+                        line = line.strip()
+                        if line.startswith("TELEGRAM_TOKEN="):
+                            env_tok = line.split("=", 1)[1].strip()
+                        elif line.startswith("TELEGRAM_CHAT_ID="):
+                            env_chat = line.split("=", 1)[1].strip()
+                        elif line.startswith("GEMINI_API_KEY="):
+                            env_gemini = line.split("=", 1)[1].strip()
+                if env_tok or env_chat:
+                    cuenta = db_global.obtener_cuenta_por_id(1)
+                    if not cuenta:
+                        db_global.crear_cuenta("admin@alertavecinal.com", hash_password("admin123"))
+                        cuenta = db_global.obtener_cuenta_por_id(1)
+                    
+                    if cuenta:
+                        db_global.actualizar_config_cuenta(
+                            1,
+                            cuenta.get("rtsp_url") or "",
+                            env_chat or cuenta.get("telegram_chat_id") or "",
+                            env_tok or cuenta.get("telegram_token") or "",
+                            env_gemini or cuenta.get("gemini_api_key") or ""
+                        )
+                        print(f"[Startup Config] Telegram Token y Chat ID actualizados para Admin (ID: 1) desde config.env")
+            except Exception as e:
+                print(f"[Startup Config Error] {e}")
+
     # Autoiniciar pipelines para todos los usuarios con cámaras al arrancar el servidor
     try:
         cuentas_con_camara = db_global.obtener_todas_las_cuentas_con_camara()
