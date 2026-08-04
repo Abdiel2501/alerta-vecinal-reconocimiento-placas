@@ -1366,8 +1366,8 @@ def preprocesamiento_dinamico(roi_base, area, alto_objetivo=180.0):
         sc = T/img.shape[0]
         img = cv2.resize(img,(max(1,int(img.shape[1]*sc)),max(1,int(img.shape[0]*sc))), interpolation=cv2.INTER_LANCZOS4)
     
-    # Aplicar corrección de perspectiva V14
-    img = corregir_perspectiva(img)
+    # Aplicar corrección de perspectiva V14 (deshabilitado temporalmente para evitar distorsiones en papel/webcam)
+    # img = corregir_perspectiva(img)
     
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     brillo_medio = cv2.mean(gray)[0]
