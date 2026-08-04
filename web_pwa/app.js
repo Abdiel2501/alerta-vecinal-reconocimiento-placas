@@ -1260,7 +1260,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
           if (isServerConnected) {
             // Enviamos fotogramas de forma controlada (máximo 1 a la vez y redimensionados a 640px para ahorrar ancho de banda y latencia)
-            if (!isWebcamFrameProcessing && now - lastWebcamFrameSentTime > 150) {
+            if (!isWebcamFrameProcessing && now - lastWebcamFrameSentTime > 33) {
               lastWebcamFrameSentTime = now;
               if (localWebcamVideoEl.videoWidth) {
                 isWebcamFrameProcessing = true;
