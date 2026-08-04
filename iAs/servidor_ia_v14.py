@@ -1530,8 +1530,8 @@ def _ocr_intentar(reader, img, track_id, label):
     try:
         # ── PaddleX v3 pipeline (predict devuelve generador/lista de dicts) ──
         if hasattr(reader, 'predict'):
-            pil_img = Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
-            resultados = list(reader.predict(pil_img))
+            rgb_img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+            resultados = list(reader.predict(rgb_img))
             for res in resultados:
                 # Extraer texto según el formato del resultado de PaddleX
                 rec_texts  = None
