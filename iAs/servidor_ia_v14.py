@@ -158,6 +158,7 @@ class UserPipeline:
         self.bloqueo_fotograma = threading.Lock()
         
         self.cap: cv2.VideoCapture | None = None
+        self.lock_procesar_manual = threading.Lock()
         self.cambio_camara_solicitado: str | None = None
         self.ref_hilo_camara = None
         
@@ -390,6 +391,8 @@ class UserPipeline:
                 time.sleep(0.1)
 
     def procesar_frame_manual(self, b64_img: str):
+        if not self.lock_procesar_manual.acquire(blocking=False):
+            return
         try:
             if "," in b64_img:
                 b64_img = b64_img.split(",", 1)[1]
@@ -524,6 +527,8 @@ class UserPipeline:
 
         except Exception as e:
             print(f"[procesar_frame_manual Error] {e}")
+        finally:
+            self.lock_procesar_manual.release()
 
     def _ejecutar_ocr_hilo(self, tid, roi_placa, area):
         try:
