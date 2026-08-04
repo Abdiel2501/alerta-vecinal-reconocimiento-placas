@@ -1211,6 +1211,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let localWebcamAnimationFrame = null;
   let lastWebcamFrameSentTime = 0;
   let currentLocalSimPlate = null;
+  let isWebcamFrameProcessing = false;
 
   if (useWebcamBtn) {
     useWebcamBtn.addEventListener('click', async () => {
@@ -1258,16 +1259,25 @@ document.addEventListener('DOMContentLoaded', () => {
           const isServerConnected = ws && ws.readyState === WebSocket.OPEN;
 
           if (isServerConnected) {
-            // Si el servidor está conectado, NO pintamos la webcam local aquí para evitar sobreescribir el video procesado
-            // Enviamos un frame usando un canvas oculto a una frecuencia controlada
-            if (now - lastWebcamFrameSentTime > 150) {
+            // Enviamos fotogramas de forma controlada (máximo 1 a la vez y redimensionados a 640px para ahorrar ancho de banda y latencia)
+            if (!isWebcamFrameProcessing && now - lastWebcamFrameSentTime > 150) {
               lastWebcamFrameSentTime = now;
               if (localWebcamVideoEl.videoWidth) {
+                isWebcamFrameProcessing = true;
+                
+                // Timeout de seguridad para evitar bloqueos
+                setTimeout(() => { isWebcamFrameProcessing = false; }, 800);
+
+                const scale = 640 / localWebcamVideoEl.videoWidth;
+                const width = 640;
+                const height = localWebcamVideoEl.videoHeight * scale;
+
                 const offscreenCanvas = document.createElement('canvas');
-                offscreenCanvas.width = localWebcamVideoEl.videoWidth;
-                offscreenCanvas.height = localWebcamVideoEl.videoHeight;
+                offscreenCanvas.width = width;
+                offscreenCanvas.height = height;
                 const offscreenCtx = offscreenCanvas.getContext('2d');
-                offscreenCtx.drawImage(localWebcamVideoEl, 0, 0);
+                offscreenCtx.drawImage(localWebcamVideoEl, 0, 0, width, height);
+
                 const dataUrl = offscreenCanvas.toDataURL('image/jpeg', 0.5);
                 ws.send(JSON.stringify({
                   cmd: 'process_frame',
@@ -1900,6 +1910,7 @@ document.addEventListener('DOMContentLoaded', () => {
       } 
       else if (event.data instanceof Blob) {
         try {
+          isWebcamFrameProcessing = false; // Liberamos el bloqueo de envío al recibir el fotograma procesado
           // Detener el loop de la simulación fija si empieza a llegar video real
           if (fixedLensInterval) {
             clearInterval(fixedLensInterval);
