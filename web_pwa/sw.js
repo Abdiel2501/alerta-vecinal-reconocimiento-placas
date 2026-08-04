@@ -1,4 +1,4 @@
-const CACHE_NAME = 'alertavecinal-v107-public-release';
+const CACHE_NAME = 'alertavecinal-v108-webcam-race-fix';
 const APP_SHELL = [
   'index.html',
   'styles.css',

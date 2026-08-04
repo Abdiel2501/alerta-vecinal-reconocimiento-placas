@@ -1254,28 +1254,21 @@ document.addEventListener('DOMContentLoaded', () => {
           const videoCanvasFixed = document.getElementById('videoCanvasFixed');
           const videoCanvasPtz = document.getElementById('videoCanvasPtz');
 
-          if (videoCanvasFixed && localWebcamVideoEl.videoWidth) {
-            const ctxFixed = videoCanvasFixed.getContext('2d');
-            videoCanvasFixed.width = localWebcamVideoEl.videoWidth;
-            videoCanvasFixed.height = localWebcamVideoEl.videoHeight;
-            ctxFixed.drawImage(localWebcamVideoEl, 0, 0, videoCanvasFixed.width, videoCanvasFixed.height);
-          }
-
-          if (videoCanvasPtz && localWebcamVideoEl.videoWidth) {
-            const ctxPtz = videoCanvasPtz.getContext('2d');
-            videoCanvasPtz.width = localWebcamVideoEl.videoWidth;
-            videoCanvasPtz.height = localWebcamVideoEl.videoHeight;
-            ctxPtz.drawImage(localWebcamVideoEl, 0, 0, videoCanvasPtz.width, videoCanvasPtz.height);
-          }
-
           const now = Date.now();
           const isServerConnected = ws && ws.readyState === WebSocket.OPEN;
 
           if (isServerConnected) {
-            if (now - lastWebcamFrameSentTime > 200) {
+            // Si el servidor está conectado, NO pintamos la webcam local aquí para evitar sobreescribir el video procesado
+            // Enviamos un frame usando un canvas oculto a una frecuencia controlada
+            if (now - lastWebcamFrameSentTime > 150) {
               lastWebcamFrameSentTime = now;
-              if (videoCanvasFixed) {
-                const dataUrl = videoCanvasFixed.toDataURL('image/jpeg', 0.6);
+              if (localWebcamVideoEl.videoWidth) {
+                const offscreenCanvas = document.createElement('canvas');
+                offscreenCanvas.width = localWebcamVideoEl.videoWidth;
+                offscreenCanvas.height = localWebcamVideoEl.videoHeight;
+                const offscreenCtx = offscreenCanvas.getContext('2d');
+                offscreenCtx.drawImage(localWebcamVideoEl, 0, 0);
+                const dataUrl = offscreenCanvas.toDataURL('image/jpeg', 0.5);
                 ws.send(JSON.stringify({
                   cmd: 'process_frame',
                   image: dataUrl
@@ -1283,6 +1276,21 @@ document.addEventListener('DOMContentLoaded', () => {
               }
             }
           } else {
+            // Si no está conectado, sí dibujamos el video local
+            if (videoCanvasFixed && localWebcamVideoEl.videoWidth) {
+              const ctxFixed = videoCanvasFixed.getContext('2d');
+              videoCanvasFixed.width = localWebcamVideoEl.videoWidth;
+              videoCanvasFixed.height = localWebcamVideoEl.videoHeight;
+              ctxFixed.drawImage(localWebcamVideoEl, 0, 0, videoCanvasFixed.width, videoCanvasFixed.height);
+            }
+
+            if (videoCanvasPtz && localWebcamVideoEl.videoWidth) {
+              const ctxPtz = videoCanvasPtz.getContext('2d');
+              videoCanvasPtz.width = localWebcamVideoEl.videoWidth;
+              videoCanvasPtz.height = localWebcamVideoEl.videoHeight;
+              ctxPtz.drawImage(localWebcamVideoEl, 0, 0, videoCanvasPtz.width, videoCanvasPtz.height);
+            }
+
             const width = videoCanvasFixed ? videoCanvasFixed.width : 1280;
             const height = videoCanvasFixed ? videoCanvasFixed.height : 720;
             
