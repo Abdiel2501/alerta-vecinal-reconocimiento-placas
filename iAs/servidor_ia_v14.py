@@ -1398,16 +1398,11 @@ def variantes_angulo(roi_base, area):
     return out
 
 def validar_formato_placa(texto):
+    # Remover todo lo que no sea alfanumérico
     texto = re.sub(r'[^A-Z0-9]', '', texto.upper())
-    if len(texto) != 7: return ""
-    fl = {'0':'O','1':'I','5':'S','8':'B'}.get
-    fn = {'O':'0','I':'1','S':'5','Z':'2','B':'8','G':'6'}.get
-    p012 = [fl(c, c) for c in texto[0:3]]
-    p345 = [fn(c, c) for c in texto[3:6]]
-    p6   = texto[6]
-    if not all(c.isalpha() for c in p012): return ""
-    if not all(c.isdigit() for c in p345): return ""
-    return "".join(p012) + "".join(p345) + p6
+    # Permitir placas de entre 5 y 9 caracteres (cobertura internacional/nacional completa)
+    if len(texto) < 5 or len(texto) > 9: return ""
+    return texto
 
 # ─── Votador Consenso V14 ─────────────────────────────────────────────────────
 
@@ -1417,18 +1412,25 @@ class VotadorPlacaCaracter:
         self.ventana = ventana
 
     def agregar(self, texto, conf, fuente):
-        if texto and len(texto) == 7:
+        if texto and 5 <= len(texto) <= 9:
             self.historial.append((texto, float(conf), fuente))
             if len(self.historial) > self.ventana:
                 self.historial.pop(0)
 
     def consenso(self):
         if not self.historial: return "", 0.0, 0
-        posiciones = [defaultdict(float) for _ in range(7)]
+        
+        # Determinar dinámicamente la longitud de la placa más común en el historial
+        longitudes = [len(texto) for texto, _, _ in self.historial]
+        longitud_consenso = Counter(longitudes).most_common(1)[0][0]
+        
+        posiciones = [defaultdict(float) for _ in range(longitud_consenso)]
         for texto, conf, fuente in self.historial:
+            if len(texto) != longitud_consenso: continue
             peso = FUENTE_PESO.get(fuente, 1.0) * max(conf, 0.05)
             for i, ch in enumerate(texto):
                 posiciones[i][ch] += peso
+                
         placa = []
         certeza_total = 0.0
         for pos in posiciones:
@@ -1437,7 +1439,8 @@ class VotadorPlacaCaracter:
             total = sum(pos.values())
             certeza_total += (pos[mejor_ch] / total) if total > 0 else 0.0
             placa.append(mejor_ch)
-        return "".join(placa), round(certeza_total / 7.0, 3), len(self.historial)
+            
+        return "".join(placa), round(certeza_total / float(longitud_consenso), 3), len(self.historial)
 
     def stable(self, min_lecturas=6, min_confianza=0.75):
         placa, conf, n = self.consenso()
