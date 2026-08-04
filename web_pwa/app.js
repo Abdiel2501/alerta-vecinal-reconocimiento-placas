@@ -1823,7 +1823,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // Es una IP o un dominio sin protocolo
       let protocol = 'ws';
       // Solo usar wss:// si se especifica un dominio HTTPS con certificado SSL
-      if (ip.includes('.vercel.app') || ip.includes('.ngrok.io') || ip.includes('.loca.lt') || ip.includes('.railway.app')) {
+      if (ip.includes('.vercel.app') || ip.includes('.ngrok.io') || ip.includes('.ngrok-free.dev') || ip.includes('.loca.lt') || ip.includes('.railway.app')) {
         protocol = 'wss';
       }
       
