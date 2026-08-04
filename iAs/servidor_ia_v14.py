@@ -83,11 +83,15 @@ modelo_placas_global = YOLO(resource_path("runs/detect/license_plate_detector/we
 print("⚡ Inicializando PaddleOCR...")
 try:
     import paddle
+    # Deshabilitar OneDNN/MKL-DNN que causa errores de ConvertPirAttribute en CPUs de Google Cloud
+    os.environ['FLAGS_use_mkldnn'] = '0'
+    os.environ['FLAGS_use_new_executor'] = '0'
+    os.environ['PADDLE_DISABLE_MKL'] = '1'
     try:
         paddle.set_device('cpu')
     except Exception as e_dev:
         print(f"⚠️ No se pudo forzar CPU en paddle: {e_dev}")
-    reader_ocr_global = PaddleOCR(use_angle_cls=False, lang='en')
+    reader_ocr_global = PaddleOCR(use_angle_cls=False, lang='en', enable_mkldnn=False)
 except Exception as e:
     print(f"❌ Error al inicializar PaddleOCR: {e}")
     sys.exit(1)
