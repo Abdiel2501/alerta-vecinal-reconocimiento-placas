@@ -80,20 +80,28 @@ modelo_vehiculos_global = YOLO(resource_path("yolo11n.pt"))
 print("🤖 Cargando modelo de detección de placas...")
 modelo_placas_global = YOLO(resource_path("runs/detect/license_plate_detector/weights/best.pt"))
 
-print("⚡ Inicializando PaddleOCR...")
+print("⚡ Inicializando OCR (PaddleX pipeline)...")
+reader_ocr_global = None
 try:
     import paddle
-    # Deshabilitar OneDNN/MKL-DNN que causa errores de ConvertPirAttribute en CPUs de Google Cloud
     os.environ['FLAGS_use_mkldnn'] = '0'
-    os.environ['FLAGS_use_new_executor'] = '0'
     os.environ['PADDLE_DISABLE_MKL'] = '1'
     try:
         paddle.set_device('cpu')
     except Exception as e_dev:
         print(f"⚠️ No se pudo forzar CPU en paddle: {e_dev}")
-    reader_ocr_global = PaddleOCR(use_angle_cls=False, lang='en', enable_mkldnn=False)
+    # Intentar con PaddleX v3 (el que tiene instalado el servidor de Google Cloud)
+    try:
+        from paddlex import create_pipeline
+        reader_ocr_global = create_pipeline(pipeline="OCR")
+        print("✅ PaddleX OCR pipeline cargado correctamente.")
+    except Exception as e_px:
+        print(f"⚠️ PaddleX pipeline falló ({e_px}), intentando PaddleOCR clásico...")
+        from paddleocr import PaddleOCR
+        reader_ocr_global = PaddleOCR(use_angle_cls=False, lang='en', enable_mkldnn=False)
+        print("✅ PaddleOCR clásico cargado correctamente.")
 except Exception as e:
-    print(f"❌ Error al inicializar PaddleOCR: {e}")
+    print(f"❌ Error al inicializar OCR: {e}")
     sys.exit(1)
 
 # ─── Utilidades de Contraseñas y Tokens ────────────────────────────────────────
@@ -1515,34 +1523,52 @@ class ReidentificadorVehiculos:
 # ─── OCR Variantes y Consenso ────────────────────────────────────────────────
 
 def _ocr_intentar(reader, img, track_id, label):
+    """
+    Intenta leer texto de img usando tanto PaddleX v3 (create_pipeline) como
+    PaddleOCR clásico, detectando el tipo de respuesta automáticamente.
+    """
     try:
+        # ── PaddleX v3 pipeline (predict devuelve generador/lista de dicts) ──
+        if hasattr(reader, 'predict'):
+            pil_img = Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
+            resultados = list(reader.predict(pil_img))
+            for res in resultados:
+                # Extraer texto según el formato del resultado de PaddleX
+                rec_texts  = None
+                rec_scores = None
+                if isinstance(res, dict):
+                    rec_texts  = res.get('rec_texts') or res.get('text') or []
+                    rec_scores = res.get('rec_scores') or res.get('score') or [1.0]*len(rec_texts)
+                elif hasattr(res, 'rec_texts'):
+                    rec_texts  = res.rec_texts
+                    rec_scores = getattr(res, 'rec_scores', [1.0]*len(rec_texts))
+                if rec_texts:
+                    txt  = "".join(rec_texts)
+                    conf = float(sum(rec_scores)/len(rec_scores)) if rec_scores else 0.5
+                    print(f"[Debug OCR PaddleX] ID {track_id}/{label} - Leído: '{txt}' (Conf: {conf:.2f})")
+                    tv = validar_formato_placa(txt)
+                    if tv:
+                        return tv, conf, img
+            return "", 0.0, img
+
+        # ── PaddleOCR clásico (reader.ocr) ──
         res = reader.ocr(img)
         if res and res[0]:
-            # Verificar si devolvió lista de líneas o formato directo (tupla/string)
             if isinstance(res[0][0], str):
                 txt, conf = res[0]
-                print(f"[Debug OCR Simple] ID {track_id} - Leído: '{txt}' (Conf: {conf:.2f})")
-                tv = validar_formato_placa(txt)
-                if tv: return tv, float(conf), img
             elif isinstance(res[0][0], list) and len(res[0][0]) == 2 and isinstance(res[0][0][0], str):
-                # Formato: [('TEXTO', confianza), ...]
                 txt, conf = res[0][0]
-                print(f"[Debug OCR ListDirect] ID {track_id} - Leído: '{txt}' (Conf: {conf:.2f})")
-                tv = validar_formato_placa(txt)
-                if tv: return tv, float(conf), img
             else:
-                # Formato completo con bounding boxes: [ [ [ [x,y],... ], ('TEXTO', conf) ], ... ]
-                lineas = []
-                for r in res[0]:
-                    if isinstance(r, list) and len(r) > 1 and isinstance(r[1], tuple):
-                        lineas.append(r)
-                if lineas:
-                    lineas_ordenadas = sorted(lineas, key=lambda x: x[0][0][0])
-                    txt = "".join(r[1][0] for r in lineas_ordenadas)
-                    conf = sum(r[1][1] for r in lineas_ordenadas) / len(lineas_ordenadas)
-                    print(f"[Debug OCR Det] ID {track_id} - Leído: '{txt}' (Conf: {conf:.2f})")
-                    tv = validar_formato_placa(txt)
-                    if tv: return tv, conf, img
+                lineas = [r for r in res[0] if isinstance(r, list) and len(r) > 1 and isinstance(r[1], tuple)]
+                if not lineas:
+                    return "", 0.0, img
+                lineas_ord = sorted(lineas, key=lambda x: x[0][0][0])
+                txt  = "".join(r[1][0] for r in lineas_ord)
+                conf = sum(r[1][1] for r in lineas_ord) / len(lineas_ord)
+            print(f"[Debug OCR Classic] ID {track_id}/{label} - Leído: '{txt}' (Conf: {conf:.2f})")
+            tv = validar_formato_placa(txt)
+            if tv:
+                return tv, float(conf), img
     except Exception as e_ocr:
         print(f"[Debug OCR error] {e_ocr}")
     return "", 0.0, img
