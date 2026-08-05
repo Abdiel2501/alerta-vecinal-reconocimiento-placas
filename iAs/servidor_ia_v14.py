@@ -244,11 +244,22 @@ class UserPipeline:
                 self.cambio_camara_solicitado = nueva_rtsp
 
     def _cargar_bot_username(self):
-        if self.telegram_token:
+        # Si este usuario no tiene token propio, usar de respaldo el token del Admin (ID: 1)
+        # Así todos los vecinos ven el enlace correcto al bot de la comunidad
+        token_a_usar = self.telegram_token
+        if not token_a_usar:
+            try:
+                cuenta_admin = db_global.obtener_cuenta_por_id(1)
+                if cuenta_admin:
+                    token_a_usar = cuenta_admin.get("telegram_token", "")
+            except Exception:
+                pass
+
+        if token_a_usar:
             def fetch_bot_name():
                 try:
                     import requests
-                    r = requests.get(f"https://api.telegram.org/bot{self.telegram_token}/getMe", timeout=5)
+                    r = requests.get(f"https://api.telegram.org/bot{token_a_usar}/getMe", timeout=5)
                     if r.status_code == 200 and r.json().get("ok"):
                         self.bot_username = r.json()["result"].get("username")
                         print(f"[Config] Nombre de usuario del bot obtenido para Usuario {self.usuario_id}: @{self.bot_username}")
